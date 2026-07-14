@@ -15,6 +15,18 @@
 - THE-CAPTION本体への書き込み、push、PR、merge、runtime有効化は、明示的に依頼された別作業として扱う。
 - secret、credential、非公開の生run log、一時worktreeをcommitしない。
 
+## Evaluation foundation v1
+
+- 評価基盤の目的は、固定条件下で2つのprompt setを比較し、基本的な改善の有無を定義することに限定する。promptの作成、改善方法の提案、採用、release判断、本体反映を評価基盤へ持ち込まない。
+- prompt set BをAに対する改善と扱うのは、同じ評価set、case、反復条件で比較し、`winner: b`になった場合だけとする。`tie`は改善と扱わず、`winner: a`は悪化として扱う。
+- winnerは`quality_score`、`total_tokens`、`elapsed_seconds`の3 KPIだけで決める。qualityを優先し、同点ならtoken、さらに同点なら時間で決め、KPI以外の説明や期待で逆転させない。
+- `quality_score`はcaseごとの成果全体を0〜4で採点して算出する。細かな観点分解、重み付け、機械的な合否判定を標準化しない。quality raterはscoreと短い事実根拠だけを返し、A / Bの選択や改善提案を行わない。
+- 反復回数`N`は任意の正の整数とし、AとBで同じcaseと`1..N`を揃える。単一caseや少数反復の結果を評価範囲外へ一般化しない。
+- Layerは`Evaluation set`、`Execution`、`Quality rating`、`KPI comparison`の4つに限定する。各Layerは自分の出力だけを作り、前段のartifactを変更せず、後段の責務へ越境しない。評価基盤は`winner: a | b | tie`の出力で終了する。
+- 可変のtask、model、Agent、permission、executor parameterはEvaluation set capsuleまたはRun capsuleへ格納する。基盤はLayer接続に必要な最小binding以外をopaqueに扱い、parameter追加をworkflow変更にしない。
+- tokenについて評価基盤が扱う値は`total_tokens`だけとする。内訳や詳細分析は`layer2/extensions/<run_id>/<feature>/`配下の独立機能として実装し、quality ratingやKPI comparisonへ入力しない。
+- `docs/prompt-comparison-workflow.md`、`docs/evaluation-loop-manual.md`、`scripts/evaluation_loop.py`を評価基盤v1の固定点とする。再現できる不具合または明示的な要件変更がない限り変更しない。詳細化や追加分析は、まず配下機能で実現し、基盤のLayer、KPI、出力schemaを拡張しない。
+
 ## Change discipline
 
 - 1つの変更では1つの判断またはartifact単位を扱う。
