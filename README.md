@@ -12,7 +12,7 @@ THE-CAPTION向けプロンプトを設計、比較、評価し、反映可能な
 
 ## 現在の状態
 
-`evaluation_foundation`。2つのprompt setを3 KPIだけで比較する4 Layerの最小実行基盤を作成した状態です。評価caseとpromptはまだ作成していません。候補プロンプトの採用、THE-CAPTION本体への反映、runtime有効化も行っていません。
+`evaluation_foundation`。4 Layerの最小実行基盤、prompt file bundle exporter、Codex execution adapter、最初の評価caseを作成した状態です。`TC-F01 r2`をbit-identicalなbaseline / candidateで`N=10`実行し、persisted-sessionでは20runすべてが同じ正解成果へ到達しました。一方、quality 100対100でもtoken中央値がA 327,315対B 516,500.5となり、null条件で`winner: a`が生じたため、statusは`execution_qualified_null_calibration_failed`です。正式なprompt性能評価、採用、THE-CAPTION本体への反映、runtime有効化は行っていません。
 
 ## 構成
 

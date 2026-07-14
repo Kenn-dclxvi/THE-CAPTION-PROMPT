@@ -101,7 +101,7 @@ def layer1_freeze(args: argparse.Namespace) -> dict[str, Any]:
     for case in cases:
         destination = fixture_root / case["id"]
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(case["_source_fixture"], destination)
+        shutil.copytree(case["_source_fixture"], destination, symlinks=True)
         frozen_case = {key: value for key, value in case.items() if key != "_source_fixture"}
         frozen_case["fixture"] = f"fixtures/{case['id']}"
         frozen_cases.append(frozen_case)
@@ -126,11 +126,30 @@ def parse_usage(path: Path) -> int | None:
     return total
 
 
+def parse_run_status(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    status = load_json(path)
+    if status.get("schema_version") != "the-caption-prompt.run-status/v1":
+        raise EvaluationError("run status has an unsupported schema_version")
+    if status.get("status") != "excluded" or status.get("category") != "external_failure":
+        raise EvaluationError("run status may only report an excluded external_failure")
+    reason_code = status.get("reason_code")
+    if not isinstance(reason_code, str) or not reason_code.strip():
+        raise EvaluationError("run status reason_code must be a non-empty string")
+    return status
+
+
+def binding_is_excluded(binding: dict[str, Any]) -> bool:
+    return binding.get("status", "valid") == "excluded"
+
+
 def existing_binding(cycle: Path, condition: str, case_id: str, repetition: int) -> bool:
     for path in (cycle / "layer2" / "bindings").glob("*.json"):
         binding = load_json(path)
         if (
-            binding["condition"] == condition
+            not binding_is_excluded(binding)
+            and binding["condition"] == condition
             and binding["case_id"] == case_id
             and binding["repetition"] == repetition
         ):
@@ -176,12 +195,13 @@ def layer2_run(args: argparse.Namespace) -> dict[str, Any]:
     workspace = evidence / "workspace"
     source_fixture = cycle / "layer1" / case["fixture"]
     evidence.mkdir(parents=True, exist_ok=False)
-    shutil.copytree(source_fixture, workspace)
+    shutil.copytree(source_fixture, workspace, symlinks=True)
     case_path = evidence / "case.json"
     capsule_path = cycle / "layer2" / "capsules" / f"{run_id}.json"
     write_json_once(case_path, case)
     write_json_once(capsule_path, capsule)
     usage_report_path = evidence / ".usage-report.json"
+    status_report_path = evidence / ".run-status-report.json"
     extension_dir = cycle / "layer2" / "extensions" / run_id
     extension_dir.mkdir(parents=True)
 
@@ -189,6 +209,7 @@ def layer2_run(args: argparse.Namespace) -> dict[str, Any]:
     env["EVAL_CASE_FILE"] = str(case_path)
     env["EVAL_RUN_CAPSULE_FILE"] = str(capsule_path)
     env["EVAL_USAGE_FILE"] = str(usage_report_path)
+    env["EVAL_RUN_STATUS_FILE"] = str(status_report_path)
     env["EVAL_EXTENSION_DIR"] = str(extension_dir)
     started_at = utc_now()
     started = time.perf_counter()
@@ -198,11 +219,22 @@ def layer2_run(args: argparse.Namespace) -> dict[str, Any]:
     (evidence / "stdout.bin").write_bytes(completed.stdout)
     (evidence / "stderr.bin").write_bytes(completed.stderr)
 
-    total_tokens = parse_usage(usage_report_path)
+    exclusion = parse_run_status(status_report_path)
+    if status_report_path.exists():
+        status_report_path.unlink()
+    try:
+        total_tokens = parse_usage(usage_report_path)
+    except EvaluationError:
+        if exclusion is None:
+            raise
+        total_tokens = None
     if usage_report_path.exists():
         usage_report_path.unlink()
+    status = "excluded" if exclusion is not None else "valid"
     if total_tokens is not None:
         write_json_once(evidence / "usage.json", {"total_tokens": total_tokens})
+    if exclusion is not None:
+        write_json_once(evidence / "exclusion.json", exclusion)
 
     execution = {
         "schema_version": "the-caption-prompt.execution/v1",
@@ -214,6 +246,7 @@ def layer2_run(args: argparse.Namespace) -> dict[str, Any]:
         "exit_code": completed.returncode,
         "elapsed_seconds": elapsed,
         "total_tokens": total_tokens,
+        "status": status,
     }
     binding = {
         "schema_version": "the-caption-prompt.execution-binding/v1",
@@ -222,16 +255,22 @@ def layer2_run(args: argparse.Namespace) -> dict[str, Any]:
         "repetition": repetition,
         "condition": condition,
         "prompt_identity": binding_input["prompt_identity"],
+        "status": status,
     }
     write_json_once(evidence / "execution.json", execution)
     write_json_once(cycle / "layer2" / "bindings" / f"{run_id}.json", binding)
-    return {"layer": 2, "run_id": run_id, "evidence": str(evidence)}
+    result = {"layer": 2, "run_id": run_id, "evidence": str(evidence), "status": status}
+    if exclusion is not None:
+        result["exclusion"] = exclusion
+    return result
 
 
 def layer3_rate(args: argparse.Namespace) -> dict[str, Any]:
     cycle = Path(args.cycle).resolve()
     execution_path = cycle / "layer2" / "evidence" / args.run_id / "execution.json"
-    load_json(execution_path)
+    execution = load_json(execution_path)
+    if execution.get("status", "valid") == "excluded":
+        raise EvaluationError("excluded run cannot be quality-rated")
     if args.score < 0 or args.score > 4:
         raise EvaluationError("score must be between 0 and 4")
     if not args.reason.strip():
@@ -252,6 +291,8 @@ def collect_runs(cycle: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     runs: list[dict[str, Any]] = []
     for binding_path in sorted((cycle / "layer2" / "bindings").glob("*.json")):
         binding = load_json(binding_path)
+        if binding_is_excluded(binding):
+            continue
         run_id = binding["run_id"]
         execution = load_json(cycle / "layer2" / "evidence" / run_id / "execution.json")
         rating = load_json(cycle / "layer3" / "ratings" / f"{run_id}.json")
