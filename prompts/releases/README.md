@@ -1,0 +1,3 @@
+# Releases
+
+評価済みcandidateを反映判断可能なbundleへ固定して置く。release作成だけでは採用承認またはTHE-CAPTION本体への反映を意味しない。
