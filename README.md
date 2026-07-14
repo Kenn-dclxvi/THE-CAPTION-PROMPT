@@ -12,7 +12,7 @@ THE-CAPTION向けプロンプトを設計、比較、評価し、反映可能な
 
 ## 現在の状態
 
-`bootstrap`。リポジトリ構造と運用境界だけを作成した状態です。候補プロンプトの採用、THE-CAPTION本体への反映、runtime有効化は行っていません。
+`evaluation_foundation`。2つのprompt setを3 KPIだけで比較する4 Layerの最小実行基盤を作成した状態です。評価caseとpromptはまだ作成していません。候補プロンプトの採用、THE-CAPTION本体への反映、runtime有効化も行っていません。
 
 ## 構成
 
@@ -27,6 +27,7 @@ THE-CAPTION向けプロンプトを設計、比較、評価し、反映可能な
 | `evaluations/results/` | 再現可能性を満たす評価結果 |
 
 運用境界は[`docs/repository-contract.md`](docs/repository-contract.md)を正本とします。
+評価基盤のLayerと境界は[`docs/prompt-comparison-workflow.md`](docs/prompt-comparison-workflow.md)に定義します。実行方法は[`docs/evaluation-loop-manual.md`](docs/evaluation-loop-manual.md)を参照します。
 
 ## 初期作業
 
