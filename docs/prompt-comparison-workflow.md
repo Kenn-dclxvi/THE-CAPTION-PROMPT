@@ -48,7 +48,7 @@ quality_score = median(quality_score[1], ..., quality_score[N])
 
 `N`は任意の正の整数とし、固定値にしない。prompt set AとBを同じ`N`回だけ実行し、各回のKPIを保存する。
 
-比較に使うcycleでは、AとBのcase、反復番号、評価条件を一致させる。不足やinvalid runがあるcycleからwinnerを出さない。
+比較に使うcycleでは、AとBのcase、反復番号、評価条件を一致させる。外部要因を客観的証跡から自動検出したattemptはraw artifactを保持して除外し、同じslotを再実施する。不足または除外後の有効run数が不一致のcycleからwinnerを出さない。
 
 ## KPI comparison
 

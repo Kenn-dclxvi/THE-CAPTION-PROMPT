@@ -122,6 +122,7 @@ executorには次の環境変数が渡される。
 | `EVAL_CASE_FILE` | 固定済みcase capsuleのJSON path |
 | `EVAL_RUN_CAPSULE_FILE` | 固定済みRun capsuleのJSON path |
 | `EVAL_USAGE_FILE` | executorが`total_tokens`を書く一時JSON path |
+| `EVAL_RUN_STATUS_FILE` | executorが外部要因による除外を通知する一時JSON path |
 | `EVAL_EXTENSION_DIR` | 配下機能が任意の詳細データを書くopaqueなdirectory |
 
 executorは`EVAL_CASE_FILE`と`EVAL_RUN_CAPSULE_FILE`を読み、必要なmodel-visible入力や実行parameterへ変換する。この変換はadapterの責務でありworkflowへ持ち込まない。
@@ -135,6 +136,19 @@ executorは終了までに`EVAL_USAGE_FILE`へ次を書く。
 ```
 
 `total_tokens`は0以上の整数とする。基盤はこの値だけを`evidence/usage.json`へ正規化して保存する。`input_tokens`、`output_tokens`、turn別内訳などは評価出力へ含めない。それらが必要な配下機能は、独自schemaを`EVAL_EXTENSION_DIR/<feature>/`へ保存する。
+
+executorがpromptまたはtask behaviorではない外部要因を客観的な実行証跡から検出した場合だけ、`EVAL_RUN_STATUS_FILE`へ次を書く。
+
+```json
+{
+  "schema_version": "the-caption-prompt.run-status/v1",
+  "status": "excluded",
+  "category": "external_failure",
+  "reason_code": "<stable reason code>"
+}
+```
+
+基盤はこのattemptのstdout、stderr、workspace、usage、execution、bindingを保存し、`evidence/<run_id>/exclusion.json`へ除外理由を固定する。`excluded` attemptはquality ratingとKPI比較へ入力せず、同じcondition / case / repetitionを占有しない。したがって、同じRun capsuleを再実施して有効回数をA / Bで揃える。Agentの自己申告や最終応答の文言だけを除外根拠にしてはならない。
 
 `extensions/`の内容はKPI集計とwinner判定へ入力しない。詳細分析の追加やschema変更は配下機能だけで完結させる。`elapsed_seconds`は基盤側が自動計測する。
 
@@ -173,7 +187,8 @@ python3 "$CLI" run \
 {
   "layer": 2,
   "run_id": "<blind run id>",
-  "evidence": "<evidence path>"
+  "evidence": "<evidence path>",
+  "status": "valid"
 }
 ```
 
@@ -187,7 +202,7 @@ python3 "$CLI" run \
 
 全caseについてprompt set AとBを同じ回数実行する。`N`回測定する場合は、両conditionで`repetition: 1`から`repetition: N`までのRun capsuleを用意する。
 
-同じcondition、case、repetitionの組み合わせは再実行できない。現在の最小基盤ではinvalid runの部分差し替えを実装していないため、invalid runが発生したcycleは正式判定に使わず、新しいcycleでやり直す。
+同じcondition、case、repetitionの有効runは重複実行できない。`excluded` attemptはraw artifactを保持したまま有効回数から除外されるため、同じcondition、case、repetitionで再実施できる。再実施後もA / Bの有効runが同じ`1..N`を満たさない間はLayer 4へ進まない。
 
 ### Layer 3: runを採点する
 
@@ -195,6 +210,8 @@ quality raterには次だけを渡す。
 
 - `$CYCLE/layer1/set.json`の該当case
 - `$CYCLE/layer2/evidence/<run_id>/`
+
+`status: excluded`のrunは採点しない。
 
 `layer2/bindings/`はconditionとprompt identityを含むため、quality raterへ渡さない。
 
@@ -244,6 +261,7 @@ python3 "$CLI" decide --cycle "$CYCLE"
 │   └── fixtures/
 ├── layer2/
 │   ├── evidence/<run_id>/
+│   │   └── exclusion.json            # excluded attemptだけ
 │   ├── capsules/<run_id>.json
 │   ├── bindings/<run_id>.json
 │   └── extensions/<run_id>/<feature>/
@@ -260,7 +278,8 @@ python3 "$CLI" decide --cycle "$CYCLE"
 | error | 原因 | 対応 |
 | --- | --- | --- |
 | `cycle directory is not empty` | 使用済みcycleへsetを固定しようとした | 新しい空cycle pathを使う |
-| `run already exists` | condition / case / repetitionが重複した | 指定を確認する。invalidなら新cycleを使う |
+| `run already exists` | 有効なcondition / case / repetitionが重複した | 指定を確認する。excluded attemptなら同じslotで再実施できる |
+| `excluded run cannot be quality-rated` | 外部要因で除外済みのrunを採点しようとした | 同じslotを再実施し、有効runだけを採点する |
 | `usage must contain...` | `total_tokens`がない、または不正 | executorの`EVAL_USAGE_FILE`出力を修正する |
 | `missing file: ...ratings...` | 未採点runがある | 全runへ`rate`を実行する |
 | `repetitions must be contiguous` | repetitionが1から連続していない | prompt set A / Bを同じ1..Nで揃える |
@@ -272,5 +291,5 @@ python3 "$CLI" decide --cycle "$CYCLE"
 
 ```bash
 cd /Users/kenn/repos/THE-CAPTION-PROMPT
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v tests/test_evaluation_loop.py
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v tests/test_evaluation_loop.py tests/test_run_codex_evaluation.py
 ```

@@ -59,6 +59,7 @@ class EvaluationLoopTest(unittest.TestCase):
         fixture = root / "fixture"
         fixture.mkdir(parents=True)
         (fixture / "input.txt").write_text("input\n", encoding="utf-8")
+        (fixture / "input-link.txt").symlink_to("input.txt")
         manifest = root / "set.json"
         manifest.write_text(
             json.dumps(
@@ -123,11 +124,13 @@ class EvaluationLoopTest(unittest.TestCase):
             manifest = self.make_set(root)
             frozen = self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
             self.assertEqual(frozen["case_count"], 1)
+            self.assertTrue((cycle / "layer1" / "fixtures" / "TEST-CASE" / "input-link.txt").is_symlink())
 
             set_a_ids = [self.execute(cycle, "a", "prompt-set-a", n, 120) for n in (1, 2)]
             set_b_ids = [self.execute(cycle, "b", "prompt-set-b", n, 100) for n in (1, 2)]
             for run_id in set_a_ids + set_b_ids:
                 evidence = cycle / "layer2" / "evidence" / run_id
+                self.assertTrue((evidence / "workspace" / "input-link.txt").is_symlink())
                 execution = json.loads((evidence / "execution.json").read_text())
                 self.assertNotIn("condition", execution)
                 self.assertFalse((evidence / "run-capsule.json").exists())
@@ -168,6 +171,77 @@ class EvaluationLoopTest(unittest.TestCase):
             )
             self.assertEqual(completed.returncode, 2)
             self.assertIn("cycle directory is not empty", completed.stderr)
+
+    def test_excluded_external_failure_is_preserved_and_does_not_occupy_repetition(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cycle = root / "cycle"
+            manifest = self.make_set(root)
+            self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
+
+            excluded_command = (
+                "import json,os,pathlib,sys; "
+                "pathlib.Path(os.environ['EVAL_RUN_STATUS_FILE']).write_text(json.dumps({"
+                "'schema_version':'the-caption-prompt.run-status/v1',"
+                "'status':'excluded','category':'external_failure',"
+                "'reason_code':'codex_collab_parent_thread_missing'})); "
+                "sys.exit(75)"
+            )
+            capsule = root / "excluded.json"
+            capsule.write_text(
+                json.dumps(
+                    {
+                        "binding": {
+                            "condition": "a",
+                            "prompt_identity": "prompt-set-a",
+                            "case_id": "TEST-CASE",
+                            "repetition": 1,
+                        },
+                        "adapter": {"argv": [sys.executable, "-c", excluded_command]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            excluded = self.cli("run", "--cycle", str(cycle), "--capsule", str(capsule))
+            self.assertEqual(excluded["status"], "excluded")
+            excluded_id = excluded["run_id"]
+            excluded_evidence = cycle / "layer2" / "evidence" / excluded_id
+            self.assertTrue((excluded_evidence / "exclusion.json").is_file())
+            excluded_execution = json.loads((excluded_evidence / "execution.json").read_text())
+            self.assertEqual(excluded_execution["status"], "excluded")
+            self.assertIsNone(excluded_execution["total_tokens"])
+
+            rate = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "rate",
+                    "--cycle",
+                    str(cycle),
+                    "--run-id",
+                    excluded_id,
+                    "--score",
+                    "4",
+                    "--reason",
+                    "must not be accepted",
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(rate.returncode, 2)
+            self.assertIn("excluded run cannot be quality-rated", rate.stderr)
+
+            valid_a = self.execute(cycle, "a", "prompt-set-a", 1, 120)
+            valid_b = self.execute(cycle, "b", "prompt-set-b", 1, 120)
+            for run_id in (valid_a, valid_b):
+                self.cli("rate", "--cycle", str(cycle), "--run-id", run_id, "--score", "4", "--reason", "valid")
+            self.cli("decide", "--cycle", str(cycle))
+            decision = json.loads((cycle / "layer4" / "decision.json").read_text())
+            self.assertEqual(decision["repetition_count"], 1)
+            self.assertEqual(decision["a"]["median"]["total_tokens"], 120)
+            self.assertEqual(decision["b"]["median"]["total_tokens"], 120)
+            self.assertEqual(len(list((cycle / "layer2" / "bindings").glob("*.json"))), 3)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,382 @@
+#!/usr/bin/env python3
+"""Layer 2 adapter that overlays a prompt bundle and runs Codex."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import shutil
+import stat
+import subprocess
+import sys
+from pathlib import Path, PurePosixPath
+from typing import Any
+
+try:
+    from export_prompt_bundle import BundleError, verify_bundle
+except ModuleNotFoundError:  # Imported as scripts.run_codex_evaluation in tests.
+    from scripts.export_prompt_bundle import BundleError, verify_bundle
+
+
+class AdapterError(Exception):
+    pass
+
+
+EXTERNAL_FAILURE_EXIT_CODE = 75
+COLLAB_PARENT_THREAD_MISSING = "collab spawn failed: no thread with id:"
+
+
+def detect_external_failure(stderr: bytes) -> dict[str, str] | None:
+    text = stderr.decode("utf-8", errors="replace")
+    if COLLAB_PARENT_THREAD_MISSING in text:
+        return {
+            "schema_version": "the-caption-prompt.run-status/v1",
+            "status": "excluded",
+            "category": "external_failure",
+            "reason_code": "codex_collab_parent_thread_missing",
+            "detector": "codex-stderr-signature/v1",
+        }
+    return None
+
+
+def load_object(path: Path, name: str) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        raise AdapterError(f"invalid {name}: {path}") from exc
+    if not isinstance(value, dict):
+        raise AdapterError(f"{name} root must be an object")
+    return value
+
+
+def require_object(value: Any, name: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise AdapterError(f"{name} must be an object")
+    return value
+
+
+def require_string(value: Any, name: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise AdapterError(f"{name} must be a non-empty string")
+    return value
+
+
+def require_string_array(value: Any, name: str) -> list[str]:
+    if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
+        raise AdapterError(f"{name} must be a string array")
+    return value
+
+
+def run(command: list[str], cwd: Path, env: dict[str, str] | None = None, binary: bool = False) -> str | bytes:
+    completed = subprocess.run(command, cwd=cwd, env=env, capture_output=True, check=False)
+    if completed.returncode != 0:
+        detail = completed.stderr.decode("utf-8", errors="replace").strip()
+        raise AdapterError(f"command failed ({completed.returncode}): {' '.join(command)}: {detail}")
+    if binary:
+        return completed.stdout
+    return completed.stdout.decode("utf-8", errors="strict").strip()
+
+
+def changed_paths(workspace: Path) -> set[str]:
+    commands = [
+        ["git", "diff", "--name-only", "--no-ext-diff"],
+        ["git", "diff", "--cached", "--name-only", "--no-ext-diff"],
+        ["git", "ls-files", "--others", "--exclude-standard"],
+    ]
+    paths: set[str] = set()
+    for command in commands:
+        output = run(command, workspace)
+        assert isinstance(output, str)
+        paths.update(line for line in output.splitlines() if line)
+    return paths
+
+
+def overlay_bundle(workspace: Path, bundle: Path, manifest: dict[str, Any]) -> list[str]:
+    targets: list[str] = []
+    for raw_entry in manifest["files"]:
+        target = raw_entry["target"]
+        source = bundle / "files" / target
+        destination = workspace / target
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.is_symlink() or destination.exists():
+            if destination.is_dir() and not destination.is_symlink():
+                raise AdapterError(f"bundle target collides with directory: {target}")
+            destination.unlink()
+        if raw_entry["type"] == "symlink":
+            destination.symlink_to(raw_entry["link_target"])
+        else:
+            shutil.copyfile(source, destination, follow_symlinks=False)
+            destination.chmod(0o755 if raw_entry["mode"] == "100755" else 0o644)
+        targets.append(target)
+    return targets
+
+
+def prepare_runtime_links(workspace: Path, raw_links: Any) -> list[dict[str, str]]:
+    if raw_links is None:
+        return []
+    if not isinstance(raw_links, list):
+        raise AdapterError("parameters.runtime_links must be an array")
+    prepared: list[dict[str, str]] = []
+    for index, raw_link in enumerate(raw_links):
+        link = require_object(raw_link, f"runtime_links[{index}]")
+        target = require_string(link.get("target"), f"runtime_links[{index}].target")
+        target_path = PurePosixPath(target)
+        if target_path.is_absolute() or target != target_path.as_posix() or ".." in target_path.parts:
+            raise AdapterError(f"unsafe runtime link target: {target}")
+        source = Path(require_string(link.get("source"), f"runtime_links[{index}].source")).resolve()
+        if not source.is_dir() or source == workspace or source.is_relative_to(workspace):
+            raise AdapterError(f"invalid runtime link source: {source}")
+        identity_file = require_string(
+            link.get("identity_file"),
+            f"runtime_links[{index}].identity_file",
+        )
+        identity_path = (source / identity_file).resolve()
+        if not identity_path.is_file() or not identity_path.is_relative_to(source):
+            raise AdapterError(f"invalid runtime identity file: {identity_file}")
+        expected_sha256 = require_string(
+            link.get("identity_sha256"),
+            f"runtime_links[{index}].identity_sha256",
+        )
+        materialization = link.get("materialization", "symlink")
+        if materialization not in {"symlink", "copy"}:
+            raise AdapterError(f"unsupported runtime materialization: {materialization}")
+        actual_sha256 = hashlib.sha256(identity_path.read_bytes()).hexdigest()
+        if actual_sha256 != expected_sha256:
+            raise AdapterError(f"runtime identity mismatch: {target}")
+        destination = workspace.joinpath(*target_path.parts)
+        if destination.exists() or destination.is_symlink():
+            raise AdapterError(f"runtime link target already exists: {target}")
+        ignored = subprocess.run(
+            ["git", "check-ignore", "-q", "--", f"{target}/"],
+            cwd=workspace,
+            capture_output=True,
+            check=False,
+        )
+        if ignored.returncode != 0:
+            raise AdapterError(f"runtime link target is not Git-ignored: {target}")
+        exclude = workspace / ".git" / "info" / "exclude"
+        if not exclude.is_file():
+            raise AdapterError("workspace Git exclude file is missing")
+        existing_excludes = exclude.read_text(encoding="utf-8")
+        if target not in existing_excludes.splitlines():
+            with exclude.open("a", encoding="utf-8", newline="\n") as handle:
+                if existing_excludes and not existing_excludes.endswith("\n"):
+                    handle.write("\n")
+                handle.write(f"{target}\n")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if materialization == "copy":
+            shutil.copytree(source, destination, symlinks=True)
+        else:
+            destination.symlink_to(source, target_is_directory=True)
+        prepared.append(
+            {
+                "identity_file": identity_file,
+                "identity_sha256": actual_sha256,
+                "materialization": materialization,
+                "source": str(source),
+                "target": target,
+            }
+        )
+    return prepared
+
+
+def condition_commit(workspace: Path, targets: list[str]) -> tuple[str, str]:
+    run(["git", "add", "--", *targets], workspace)
+    env = os.environ.copy()
+    env.update(
+        {
+            "GIT_AUTHOR_DATE": "2000-01-01T00:00:00Z",
+            "GIT_AUTHOR_EMAIL": "evaluation@example.invalid",
+            "GIT_AUTHOR_NAME": "THE-CAPTION Prompt Evaluation",
+            "GIT_COMMITTER_DATE": "2000-01-01T00:00:00Z",
+            "GIT_COMMITTER_EMAIL": "evaluation@example.invalid",
+            "GIT_COMMITTER_NAME": "THE-CAPTION Prompt Evaluation",
+        }
+    )
+    run(
+        [
+            "git",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "--allow-empty",
+            "--no-verify",
+            "-qm",
+            "evaluation prompt condition",
+        ],
+        workspace,
+        env=env,
+    )
+    commit = run(["git", "rev-parse", "HEAD^{commit}"], workspace)
+    tree = run(["git", "rev-parse", "HEAD^{tree}"], workspace)
+    assert isinstance(commit, str) and isinstance(tree, str)
+    return commit, tree
+
+
+def render_task(case: dict[str, Any]) -> str:
+    payload = require_object(case.get("payload"), "case.payload")
+    trial_input = require_object(payload.get("trial_prompt_input"), "case.payload.trial_prompt_input")
+    serialized = json.dumps(trial_input, ensure_ascii=False, indent=2, sort_keys=True)
+    return "以下のTaskSpecに従って作業してください。\n\n<task-spec-json>\n" + serialized + "\n</task-spec-json>\n"
+
+
+def parse_usage(jsonl: bytes) -> tuple[int, dict[str, int]]:
+    latest: dict[str, int] | None = None
+    for raw_line in jsonl.splitlines():
+        if not raw_line.strip():
+            continue
+        try:
+            event = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict) or event.get("type") != "turn.completed":
+            continue
+        usage = event.get("usage")
+        if isinstance(usage, dict):
+            latest = {
+                key: value
+                for key, value in usage.items()
+                if isinstance(key, str) and isinstance(value, int) and value >= 0
+            }
+    if latest is None:
+        raise AdapterError("Codex JSONL did not contain turn.completed usage")
+    total = latest.get("total_tokens")
+    if total is None:
+        input_tokens = latest.get("input_tokens")
+        output_tokens = latest.get("output_tokens")
+        if input_tokens is None or output_tokens is None:
+            raise AdapterError("Codex usage lacks total_tokens or input/output tokens")
+        total = input_tokens + output_tokens
+    return total, latest
+
+
+def write_json(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def execute() -> int:
+    workspace = Path.cwd().resolve()
+    case_path = Path(require_string(os.environ.get("EVAL_CASE_FILE"), "EVAL_CASE_FILE"))
+    capsule_path = Path(require_string(os.environ.get("EVAL_RUN_CAPSULE_FILE"), "EVAL_RUN_CAPSULE_FILE"))
+    usage_path = Path(require_string(os.environ.get("EVAL_USAGE_FILE"), "EVAL_USAGE_FILE"))
+    status_path = Path(require_string(os.environ.get("EVAL_RUN_STATUS_FILE"), "EVAL_RUN_STATUS_FILE"))
+    extension_root = Path(require_string(os.environ.get("EVAL_EXTENSION_DIR"), "EVAL_EXTENSION_DIR"))
+    case = load_object(case_path, "case capsule")
+    capsule = load_object(capsule_path, "run capsule")
+    binding = require_object(capsule.get("binding"), "run.binding")
+    parameters = require_object(capsule.get("parameters"), "run.parameters")
+    bundle = Path(require_string(parameters.get("prompt_bundle"), "parameters.prompt_bundle")).resolve()
+    expected_hash = require_string(parameters.get("bundle_sha256"), "parameters.bundle_sha256")
+    expected_dirty = set(require_string_array(parameters.get("expected_initial_dirty_paths"), "expected_initial_dirty_paths"))
+    allowed_result_paths = set(require_string_array(parameters.get("allowed_result_paths"), "allowed_result_paths"))
+    model = require_string(parameters.get("model"), "parameters.model")
+    reasoning_effort = require_string(parameters.get("reasoning_effort"), "parameters.reasoning_effort")
+    manifest = verify_bundle(bundle)
+    prompt_identity = require_string(binding.get("prompt_identity"), "binding.prompt_identity")
+    if manifest.get("prompt_identity") != prompt_identity or manifest.get("bundle_sha256") != expected_hash:
+        raise AdapterError("run binding does not match prompt bundle identity")
+    runtime_links = prepare_runtime_links(workspace, parameters.get("runtime_links"))
+    if changed_paths(workspace) != expected_dirty:
+        raise AdapterError("fixture dirty paths do not match the run capsule")
+
+    targets = overlay_bundle(workspace, bundle, manifest)
+    commit, tree = condition_commit(workspace, targets)
+    if changed_paths(workspace) != expected_dirty:
+        raise AdapterError("condition commit did not preserve the seeded dirty state")
+
+    task = render_task(case)
+    task_sha256 = hashlib.sha256(task.encode("utf-8")).hexdigest()
+    adapter_extension = extension_root / "codex-adapter"
+    final_response = adapter_extension / "final-response.txt"
+    adapter_extension.mkdir(parents=True, exist_ok=True)
+    command = [
+        "codex",
+        "exec",
+        "--ignore-user-config",
+        "--ignore-rules",
+        "--strict-config",
+        "--enable",
+        "multi_agent",
+        "--disable",
+        "memories",
+        "-c",
+        "agents.max_threads=4",
+        "-c",
+        'approval_policy="never"',
+        "-m",
+        model,
+        "-c",
+        f'model_reasoning_effort="{reasoning_effort}"',
+        "-s",
+        "workspace-write",
+        "--json",
+        "--output-last-message",
+        str(final_response),
+        "-",
+    ]
+    completed = subprocess.run(
+        command,
+        cwd=workspace,
+        input=task.encode("utf-8"),
+        capture_output=True,
+        check=False,
+    )
+    sys.stdout.buffer.write(completed.stdout)
+    sys.stderr.buffer.write(completed.stderr)
+    (adapter_extension / "codex-events.jsonl").write_bytes(completed.stdout)
+    (adapter_extension / "codex-stderr.bin").write_bytes(completed.stderr)
+    external_failure = detect_external_failure(completed.stderr)
+    if external_failure is not None:
+        write_json(status_path, external_failure)
+    total_tokens, raw_usage = parse_usage(completed.stdout)
+    write_json(usage_path, {"total_tokens": total_tokens})
+    final_paths = changed_paths(workspace)
+    unexpected_paths = sorted(final_paths - allowed_result_paths)
+    codex_version = run(["codex", "--version"], workspace)
+    assert isinstance(codex_version, str)
+    write_json(
+        adapter_extension / "execution.json",
+        {
+            "adapter_schema_version": "the-caption-prompt.codex-adapter/v1",
+            "bundle_sha256": expected_hash,
+            "codex_exit_code": completed.returncode,
+            "codex_version": codex_version,
+            "condition_commit": commit,
+            "condition_tree": tree,
+            "final_changed_paths": sorted(final_paths),
+            "model": model,
+            "prompt_identity": prompt_identity,
+            "raw_usage": raw_usage,
+            "reasoning_effort": reasoning_effort,
+            "runtime_links": runtime_links,
+            "session_mode": "persisted",
+            "task_sha256": task_sha256,
+            "unexpected_changed_paths": unexpected_paths,
+            "external_failure": external_failure,
+        },
+    )
+    if external_failure is not None:
+        return EXTERNAL_FAILURE_EXIT_CODE
+    if completed.returncode != 0:
+        return completed.returncode
+    if unexpected_paths:
+        print(f"unexpected changed paths: {unexpected_paths}", file=sys.stderr)
+        return 3
+    return 0
+
+
+def main() -> int:
+    try:
+        return execute()
+    except (AdapterError, BundleError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
