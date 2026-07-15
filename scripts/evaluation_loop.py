@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal four-layer KPI comparison for two THE-CAPTION prompt sets."""
+"""Minimal four-layer KPI evidence loop for two THE-CAPTION prompt sets."""
 
 from __future__ import annotations
 
@@ -286,12 +286,26 @@ def layer3_rate(args: argparse.Namespace) -> dict[str, Any]:
     return {"layer": 3, "run_id": args.run_id, "score": args.score}
 
 
-def collect_runs(cycle: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def collect_runs(cycle: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
     manifest = frozen_set(cycle)
     runs: list[dict[str, Any]] = []
+    excluded_attempts: list[dict[str, Any]] = []
     for binding_path in sorted((cycle / "layer2" / "bindings").glob("*.json")):
         binding = load_json(binding_path)
         if binding_is_excluded(binding):
+            exclusion = load_json(
+                cycle / "layer2" / "evidence" / binding["run_id"] / "exclusion.json"
+            )
+            excluded_attempts.append(
+                {
+                    "run_id": binding["run_id"],
+                    "condition": binding["condition"],
+                    "case_id": binding["case_id"],
+                    "repetition": binding["repetition"],
+                    "category": exclusion["category"],
+                    "reason_code": exclusion["reason_code"],
+                }
+            )
             continue
         run_id = binding["run_id"]
         execution = load_json(cycle / "layer2" / "evidence" / run_id / "execution.json")
@@ -299,7 +313,7 @@ def collect_runs(cycle: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         runs.append({**binding, "execution": execution, "rating": rating})
     if not runs:
         raise EvaluationError("no rated runs found")
-    return manifest, runs
+    return manifest, runs, excluded_attempts
 
 
 def aggregate_condition(
@@ -313,7 +327,7 @@ def aggregate_condition(
         selected = [index[(condition, case_id, repetition)] for case_id in cases]
         tokens = [item["execution"]["total_tokens"] for item in selected]
         if any(value is None for value in tokens):
-            raise EvaluationError("all runs need token usage before KPI decision")
+            raise EvaluationError("all runs need token usage before KPI comparison")
         quality = sum(item["rating"]["score"] for item in selected) / (4 * len(cases)) * 100
         per_repetition.append(
             {
@@ -333,19 +347,17 @@ def aggregate_condition(
     }
 
 
-def compare_sets(a: dict[str, Any], b: dict[str, Any]) -> str:
-    if a["quality_score"] != b["quality_score"]:
-        return "a" if a["quality_score"] > b["quality_score"] else "b"
-    if a["total_tokens"] != b["total_tokens"]:
-        return "a" if a["total_tokens"] < b["total_tokens"] else "b"
-    if a["elapsed_seconds"] != b["elapsed_seconds"]:
-        return "a" if a["elapsed_seconds"] < b["elapsed_seconds"] else "b"
-    return "tie"
+def kpi_difference_b_minus_a(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "quality_score": b["quality_score"] - a["quality_score"],
+        "total_tokens": b["total_tokens"] - a["total_tokens"],
+        "elapsed_seconds": b["elapsed_seconds"] - a["elapsed_seconds"],
+    }
 
 
-def layer4_decide(args: argparse.Namespace) -> dict[str, Any]:
+def layer4_compare(args: argparse.Namespace) -> dict[str, Any]:
     cycle = Path(args.cycle).resolve()
-    manifest, runs = collect_runs(cycle)
+    manifest, runs, excluded_attempts = collect_runs(cycle)
     cases = sorted(case["id"] for case in manifest["cases"])
     index: dict[tuple[str, str, int], dict[str, Any]] = {}
     identities: dict[str, set[str]] = {"a": set(), "b": set()}
@@ -381,9 +393,8 @@ def layer4_decide(args: argparse.Namespace) -> dict[str, Any]:
 
     set_a = aggregate_condition("a", cases, repetitions, index)
     set_b = aggregate_condition("b", cases, repetitions, index)
-    winner = compare_sets(set_a["median"], set_b["median"])
-    decision = {
-        "schema_version": "the-caption-prompt.kpi-decision/v1",
+    comparison = {
+        "schema_version": "the-caption-prompt.kpi-comparison/v2",
         "set_id": manifest["set_id"],
         "repetition_count": len(repetitions),
         "a": {
@@ -394,11 +405,18 @@ def layer4_decide(args: argparse.Namespace) -> dict[str, Any]:
             "prompt_identity": next(iter(identities["b"])),
             **set_b,
         },
-        "winner": winner,
-        "decided_at": utc_now(),
+        "difference_b_minus_a": kpi_difference_b_minus_a(set_a["median"], set_b["median"]),
+        "excluded_attempts": excluded_attempts,
+        "compared_at": utc_now(),
     }
-    write_json_once(cycle / "layer4" / "decision.json", decision)
-    return {"layer": 4, "winner": winner}
+    artifact = cycle / "layer4" / "comparison.json"
+    write_json_once(artifact, comparison)
+    return {
+        "layer": 4,
+        "artifact": str(artifact),
+        "repetition_count": len(repetitions),
+        "excluded_attempt_count": len(excluded_attempts),
+    }
 
 
 def parser() -> argparse.ArgumentParser:
@@ -422,9 +440,9 @@ def parser() -> argparse.ArgumentParser:
     rate.add_argument("--reason", required=True)
     rate.set_defaults(handler=layer3_rate)
 
-    decide = commands.add_parser("decide", help="Layer 4: make a KPI-only decision")
-    decide.add_argument("--cycle", required=True)
-    decide.set_defaults(handler=layer4_decide)
+    compare = commands.add_parser("compare", help="Layer 4: record KPI comparison evidence")
+    compare.add_argument("--cycle", required=True)
+    compare.set_defaults(handler=layer4_compare)
 
     return root
 

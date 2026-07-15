@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.evaluation_loop import compare_sets
+from scripts.evaluation_loop import kpi_difference_b_minus_a
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,34 +15,13 @@ CLI = ROOT / "scripts" / "evaluation_loop.py"
 
 
 class EvaluationLoopTest(unittest.TestCase):
-    def test_winner_uses_only_the_three_kpis(self) -> None:
+    def test_kpi_difference_reports_b_minus_a_without_a_winner(self) -> None:
         self.assertEqual(
-            compare_sets(
+            kpi_difference_b_minus_a(
                 {"quality_score": 75, "total_tokens": 200, "elapsed_seconds": 20},
                 {"quality_score": 50, "total_tokens": 100, "elapsed_seconds": 10},
             ),
-            "a",
-        )
-        self.assertEqual(
-            compare_sets(
-                {"quality_score": 75, "total_tokens": 100, "elapsed_seconds": 20},
-                {"quality_score": 75, "total_tokens": 200, "elapsed_seconds": 10},
-            ),
-            "a",
-        )
-        self.assertEqual(
-            compare_sets(
-                {"quality_score": 75, "total_tokens": 100, "elapsed_seconds": 10},
-                {"quality_score": 75, "total_tokens": 100, "elapsed_seconds": 20},
-            ),
-            "a",
-        )
-        self.assertEqual(
-            compare_sets(
-                {"quality_score": 75, "total_tokens": 100, "elapsed_seconds": 10},
-                {"quality_score": 75, "total_tokens": 100, "elapsed_seconds": 10},
-            ),
-            "tie",
+            {"quality_score": -25, "total_tokens": -100, "elapsed_seconds": -10},
         )
 
     def cli(self, *args: str) -> dict:
@@ -149,11 +128,16 @@ class EvaluationLoopTest(unittest.TestCase):
             for run_id in set_b_ids:
                 self.cli("rate", "--cycle", str(cycle), "--run-id", run_id, "--score", "4", "--reason", "test rating")
 
-            decision = self.cli("decide", "--cycle", str(cycle))
-            self.assertEqual(decision["winner"], "b")
-            decision_file = json.loads((cycle / "layer4" / "decision.json").read_text())
-            self.assertEqual(decision_file["winner"], "b")
-            self.assertEqual(decision_file["b"]["prompt_identity"], "prompt-set-b")
+            result = self.cli("compare", "--cycle", str(cycle))
+            self.assertEqual(result["repetition_count"], 2)
+            comparison = json.loads((cycle / "layer4" / "comparison.json").read_text())
+            self.assertNotIn("winner", comparison)
+            self.assertEqual(comparison["schema_version"], "the-caption-prompt.kpi-comparison/v2")
+            self.assertEqual(comparison["b"]["prompt_identity"], "prompt-set-b")
+            self.assertEqual(comparison["difference_b_minus_a"]["quality_score"], 25.0)
+            self.assertEqual(comparison["difference_b_minus_a"]["total_tokens"], -20.0)
+            self.assertIsInstance(comparison["difference_b_minus_a"]["elapsed_seconds"], float)
+            self.assertEqual(comparison["excluded_attempts"], [])
             self.assertFalse((cycle / "prompts").exists())
             self.assertFalse((cycle / "layer5").exists())
 
@@ -236,11 +220,16 @@ class EvaluationLoopTest(unittest.TestCase):
             valid_b = self.execute(cycle, "b", "prompt-set-b", 1, 120)
             for run_id in (valid_a, valid_b):
                 self.cli("rate", "--cycle", str(cycle), "--run-id", run_id, "--score", "4", "--reason", "valid")
-            self.cli("decide", "--cycle", str(cycle))
-            decision = json.loads((cycle / "layer4" / "decision.json").read_text())
-            self.assertEqual(decision["repetition_count"], 1)
-            self.assertEqual(decision["a"]["median"]["total_tokens"], 120)
-            self.assertEqual(decision["b"]["median"]["total_tokens"], 120)
+            self.cli("compare", "--cycle", str(cycle))
+            comparison = json.loads((cycle / "layer4" / "comparison.json").read_text())
+            self.assertEqual(comparison["repetition_count"], 1)
+            self.assertEqual(comparison["a"]["median"]["total_tokens"], 120)
+            self.assertEqual(comparison["b"]["median"]["total_tokens"], 120)
+            self.assertEqual(len(comparison["excluded_attempts"]), 1)
+            self.assertEqual(
+                comparison["excluded_attempts"][0]["reason_code"],
+                "codex_collab_parent_thread_missing",
+            )
             self.assertEqual(len(list((cycle / "layer2" / "bindings").glob("*.json"))), 3)
 
 
