@@ -16,7 +16,7 @@
 
 seed patchは存在しない。source identityを照合し、`daily_main.py`と`collection_main.py`が存在しないこと、tracked worktreeがcleanであることを確認した。回答内容はmodel実行後にquality raterが評価する。
 
-statusは`fixture_qualified_prompt_not_evaluated`。
+作成時qualification receiptは`fixture_qualified_prompt_not_evaluated`である。その後、[`core9 r2 global M=4 staged N=3`](../../../results/revision-2-core9-r2-global-m4-staged-n3_2026-07-15.md)でA / B prompt比較を実施した。比較済みであることは採用、release、本体反映を意味しない。
 
 ## Visibility
 

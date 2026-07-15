@@ -1,0 +1,216 @@
+{
+  "schema_version": "the-caption-prompt-evaluation-private-case-v1",
+  "case_id": "TC-F03-ATOMIC-CONTEXT-CLEANUP",
+  "case_revision": "r2",
+  "visibility": "model_invisible",
+  "fixture": {
+    "target_identity": {
+      "repository": "Kenn-dclxvi/THE-CAPTION",
+      "commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+      "tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b"
+    },
+    "case_spec": {
+      "family": "F03",
+      "equivalence_cluster_id": "atomic-json-replace-cleanup",
+      "coverage_tags": [
+        "infra",
+        "source-code",
+        "error-cleanup",
+        "mocked-io",
+        "atomic-save"
+      ],
+      "package_connection_keys": [
+        "TC-REQ-002",
+        "TC-REQ-003",
+        "TC-REQ-005",
+        "TC-REQ-006",
+        "TC-REQ-010",
+        "TC-REQ-011"
+      ],
+      "source_control_trace_keys": [
+        "SC-03",
+        "SC-04",
+        "SC-05",
+        "SC-07",
+        "SC-08",
+        "SC-09",
+        "SC-10"
+      ],
+      "historical_candidate_evidence_eligible_trace_keys": [],
+      "historical_candidate_scope": "current_package_adaptation"
+    },
+    "authority_selectors": [
+      "AGENTS.md",
+      "src/AGENTS.md",
+      "tests/AGENTS.md"
+    ],
+    "source_files": [
+      {
+        "path": "src/infra/context_repository.py",
+        "mode": "100644",
+        "git_blob_sha1": "1c7a3acd14d26b248ddf19e6dfe1e8d5e072bb9b",
+        "role": "seed_and_reference_postimage",
+        "raw_sha256": "d041cd132a01aa8b626eb46921dc5c31bbe22c063de63efb77a6790c85c9ac6a"
+      },
+      {
+        "path": "tests/unit/test_atomic_save.py",
+        "mode": "100644",
+        "git_blob_sha1": "de1007fb9632459d306edaaaf44b83cb892d581e",
+        "role": "focused_contract",
+        "raw_sha256": "95edd2a9a55130d0384b6db49a940289353bea03e03aab26f090815e678b56df"
+      }
+    ],
+    "absent_paths": []
+  },
+  "seed": {
+    "status": "materialized_not_applied",
+    "post_seed_intent": "A failed os.replace leaves the temporary JSON file behind while deterministic failure tests remain unchanged.",
+    "design_operations": [
+      {
+        "operation": "replace_exact_text",
+        "path": "src/infra/context_repository.py",
+        "expected_preimage_blob": "1c7a3acd14d26b248ddf19e6dfe1e8d5e072bb9b",
+        "expected_occurrences": 1,
+        "before_text": "            except Exception:\n                try:\n                    os.unlink(tmp_path)\n                except OSError:\n                    pass\n                raise\n            logger.info(f\"[Parsing] Saved context cache to {os.path.basename(path)}\")",
+        "after_text": "            except Exception:\n                raise\n            logger.info(f\"[Parsing] Saved context cache to {os.path.basename(path)}\")"
+      }
+    ],
+    "artifact": {
+      "path": "private/seed.patch",
+      "format": "git_diff",
+      "raw_sha256": "68c7b5b6ddd0674cfcd4e746d9589cecf55f6d61da30284474ce89e34e52812d"
+    },
+    "application_contract": {
+      "target_commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+      "target_tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b",
+      "preimage_files": [
+        {
+          "path": "src/infra/context_repository.py",
+          "mode": "100644",
+          "git_blob_sha1": "1c7a3acd14d26b248ddf19e6dfe1e8d5e072bb9b",
+          "raw_sha256": "d041cd132a01aa8b626eb46921dc5c31bbe22c063de63efb77a6790c85c9ac6a"
+        }
+      ],
+      "check": "resolve artifact.path from the case revision root and run git apply --check before applying",
+      "apply": "apply the same resolved patch only after every identity and preimage check passes",
+      "failure_mode": "fail_closed_no_partial_fixture"
+    },
+    "expected_post_seed_files": [
+      {
+        "path": "src/infra/context_repository.py",
+        "mode": "100644",
+        "git_blob_sha1": "99a32bc58b5d1d4d5ccba46de03d41b513f092f2",
+        "raw_sha256": "a9b9d083704e9fc848ae3bf82cbecf4c277ab182dd9c86f80c4c6adc29a45e77"
+      }
+    ],
+    "fixture_materialization": {
+      "mode": "committed_seed",
+      "commit": {
+        "message": "evaluation fixture seed",
+        "timestamp": "2000-01-01T00:00:00Z",
+        "author_name": "THE-CAPTION Prompt Evaluation",
+        "author_email": "evaluation@example.invalid",
+        "expected_commit": "895d60764990f02f25c6a6c81babbcb1e0ad5ffa",
+        "expected_tree": "256d39b56d38ee02a90f37f074403ce948b22524"
+      }
+    }
+  },
+  "oracle": {
+    "mode": "semantic_predicate_with_reference_postimage",
+    "reference_postimage_files": [
+      {
+        "path": "src/infra/context_repository.py",
+        "mode": "100644",
+        "git_blob_sha1": "1c7a3acd14d26b248ddf19e6dfe1e8d5e072bb9b"
+      },
+      {
+        "path": "tests/unit/test_atomic_save.py",
+        "mode": "100644",
+        "git_blob_sha1": "de1007fb9632459d306edaaaf44b83cb892d581e"
+      }
+    ],
+    "reference_postimage_is_exclusive": false,
+    "assertions": [
+      {
+        "criterion_id": "F03-C1",
+        "type": "state_after_mocked_failure",
+        "expected": "No .json.tmp file remains after os.replace raises."
+      },
+      {
+        "criterion_id": "F03-C2",
+        "type": "terminal_behavior",
+        "expected": "ContextRepository.save returns False for replace failure."
+      },
+      {
+        "criterion_id": "F03-C3",
+        "type": "success_path_command_and_drift",
+        "expected": "Successful atomic save remains valid, focused and full gates pass, and only allowed paths differ from the seeded fixture."
+      }
+    ]
+  },
+  "grader": {
+    "status": "designed_not_implemented",
+    "contract_revision": "grader-contract-r2",
+    "mode": "repository_state_terminal_command_and_state_evidence",
+    "human_calibration_owner": "independent_state_check",
+    "criteria": [
+      {
+        "criterion_id": "F03-C1",
+        "evidence_sources": [
+          "mocked_failure_filesystem_state",
+          "focused_gate"
+        ]
+      },
+      {
+        "criterion_id": "F03-C2",
+        "evidence_sources": [
+          "mocked_failure_return_value",
+          "focused_gate"
+        ]
+      },
+      {
+        "criterion_id": "F03-C3",
+        "evidence_sources": [
+          "success_path_test",
+          "command_receipts",
+          "final_drift_manifest",
+          "terminal_outcome"
+        ]
+      }
+    ],
+    "commands": [
+      ".venv/bin/python -m pytest tests/unit/test_atomic_save.py::TestContextRepositoryAtomicSave -v",
+      "bash scripts/dev/main_verify.sh",
+      "git diff --check"
+    ],
+    "success_rule": "all listed criteria pass from observed evidence; deleting or weakening the mocked failure contract cannot satisfy a criterion; failure of the cleanup operation itself is outside F03-C1"
+  },
+  "qualification": {
+    "status": "fixture_qualified_prompt_not_evaluated",
+    "receipt": {
+      "date": "2026-07-15",
+      "fixture_materialization": "pass",
+      "seeded_focused_gate": "exit 1; 1 failed, 1 passed; temporary JSON remains as designed",
+      "reference_focused_gate": "exit 0; 2 passed",
+      "reference_full_gate": "shared target-identity receipt: 326 passed, 3 skipped",
+      "model_invocation": "not_run",
+      "base_revision": "r1",
+      "fixture": "unchanged_from_r1",
+      "task_contract_revision": "required gate overlap is explicit and cleanup-operation failure is out of scope",
+      "trial_prompt_input_raw_sha256": "82ccb1925c3a2f2412b9e079e40d0d8429e3e1383d13ea5e542969db8d683999"
+    }
+  },
+  "base_materialization_source": {
+    "repository": "Kenn-dclxvi/ai-development-research",
+    "commit": "1d651a15d3086671a4dbe9d26cc46252d9f40c2f",
+    "case_data_path": "packages/the-caption/prompt-evaluation/cases/TC-F03-ATOMIC-CONTEXT-CLEANUP/r1/private/case-data.json",
+    "case_data_raw_sha256": "eee83729276b769944ef5bbe4874e76222d1dfaaf1ce36fc41e6908adf883f70",
+    "trial_prompt_input_path": "packages/the-caption/prompt-evaluation/cases/TC-F03-ATOMIC-CONTEXT-CLEANUP/r1/trial-prompt-input.json",
+    "trial_prompt_input_raw_sha256": "9d52b8efdf956128a426fce7576a62f9edaa46bbf943faf206ee260555ff0db4"
+  },
+  "revision_source": {
+    "repository": "Kenn-dclxvi/THE-CAPTION-PROMPT",
+    "base_revision": "r1",
+    "reason": "observed terminal stops caused by unspecified cleanup failure and gate-overlap interpretation"
+  }
+}

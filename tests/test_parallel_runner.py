@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from layer2.extensions.parallel_execution.parallel_runner import ParallelRunError, run_plan
+from layer2.extensions.parallel_execution.prepare_global_plan import prepare_global_plan
 from layer2.extensions.parallel_execution.prepare_plan import prepare_plan
 
 
@@ -18,6 +19,7 @@ class ParallelRunnerTest(unittest.TestCase):
         case_id: str,
         repetition: int,
         fail_first: bool = False,
+        delay_seconds: float = 0.1,
     ) -> Path:
         path = root / f"{condition}-{case_id}-{repetition}.json"
         path.write_text(
@@ -29,7 +31,10 @@ class ParallelRunnerTest(unittest.TestCase):
                         "case_id": case_id,
                         "repetition": repetition,
                     },
-                    "parameters": {"fail_first": fail_first},
+                    "parameters": {
+                        "fail_first": fail_first,
+                        "delay_seconds": delay_seconds,
+                    },
                 }
             ),
             encoding="utf-8",
@@ -72,10 +77,14 @@ class ParallelRunnerTest(unittest.TestCase):
                     state["active"] += 1
                     state["max_active"] = max(state["max_active"], state["active"])
                     state["attempts"][key] = state["attempts"].get(key, 0) + 1
+                    state["events"].append("start:" + key)
                     attempt[0] = state["attempts"][key]
                 update(started)
-                time.sleep(0.1)
-                update(lambda state: state.__setitem__("active", state["active"] - 1))
+                time.sleep(capsule["parameters"]["delay_seconds"])
+                def ended(state):
+                    state["active"] -= 1
+                    state["events"].append("end:" + key)
+                update(ended)
                 status = "excluded" if capsule["parameters"]["fail_first"] and attempt[0] == 1 else "valid"
                 print(json.dumps({"layer": 2, "run_id": key + f"-{attempt[0]}", "status": status}))
                 """
@@ -95,7 +104,8 @@ class ParallelRunnerTest(unittest.TestCase):
         (cycle / "layer1").mkdir(parents=True)
         (cycle / "layer1" / "set.json").write_text("{}\n", encoding="utf-8")
         (root / "state.json").write_text(
-            json.dumps({"active": 0, "max_active": 0, "attempts": {}}), encoding="utf-8"
+            json.dumps({"active": 0, "max_active": 0, "attempts": {}, "events": []}),
+            encoding="utf-8",
         )
         plan = root / "plan.json"
         plan.write_text(
@@ -145,6 +155,36 @@ class ParallelRunnerTest(unittest.TestCase):
             with self.assertRaisesRegex(ParallelRunError, "duplicate execution slot"):
                 run_plan(plan, root / "runner-output")
 
+    def test_global_queue_dispatches_next_job_without_waiting_for_long_job(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            capsules = [
+                self.make_capsule(root, "a", "CASE-1", 1, delay_seconds=0.3),
+                self.make_capsule(root, "b", "CASE-1", 1, delay_seconds=0.05),
+                self.make_capsule(root, "a", "CASE-2", 1, delay_seconds=0.05),
+            ]
+            wave_plan = self.make_plan(root, capsules[:1])
+            document = json.loads(wave_plan.read_text())
+            document.update(
+                {
+                    "schema_version": "the-caption-prompt.parallel-execution-plan/v2",
+                    "schedule_policy": "global_queue",
+                    "jobs": [
+                        {"sequence": index, "estimated_seconds": 1, "capsule": str(capsule)}
+                        for index, capsule in enumerate(capsules, start=1)
+                    ],
+                }
+            )
+            wave_plan.write_text(json.dumps(document), encoding="utf-8")
+            summary = run_plan(wave_plan, root / "runner-output")
+            self.assertEqual(summary["schedule_policy"], "global_queue")
+            state = json.loads((root / "state.json").read_text())
+            self.assertEqual(state["max_active"], 2)
+            self.assertLess(
+                state["events"].index("start:a-CASE-2-1"),
+                state["events"].index("end:a-CASE-1-1"),
+            )
+
     def test_prepares_alternating_ab_waves_without_changing_template_parameters(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -187,7 +227,61 @@ class ParallelRunnerTest(unittest.TestCase):
                 ],
             )
             generated = json.loads(Path(plan["jobs"][0]["capsule"]).read_text())
-            self.assertEqual(generated["parameters"], {"fail_first": False})
+            self.assertEqual(
+                generated["parameters"], {"fail_first": False, "delay_seconds": 0.1}
+            )
+
+    def test_prepares_longest_first_global_queue_for_selected_repetitions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cycle = root / "cycle"
+            (cycle / "layer1").mkdir(parents=True)
+            (cycle / "layer1" / "set.json").write_text("{}\n", encoding="utf-8")
+            evaluator = root / "evaluation_loop.py"
+            evaluator.write_text("# test\n", encoding="utf-8")
+            templates = [
+                self.make_capsule(root, "a", "CASE-1", 99),
+                self.make_capsule(root, "b", "CASE-1", 99),
+                self.make_capsule(root, "a", "CASE-2", 99),
+                self.make_capsule(root, "b", "CASE-2", 99),
+            ]
+            hints = root / "profile.json"
+            hints.write_text(
+                json.dumps(
+                    {
+                        "execution": {
+                            "duration_hints_seconds": {
+                                "CASE-1": {"a": 30, "b": 10},
+                                "CASE-2": {"a": 20, "b": 40},
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = prepare_global_plan(
+                templates,
+                repetitions=[2, 3],
+                cycle=cycle,
+                evaluator=evaluator,
+                duration_hints_path=hints,
+                output=root / "global-inputs",
+                max_workers=4,
+            )
+            self.assertEqual(result["repetitions"], [2, 3])
+            self.assertEqual(result["slot_count"], 8)
+            plan = json.loads(Path(result["plan"]).read_text())
+            self.assertEqual(plan["schedule_policy"], "global_queue")
+            self.assertEqual(
+                [job["estimated_seconds"] for job in plan["jobs"]],
+                [40.0, 40.0, 30.0, 30.0, 20.0, 20.0, 10.0, 10.0],
+            )
+            bindings = [
+                json.loads(Path(job["capsule"]).read_text())["binding"]
+                for job in plan["jobs"]
+            ]
+            self.assertEqual(bindings[0]["case_id"], "CASE-2")
+            self.assertEqual(bindings[0]["condition"], "b")
 
 
 if __name__ == "__main__":

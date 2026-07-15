@@ -2,7 +2,7 @@
 
 ## 目的
 
-固定済みEvaluation setの独立したLayer 2 runを、外側並列度`M`で同時実行する。評価基盤v1のLayer、KPI、出力schemaは変更しない。
+固定済みEvaluation setの独立したLayer 2 runを、外側並列度`M`で同時実行する。wave barrier方式と、workerが空き次第次のrunを投入するglobal queue方式を提供する。評価基盤v1のLayer、KPI、出力schemaは変更しない。
 
 このextensionが担当するのは次だけである。
 
@@ -73,6 +73,36 @@ runner-evidence/
 `attempts.jsonl`はcontroller実行の順序と外部失敗retryを記録する。model-visibleな入力ではない。Layer 2のworkspace、Codex JSONL、binding、execution artifactは従来どおりcycle内へ保存される。
 
 `os-samples.jsonl`はload average、memory free、swap、disk free、関連process数を保存する。monitor取得の失敗は`sample_errors`として記録し、case結果へ変換しない。
+
+## Global queue
+
+case、condition、repetitionの境界でworkerを待機させず、空いたworkerへ次のslotを投入する。実行環境の揺れをqueue順で補正せず、実測tokenと時間をそのまま保存する。
+
+duration hintは過去の固定runから作ったexecutor parameterであり、KPI入力やquality scoreには使用しない。longest-first順は処理時間短縮だけを目的とする。
+
+```bash
+python3 layer2/extensions/parallel_execution/prepare_global_plan.py \
+  --template /absolute/path/to/F01-a-template.json \
+  --template /absolute/path/to/F01-b-template.json \
+  --repetition 1 \
+  --repetition 2 \
+  --cycle /absolute/path/to/frozen-cycle \
+  --evaluation-loop /absolute/path/to/scripts/evaluation_loop.py \
+  --duration-hints /absolute/path/to/profile.json \
+  --max-workers 4 \
+  --output /absolute/path/to/new-global-inputs
+```
+
+生成planは`the-caption-prompt.parallel-execution-plan/v2`で、`sequence`と`estimated_seconds`を保存する。queue順はprovenanceであり、A / Bの環境差を補正または正規化する根拠にはしない。
+
+```text
+global-inputs/
+├── capsules/
+│   └── <case>-<condition>-r<repetition>.json
+└── global-plan.json
+```
+
+実行commandとevidence directoryはwave planと同じである。
 
 ## Qualification boundary
 

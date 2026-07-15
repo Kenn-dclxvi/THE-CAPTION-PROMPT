@@ -68,4 +68,4 @@ python3 scripts/prepare_evaluation_set.py \
 
 outputはtarget identity、preimage、patch、post-seed identity、seed commit、clean tracked worktreeを検証する。実行時のknown-good `.venv`はrun capsuleのmodel-invisible runtime materializationとしてA / Bで同一に固定し、case bundleへcommitしない。
 
-このartifactが存在しても、promptが評価済み、candidateが改善済み、採用済み、本体反映済みであることを意味しない。
+artifactの存在だけではprompt評価済みを意味しない。その後、[`core9 r2 global M=4 staged N=3`](../../../results/revision-2-core9-r2-global-m4-staged-n3_2026-07-15.md)でprompt比較を実施した。比較済みであることはcandidateの改善、採用、本体反映を意味しない。
