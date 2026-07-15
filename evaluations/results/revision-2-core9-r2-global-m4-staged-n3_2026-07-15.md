@@ -131,6 +131,6 @@ prompt比較は固定規則で`winner: a`となった。したがってcandidate
 
 cycle、raw workspace、Codex JSONL、Layer 3 rating、Layer 4 decision、OS samples、controller attempt記録は次に保持する。
 
-`/Users/kenn/repos/THE-CAPTION-prompt-ab-measurement/runs/revision-2-core9-r2-global-m4-staged-20260715`
+`/Users/kenn/repos/_verification/THE-CAPTION-prompt-ab-measurement/runs/revision-2-core9-r2-global-m4-staged-20260715`
 
 raw evidenceはrepositoryへcommitしない。
