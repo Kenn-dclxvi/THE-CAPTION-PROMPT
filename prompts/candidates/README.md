@@ -8,5 +8,7 @@
 | `the-caption-9b3a96a-revision-2-r1` | `the-caption-3ce91a4-current-r2` | 単一root authorityとconditional audit / reviewを含む10 target改訂 | [`observed_n5`](../../evaluations/results/candidate1-expanded12-global-m24-n5_2026-07-15.md) |
 | `the-caption-3ce91a4-sa-routing-r1` | `the-caption-3ce91a4-current-r2` | 実装SA routingを維持し、riskとmachine coverageで実装後のaudit / review SAを選ぶ3 target改訂 | [`observed_n5`](../../evaluations/results/candidate2-expanded12-global-m24-n5_2026-07-15.md) |
 | `the-caption-3ce91a4-sa-routing-test-boundary-r1` | `the-caption-3ce91a4-sa-routing-r1` | validationでtestを使うだけのtaskへC3を付与しないよう、test contract riskとchange classの境界を限定する1 target改訂 | [`observed_n5`](../../evaluations/results/candidate3-expanded12-global-m24-n5_2026-07-15.md) |
+| `the-caption-3ce91a4-executor-discretion-r1` | `the-caption-3ce91a4-sa-routing-test-boundary-r1` | C3のAudit / Review routingを維持し、専用実装SAと必須委任を除去して実装主体をモデル判断へ戻す6 target改訂 | [`observed_n5`](../../evaluations/results/candidate4-expanded12-global-m24-n5_2026-07-15.md) |
+| `the-caption-3ce91a4-completion-persistence-r1` | `the-caption-3ce91a4-executor-discretion-r1` | C4の実装主体判断とroutingを維持し、実行開始後の停止を明示済み条件と観測事実へ限定する3 target改訂 | [`observed_n5`](../../evaluations/results/candidate5-expanded12-global-m24-n5_2026-07-16.md) |
 
 candidate bundleのmanifestは構築時provenanceとしてimmutableに保持する。評価状態の更新はmanifestをin-place変更せず、このindexと独立したevaluation resultで表す。
