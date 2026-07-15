@@ -1,0 +1,181 @@
+{
+  "artifact": {
+    "artifact_role": "candidate",
+    "baseline_identity": "the-caption-3ce91a4-executor-discretion-r1",
+    "change_reason": "candidate4の実装主体判断とrisk-based Audit / Review routingを維持し、固定した作業単位の実行開始後は、完了条件または明示済み停止条件の成立まで継続する一般的な完了志向を追加する。",
+    "evaluation_status": "not_evaluated",
+    "non_goals": [
+      "改善の主張",
+      "採用判断",
+      "release判断",
+      "THE-CAPTION本体への反映",
+      "評価基盤、評価profile、評価result、Evaluation setの変更",
+      "Audit / Review routingまたはrisk taxonomyの変更",
+      "実装主体またはSA利用条件の変更",
+      "TaskSpecのidentity条件、cleanup条件、case IDに固有の例外",
+      "明示された停止条件の無視または上書き"
+    ],
+    "problem": "candidate4のN=5観測では、許可範囲内の作業を完了できる状態でも、未完了の中間状態や操作への逡巡を理由に停止するrunがあった。個別caseへの対策ではなく、停止を固定済み条件と観測事実へ結び付ける一般原則として切り分ける必要がある。",
+    "prompt_set_name": "candidate5",
+    "scope": "candidate4の直接childとなる18 pathのfull bundle。AGENTS.md、docs/orchestration-process.md、docs/prompt-guide.mdの3 targetだけを改訂し、残り15 targetはcandidate4と同一に保つ。",
+    "state": "draft"
+  },
+  "bundle_hash_algorithm": "sha256(canonical-json({schema_version,files}))",
+  "bundle_sha256": "63abe024084d9d979323444af1bb43c34b5f6a8269e7412f9d9d6a3b7ea51667",
+  "content_relation": {
+    "changed_targets": [
+      "AGENTS.md",
+      "docs/orchestration-process.md",
+      "docs/prompt-guide.md"
+    ],
+    "kind": "direct_child_full_bundle",
+    "source_prompt_identity": "the-caption-3ce91a4-executor-discretion-r1"
+  },
+  "files": [
+    {
+      "git_blob_sha1": "0191b4375b312ae9591965fabab084e71b0b80d6",
+      "mode": "100644",
+      "sha256": "8b9008acb73a0c3583d31b4acad111a0c99e2836cef1dcb82139c7af412320f9",
+      "target": "AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "dc7446eae35eda9f0be9e162f9e81fb2dedcd97b",
+      "mode": "100644",
+      "sha256": "5b11d8b79b2ed9718d0a213ab5dbe5ea45a16ad03f1bfe93c625038d0041f8c8",
+      "target": "docs/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "docs/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "2fbcc1d606a0311deb1f4539fbd012f202243f34",
+      "mode": "100644",
+      "sha256": "2650c008fe5e38fa513e5ab826e0f9a22586546046b7ddce39f163a98ee11035",
+      "target": "docs/glossary.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "4a85298ded65e9db8bb7c8428f47cf370bdb3297",
+      "mode": "100644",
+      "sha256": "bfd13c7c8e2dd11e3dc1777bf78d9c530d8d5c39fc81a25f13b30fdacb6aad4f",
+      "target": "docs/how-to/index.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "3658281a647fe193b4c11a972d3a3903a92e5ff3",
+      "mode": "100644",
+      "sha256": "4639b041fb24cfcb105763de176651295979b7d0d34d7c805363f7a0e573b12d",
+      "target": "docs/orchestration-process.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "db3958b643d5b77769e0ac3c7113f491bc58bb94",
+      "mode": "100644",
+      "sha256": "1ac6d4951403052377020d673595232d75f88a9dde659aa2eeaf277d4d0b8340",
+      "target": "docs/prompt-guide.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "b81e630c09d5d06a87b31e19efc4d2163971dd9b",
+      "mode": "100644",
+      "sha256": "12155b2c64e3259e1774d2761ca87162df66b2d548dc3d040fe3ac0beb672ecb",
+      "target": "docs/reference/project-contexts/the-caption.txt",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "8193bba57f46d478c666b43b2192e731af0b2f36",
+      "mode": "100644",
+      "sha256": "6a2f4c67e28ee88f3f67e9b0ed5e4ff51c880c3a0e8f77f1fa50713f9259fb45",
+      "target": "prompts/audit.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "72678ea0d1c30b6dd9011914f10d5c49e31ea615",
+      "mode": "100644",
+      "sha256": "e9b865838bf5b1076f2ededa778c397e19c7f97b28fa033190c167cf5f3a9712",
+      "target": "prompts/plan.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "17aef2fcea36e7aeac81334fbdaab08754c42906",
+      "mode": "100644",
+      "sha256": "40b4b51def80b54aa035927e95221875ef7ceba2f0cdd0ea77c11ebbc028c200",
+      "target": "prompts/review.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "fa7943fe3d687bc81cb7b1a46fe20ed95c3643c6",
+      "mode": "100644",
+      "sha256": "9ef019f1fda229b56c0c1f0180f8117b91071d83aaaf165608bd59f2d069f897",
+      "target": "scripts/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "scripts/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "2d0834867848fc02f236b4c390cfabb42a818565",
+      "mode": "100644",
+      "sha256": "15ac565c8b3ef9b678be5346dc6952490a7df2e6f17b856eebc949789fa45377",
+      "target": "src/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "src/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "062c1ded63a981f88aaf0c22c4d15089ef8d0417",
+      "mode": "100644",
+      "sha256": "d6eb6100a9125256136c3cf928b55aaa2cd7f0dc28f8208defbf654dad8e7bcd",
+      "target": "tests/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "tests/CLAUDE.md",
+      "type": "symlink"
+    }
+  ],
+  "prompt_identity": "the-caption-3ce91a4-completion-persistence-r1",
+  "provenance": {
+    "construction_repository": "https://github.com/Kenn-dclxvi/THE-CAPTION-PROMPT.git",
+    "construction_state": "uncommitted_working_tree",
+    "design_inputs": [
+      "evaluations/results/candidate4-expanded12-global-m24-n5_2026-07-15.md",
+      "evaluations/results/baseline-candidate1-candidate2-candidate3-candidate4-expanded12-global-m24-n5_2026-07-15.md"
+    ],
+    "design_status": "draft",
+    "evaluation_status": "not_evaluated",
+    "runtime_projection_status": "not_projected",
+    "source_interpretation": "source_prompt_identity identifies candidate4 as the direct prompt parent; source.commit retains the underlying THE-CAPTION repository ref"
+  },
+  "schema_version": "the-caption-prompt.bundle/v1",
+  "source": {
+    "commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+    "repository": "https://github.com/Kenn-dclxvi/THE-CAPTION.git",
+    "tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b"
+  }
+}
