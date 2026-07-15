@@ -69,3 +69,17 @@ python3 scripts/prepare_evaluation_set.py \
 outputはtarget identity、preimage、patch、post-seed identity、seed commit、clean tracked worktreeを検証する。実行時のknown-good `.venv`はrun capsuleのmodel-invisible runtime materializationとしてA / Bで同一に固定し、case bundleへcommitしない。
 
 artifactの存在だけではprompt評価済みを意味しない。その後、[`core9 r2 global M=4 staged N=3`](../../../results/revision-2-core9-r2-global-m4-staged-n3_2026-07-15.md)でprompt比較を実施した。比較済みであることはcandidateの改善、採用、本体反映を意味しない。
+
+## 観測された実行特性
+
+F02はsourceのcross-layer実装とtest-contract確認を同時に扱うため、source振る舞いとrequired gateが成立した後も、selective retry、`COMMODITIES`、US market date欠落時fallbackのdirect test不足をreviewがどう分類するかで実行経路が揺れる。同種の指摘が非阻害の改善指摘になるrunと、重大指摘となり1回のrework、required gate再実行、再監査、再reviewへ進むrunの両方を観測している。
+
+| observation | run | review分類 | rework | `elapsed_seconds` | terminal |
+| --- | --- | --- | ---: | ---: | --- |
+| core9 r1、`M=2` | A repetition 2 | direct test不足を重大指摘 | 1 | `650.731` | complete |
+| core9 r2、`M=4` | A repetition 2 | 同種の不足を非阻害の改善指摘 | 0 | `471.392` | complete |
+| core9 r2、`M=24` Layer 2観測 | A repetition 2 | direct test不足を重大指摘 | 1 | `1,135.013` | complete |
+
+comparison-validなN=1、core9 r1 `M=2` N=3、core9 r2 `M=4` N=3のF02 Aは7 / 7 runがcompleteした。`M=24` Layer 2観測のF02 Aも3 / 3 runがcompleteし、再修正上限でのstopまたは未完了terminalはなかった。`1,135.013`秒のrunもfocused gate `26 passed`、full gate `328 passed / 3 skipped`、停止指摘なし、重大指摘なしで最終完了している。
+
+`M=24`観測runはfixture復元時にGit管理外の`logs/`が欠落していたため、`M=4`との固定条件KPI比較には使わない。一方、同種のreview分類とreworkは`M=2`でも既に発生し、`M=4`でも指摘自体は現れている。したがって、単一runがglobal queueのwall timeを支配するlong tailはF02の実行特性として保持し、`M=24`固有の失敗や中断とは扱わない。review分類のrepeatabilityと評価精度の確認は、並列数のLayer 2適格性とは分けた別作業とする。
