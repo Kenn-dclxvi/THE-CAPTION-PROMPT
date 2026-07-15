@@ -17,7 +17,7 @@ Audit Keyを持つfundが存在するときだけ列を表示するReact/TypeScr
 
 `seed.patch`は`hasAuditKey`を常に`true`へ固定する。Node `v26.0.0`、npm `11.12.1`で`npm ci`、lint、buildが成功し、`node_modules`と`dist`を削除した後もtracked worktreeがcleanであることを確認した。通常gateがこの意味的なUI不具合を検出しないこともcase特性である。
 
-statusは`fixture_qualified_prompt_not_evaluated`。画面操作による評価やA / B prompt実行はまだ行っていない。
+作成時qualification receiptは`fixture_qualified_prompt_not_evaluated`である。その後、[`core9 r2 global M=4 staged N=3`](../../../results/revision-2-core9-r2-global-m4-staged-n3_2026-07-15.md)でA / B prompt比較を実施した。比較済みであることは採用、release、本体反映を意味しない。
 
 ## Visibility
 

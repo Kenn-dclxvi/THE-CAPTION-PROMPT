@@ -1,0 +1,26 @@
+diff --git a/tests/unit/test_market_units_snapshot.py b/tests/unit/test_market_units_snapshot.py
+index a854b1e85795418c372a26c72a2f4a9a3e24d6a2..474a0a4caf9e02a72186360a223ceda9ffd7c6dc 100644
+--- a/tests/unit/test_market_units_snapshot.py
++++ b/tests/unit/test_market_units_snapshot.py
+@@ -193,21 +193,6 @@ def test_snapshot_units_numeric_invalid_is_invalid(tmp_path):
+         load_units_snapshot(str(snapshot), "2026-04-20", str(market_units_csv))
+ 
+ 
+-def test_snapshot_empty_items_is_invalid(tmp_path):
+-    market_units_csv = tmp_path / "market_units.csv"
+-    snapshot_dir = tmp_path / "current"
+-    snapshot_dir.mkdir()
+-    _write_market_units(market_units_csv)
+-    snapshot = _write_snapshot(
+-        market_units_csv,
+-        snapshot_dir,
+-        lambda payload: payload.__setitem__("items", []),
+-    )
+-
+-    with pytest.raises(MarketUnitsSnapshotError, match="snapshot items must not be empty"):
+-        load_units_snapshot(str(snapshot), "2026-04-20", str(market_units_csv))
+-
+-
+ @pytest.mark.parametrize(
+     "mutator",
+     [

@@ -189,8 +189,17 @@ def binding_from_capsule(path: Path) -> dict[str, Any]:
 
 def validate_plan(path: Path) -> dict[str, Any]:
     plan = load_object(path)
-    if plan.get("schema_version") != "the-caption-prompt.parallel-execution-plan/v1":
+    schema_version = plan.get("schema_version")
+    if schema_version not in {
+        "the-caption-prompt.parallel-execution-plan/v1",
+        "the-caption-prompt.parallel-execution-plan/v2",
+    }:
         raise ParallelRunError("unsupported plan schema_version")
+    schedule_policy = plan.get("schedule_policy", "wave_barrier")
+    if schema_version.endswith("/v1") and schedule_policy != "wave_barrier":
+        raise ParallelRunError("v1 plan only supports wave_barrier")
+    if schema_version.endswith("/v2") and schedule_policy != "global_queue":
+        raise ParallelRunError("v2 plan only supports global_queue")
     cycle = Path(require_string(plan.get("cycle"), "cycle")).resolve()
     evaluator = Path(require_string(plan.get("evaluation_loop"), "evaluation_loop")).resolve()
     if not (cycle / "layer1" / "set.json").is_file():
@@ -208,6 +217,7 @@ def validate_plan(path: Path) -> dict[str, Any]:
     jobs: list[dict[str, Any]] = []
     keys: set[tuple[str, str, int]] = set()
     wave_counts: dict[int, int] = {}
+    sequences: list[int] = []
     for index, raw_job in enumerate(raw_jobs):
         if not isinstance(raw_job, dict):
             raise ParallelRunError(f"jobs[{index}] must be an object")
@@ -219,21 +229,40 @@ def validate_plan(path: Path) -> dict[str, Any]:
         if key in keys:
             raise ParallelRunError(f"duplicate execution slot: {key}")
         keys.add(key)
-        wave = require_positive_integer(raw_job.get("wave"), f"jobs[{index}].wave")
-        wave_counts[wave] = wave_counts.get(wave, 0) + 1
-        jobs.append({"capsule": capsule, "binding": binding, "index": index, "wave": wave})
-    waves = sorted(wave_counts)
-    if waves != list(range(1, max(waves) + 1)):
-        raise ParallelRunError("job waves must be contiguous and start at 1")
-    oversized = [wave for wave, count in wave_counts.items() if count > max_workers]
-    if oversized:
-        raise ParallelRunError(f"job wave exceeds max_workers: {oversized[0]}")
+        job = {"capsule": capsule, "binding": binding, "index": index}
+        if schedule_policy == "wave_barrier":
+            wave = require_positive_integer(raw_job.get("wave"), f"jobs[{index}].wave")
+            wave_counts[wave] = wave_counts.get(wave, 0) + 1
+            job["wave"] = wave
+        else:
+            sequence = require_positive_integer(
+                raw_job.get("sequence"), f"jobs[{index}].sequence"
+            )
+            estimated_seconds = require_positive_number(
+                raw_job.get("estimated_seconds"), f"jobs[{index}].estimated_seconds"
+            )
+            sequences.append(sequence)
+            job["sequence"] = sequence
+            job["estimated_seconds"] = estimated_seconds
+        jobs.append(job)
+    if schedule_policy == "wave_barrier":
+        waves = sorted(wave_counts)
+        if waves != list(range(1, max(waves) + 1)):
+            raise ParallelRunError("job waves must be contiguous and start at 1")
+        oversized = [wave for wave, count in wave_counts.items() if count > max_workers]
+        if oversized:
+            raise ParallelRunError(f"job wave exceeds max_workers: {oversized[0]}")
+    else:
+        if sequences != list(range(1, len(jobs) + 1)):
+            raise ParallelRunError("global job sequences must be ordered, contiguous, and start at 1")
+        waves = []
     return {
         "cycle": cycle,
         "evaluation_loop": evaluator,
         "max_workers": max_workers,
         "max_attempts": max_attempts,
         "monitor_interval_seconds": monitor_interval,
+        "schedule_policy": schedule_policy,
         "jobs": jobs,
         "waves": waves,
     }
@@ -289,6 +318,9 @@ def execute_job(
             "runner_elapsed_seconds": elapsed,
             "controller_exit_code": completed.returncode,
         }
+        if "sequence" in job:
+            record["dispatch_sequence"] = job["sequence"]
+            record["estimated_seconds"] = job["estimated_seconds"]
         if completed.returncode != 0:
             record["controller_stderr"] = completed.stderr
             append_jsonl(attempt_path, record, log_lock)
@@ -332,8 +364,14 @@ def run_plan(plan_path: Path, output: Path) -> dict[str, Any]:
     monitor.start()
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=plan["max_workers"]) as pool:
-            for wave in plan["waves"]:
-                wave_jobs = [job for job in plan["jobs"] if job["wave"] == wave]
+            if plan["schedule_policy"] == "global_queue":
+                job_groups = [plan["jobs"]]
+            else:
+                job_groups = [
+                    [job for job in plan["jobs"] if job["wave"] == wave]
+                    for wave in plan["waves"]
+                ]
+            for jobs in job_groups:
                 futures = [
                     pool.submit(
                         execute_job,
@@ -344,7 +382,7 @@ def run_plan(plan_path: Path, output: Path) -> dict[str, Any]:
                         attempt_path,
                         log_lock,
                     )
-                    for job in wave_jobs
+                    for job in jobs
                 ]
                 for future in concurrent.futures.as_completed(futures):
                     try:
@@ -368,6 +406,7 @@ def run_plan(plan_path: Path, output: Path) -> dict[str, Any]:
         "ended_at": utc_now(),
         "elapsed_seconds": elapsed,
         "max_workers": plan["max_workers"],
+        "schedule_policy": plan["schedule_policy"],
         "requested_slots": len(plan["jobs"]),
         "valid_slots": len(results),
         "attempt_count": len(attempts),

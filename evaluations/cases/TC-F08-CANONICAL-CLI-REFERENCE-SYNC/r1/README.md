@@ -17,7 +17,7 @@ sourceとscoped authorityを根拠に、weekly / monthlyのCLI referenceをcanon
 
 `seed.patch`はreference内の2 commandを`python weekly.py`と`python monthly.py`へ戻す。canonical entrypoint filesは存在し、seeded command gatesと`git diff --check`はいずれも通るため、reference/source整合性を読む必要がある。
 
-statusは`fixture_qualified_prompt_not_evaluated`。
+作成時qualification receiptは`fixture_qualified_prompt_not_evaluated`である。その後、[`core9 r2 global M=4 staged N=3`](../../../results/revision-2-core9-r2-global-m4-staged-n3_2026-07-15.md)でA / B prompt比較を実施した。比較済みであることは採用、release、本体反映を意味しない。
 
 ## Visibility
 
