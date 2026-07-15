@@ -55,6 +55,7 @@ def prepare_evaluation_set(case_root: Path, source_repo: Path, output: Path) -> 
                     "id": case_id,
                     "fixture": "fixture",
                     "case_revision": case_revision,
+                    "fixture_condition_paths": fixture_result["seeded_paths"],
                     "payload": {"trial_prompt_input": trial_input},
                 }
             ],

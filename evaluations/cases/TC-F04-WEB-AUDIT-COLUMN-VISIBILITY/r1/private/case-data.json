@@ -1,0 +1,233 @@
+{
+  "schema_version": "the-caption-prompt-evaluation-private-case-v1",
+  "case_id": "TC-F04-WEB-AUDIT-COLUMN-VISIBILITY",
+  "case_revision": "r1",
+  "visibility": "model_invisible",
+  "fixture": {
+    "target_identity": {
+      "repository": "Kenn-dclxvi/THE-CAPTION",
+      "commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+      "tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b"
+    },
+    "case_spec": {
+      "family": "F04",
+      "equivalence_cluster_id": "web-conditional-audit-column",
+      "coverage_tags": [
+        "nested-web",
+        "source-code",
+        "react",
+        "caller-visible-ui"
+      ],
+      "package_connection_keys": [
+        "TC-REQ-002",
+        "TC-REQ-003",
+        "TC-REQ-005",
+        "TC-REQ-006",
+        "TC-REQ-010",
+        "TC-REQ-011"
+      ],
+      "source_control_trace_keys": [
+        "SC-02",
+        "SC-03",
+        "SC-04",
+        "SC-05",
+        "SC-06",
+        "SC-07",
+        "SC-08",
+        "SC-09",
+        "SC-10"
+      ],
+      "historical_candidate_evidence_eligible_trace_keys": [
+        "SC-02",
+        "SC-03",
+        "SC-04",
+        "SC-05",
+        "SC-06",
+        "SC-07",
+        "SC-08",
+        "SC-09",
+        "SC-10"
+      ],
+      "historical_candidate_scope": "in_scope"
+    },
+    "authority_selectors": [
+      "AGENTS.md",
+      "src/AGENTS.md"
+    ],
+    "source_files": [
+      {
+        "path": "src/web/market_units_editor/src/App.tsx",
+        "mode": "100644",
+        "git_blob_sha1": "27e5953da7f6dd68456245feead7a73a5ddca864",
+        "role": "seed_and_reference_postimage",
+        "raw_sha256": "5685fa784046354cec5b8b641591d11185fd7d4fcd3d48ea80c078c35e8f91c0"
+      },
+      {
+        "path": "src/web/market_units_editor/package.json",
+        "mode": "100644",
+        "git_blob_sha1": "eb5bcd337658788993194ce2928f20e89945ba77",
+        "role": "node_command_source",
+        "raw_sha256": "46c826531060d688e349062244c84019de6d93d8ef9369867e306742e4054771"
+      },
+      {
+        "path": "src/web/market_units_editor/package-lock.json",
+        "mode": "100644",
+        "git_blob_sha1": "5b84c7407cda5f283545a9b161c8bfe628a827e2",
+        "role": "node_dependency_identity",
+        "raw_sha256": "2e5bf608b74f6e25ec56acbfba2eb59a241a97ffe1b9d0d5860020de7817d927"
+      }
+    ],
+    "absent_paths": [
+      "src/web/market_units_editor/node_modules",
+      "src/web/market_units_editor/dist"
+    ]
+  },
+  "seed": {
+    "status": "materialized_not_applied",
+    "post_seed_intent": "The Audit Key column is always rendered regardless of data while package and lock identities remain unchanged.",
+    "design_operations": [
+      {
+        "operation": "replace_exact_text",
+        "path": "src/web/market_units_editor/src/App.tsx",
+        "expected_preimage_blob": "27e5953da7f6dd68456245feead7a73a5ddca864",
+        "expected_occurrences": 1,
+        "before_text": "  const hasAuditKey = useMemo(\n    () => funds.some((fund) => fund.audit_match_key.trim() !== \"\"),\n    [funds]\n  );",
+        "after_text": "  const hasAuditKey = true;"
+      }
+    ],
+    "artifact": {
+      "path": "private/seed.patch",
+      "format": "git_diff",
+      "raw_sha256": "deb6d7633ac5bd4bafd6014d22513e6fabc9af42ac8f19f6088d57dae68846cd"
+    },
+    "application_contract": {
+      "target_commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+      "target_tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b",
+      "preimage_files": [
+        {
+          "path": "src/web/market_units_editor/src/App.tsx",
+          "mode": "100644",
+          "git_blob_sha1": "27e5953da7f6dd68456245feead7a73a5ddca864",
+          "raw_sha256": "5685fa784046354cec5b8b641591d11185fd7d4fcd3d48ea80c078c35e8f91c0"
+        }
+      ],
+      "check": "resolve artifact.path from the case revision root and run git apply --check before applying",
+      "apply": "apply the same resolved patch only after every identity and preimage check passes",
+      "failure_mode": "fail_closed_no_partial_fixture"
+    },
+    "expected_post_seed_files": [
+      {
+        "path": "src/web/market_units_editor/src/App.tsx",
+        "mode": "100644",
+        "git_blob_sha1": "fb6d93d6209f5190780719c565ee513a62cc47e2",
+        "raw_sha256": "d90c75a6dfde8bc00b75ff83d9f8febeed0a5de58e18b81ff0e952343340fd1e"
+      }
+    ],
+    "fixture_materialization": {
+      "mode": "committed_seed",
+      "commit": {
+        "message": "evaluation fixture seed",
+        "timestamp": "2000-01-01T00:00:00Z",
+        "author_name": "THE-CAPTION Prompt Evaluation",
+        "author_email": "evaluation@example.invalid",
+        "expected_commit": "36f594ae5d16f6ac930b0c5afe12335c7624c020",
+        "expected_tree": "e578e8bbc6a8dc2fd0e2316e8279c7e87b21e3b9"
+      }
+    }
+  },
+  "oracle": {
+    "mode": "semantic_predicate_with_reference_postimage",
+    "reference_postimage_files": [
+      {
+        "path": "src/web/market_units_editor/src/App.tsx",
+        "mode": "100644",
+        "git_blob_sha1": "27e5953da7f6dd68456245feead7a73a5ddca864"
+      },
+      {
+        "path": "src/web/market_units_editor/package.json",
+        "mode": "100644",
+        "git_blob_sha1": "eb5bcd337658788993194ce2928f20e89945ba77"
+      },
+      {
+        "path": "src/web/market_units_editor/package-lock.json",
+        "mode": "100644",
+        "git_blob_sha1": "5b84c7407cda5f283545a9b161c8bfe628a827e2"
+      }
+    ],
+    "reference_postimage_is_exclusive": false,
+    "assertions": [
+      {
+        "criterion_id": "F04-C1",
+        "type": "source_behavior",
+        "expected": "Header and row cells are conditional on at least one nonblank audit_match_key."
+      },
+      {
+        "criterion_id": "F04-C2",
+        "type": "source_behavior",
+        "expected": "The empty-record colSpan matches the rendered column count."
+      },
+      {
+        "criterion_id": "F04-C3",
+        "type": "command_identity_and_drift",
+        "expected": "npm ci, lint, and build pass in order; package and lock files remain unchanged; test-owned node_modules and dist are removed; no forbidden drift remains."
+      }
+    ]
+  },
+  "grader": {
+    "status": "designed_not_implemented",
+    "contract_revision": "grader-contract-r1",
+    "mode": "repository_state_terminal_command_and_source_evidence",
+    "human_calibration_owner": "independent_source_check",
+    "criteria": [
+      {
+        "criterion_id": "F04-C1",
+        "evidence_sources": [
+          "final_App.tsx",
+          "source_semantic_check"
+        ]
+      },
+      {
+        "criterion_id": "F04-C2",
+        "evidence_sources": [
+          "final_App.tsx",
+          "source_semantic_check"
+        ]
+      },
+      {
+        "criterion_id": "F04-C3",
+        "evidence_sources": [
+          "ordered_command_receipts",
+          "final_drift_manifest",
+          "terminal_outcome"
+        ]
+      }
+    ],
+    "commands": [
+      "cd src/web/market_units_editor && npm ci --ignore-scripts --no-audit --no-fund --include=dev",
+      "cd src/web/market_units_editor && npm run lint",
+      "cd src/web/market_units_editor && npm run build",
+      "test ! -e src/web/market_units_editor/node_modules && test ! -e src/web/market_units_editor/dist",
+      "git diff --check"
+    ],
+    "success_rule": "all listed criteria pass from observed evidence; build success alone does not satisfy the caller-visible source criteria"
+  },
+  "qualification": {
+    "status": "fixture_qualified_prompt_not_evaluated",
+    "receipt": {
+      "date": "2026-07-15",
+      "fixture_materialization": "pass",
+      "runtime": "node v26.0.0; npm 11.12.1",
+      "seeded_gates": "npm ci, npm run lint, npm run build, cleanup and git diff --check all passed",
+      "semantic_seed_check": "hasAuditKey is unconditionally true",
+      "model_invocation": "not_run"
+    }
+  },
+  "materialization_source": {
+    "repository": "Kenn-dclxvi/ai-development-research",
+    "commit": "1d651a15d3086671a4dbe9d26cc46252d9f40c2f",
+    "case_data_path": "packages/the-caption/prompt-evaluation/cases/TC-F04-WEB-AUDIT-COLUMN-VISIBILITY/r1/private/case-data.json",
+    "case_data_raw_sha256": "fc5c4ed32e11f7a8dd775f9234b55d6b79f2d86385a37923ba74c47562b1f3a5",
+    "trial_prompt_input_path": "packages/the-caption/prompt-evaluation/cases/TC-F04-WEB-AUDIT-COLUMN-VISIBILITY/r1/trial-prompt-input.json",
+    "trial_prompt_input_raw_sha256": "f61f4a4baed8749e219543ed0f7ff73fc5d1dc23e8f9359b7370a8c71d8bff6e"
+  }
+}

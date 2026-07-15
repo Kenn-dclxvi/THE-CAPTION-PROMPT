@@ -25,9 +25,10 @@ class AdapterError(Exception):
 
 EXTERNAL_FAILURE_EXIT_CODE = 75
 COLLAB_PARENT_THREAD_MISSING = "collab spawn failed: no thread with id:"
+MODEL_AT_CAPACITY = "Selected model is at capacity."
 
 
-def detect_external_failure(stderr: bytes) -> dict[str, str] | None:
+def detect_external_failure(stderr: bytes, stdout: bytes = b"") -> dict[str, str] | None:
     text = stderr.decode("utf-8", errors="replace")
     if COLLAB_PARENT_THREAD_MISSING in text:
         return {
@@ -37,6 +38,25 @@ def detect_external_failure(stderr: bytes) -> dict[str, str] | None:
             "reason_code": "codex_collab_parent_thread_missing",
             "detector": "codex-stderr-signature/v1",
         }
+    for raw_line in stdout.splitlines():
+        try:
+            event = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict) or event.get("type") not in {"error", "turn.failed"}:
+            continue
+        error = event.get("error")
+        message = event.get("message")
+        if isinstance(error, dict):
+            message = error.get("message")
+        if isinstance(message, str) and MODEL_AT_CAPACITY in message:
+            return {
+                "schema_version": "the-caption-prompt.run-status/v1",
+                "status": "excluded",
+                "category": "external_failure",
+                "reason_code": "codex_model_at_capacity",
+                "detector": "codex-jsonl-event/v1",
+            }
     return None
 
 
@@ -92,6 +112,20 @@ def changed_paths(workspace: Path) -> set[str]:
     return paths
 
 
+def prompt_fixture_collisions(case: dict[str, Any], manifest: dict[str, Any]) -> list[str]:
+    protected = set(
+        require_string_array(case.get("fixture_condition_paths", []), "case.fixture_condition_paths")
+    )
+    raw_files = manifest.get("files")
+    if not isinstance(raw_files, list):
+        raise AdapterError("prompt bundle manifest files must be an array")
+    targets: set[str] = set()
+    for index, raw_entry in enumerate(raw_files):
+        entry = require_object(raw_entry, f"prompt bundle manifest files[{index}]")
+        targets.add(require_string(entry.get("target"), f"prompt bundle manifest files[{index}].target"))
+    return sorted(protected & targets)
+
+
 def overlay_bundle(workspace: Path, bundle: Path, manifest: dict[str, Any]) -> list[str]:
     targets: list[str] = []
     for raw_entry in manifest["files"]:
@@ -110,6 +144,71 @@ def overlay_bundle(workspace: Path, bundle: Path, manifest: dict[str, Any]) -> l
             destination.chmod(0o755 if raw_entry["mode"] == "100755" else 0o644)
         targets.append(target)
     return targets
+
+
+def materialize_shared_venv(source: Path, destination: Path, workspace: Path) -> None:
+    destination = destination.resolve()
+    source_python = source / "bin" / "python"
+    if not source_python.is_file() or not os.access(source_python, os.X_OK):
+        raise AdapterError("shared Python runtime has no executable bin/python")
+
+    source_purelib_raw = run(
+        [str(source_python), "-c", "import sysconfig; print(sysconfig.get_path('purelib'))"],
+        source,
+    )
+    assert isinstance(source_purelib_raw, str)
+    source_purelib = Path(source_purelib_raw).resolve()
+    if not source_purelib.is_dir() or not source_purelib.is_relative_to(source):
+        raise AdapterError("shared Python runtime purelib is outside the runtime")
+
+    run(
+        [str(source_python), "-m", "venv", "--without-pip", str(destination)],
+        workspace,
+    )
+    destination_python = destination / "bin" / "python"
+    destination_purelib_raw = run(
+        [str(destination_python), "-c", "import sysconfig; print(sysconfig.get_path('purelib'))"],
+        workspace,
+    )
+    assert isinstance(destination_purelib_raw, str)
+    destination_purelib = Path(destination_purelib_raw).resolve()
+    if not destination_purelib.is_dir() or not destination_purelib.is_relative_to(destination):
+        raise AdapterError("local Python runtime purelib is outside the runtime shim")
+
+    shared_path = json.dumps(str(source_purelib), ensure_ascii=True)
+    (destination_purelib / "the_caption_shared_runtime.pth").write_text(
+        f"import site; site.addsitedir({shared_path})\n",
+        encoding="utf-8",
+    )
+
+    source_bin = source / "bin"
+    destination_bin = destination / "bin"
+    for source_script in source_bin.iterdir():
+        destination_script = destination_bin / source_script.name
+        if destination_script.exists() or destination_script.is_symlink() or source_script.is_symlink():
+            continue
+        if not source_script.is_file():
+            continue
+        content = source_script.read_bytes()
+        first_line, separator, remainder = content.partition(b"\n")
+        if not separator or not first_line.startswith(b"#!"):
+            continue
+        destination_script.write_bytes(
+            f"#!{destination_python}\n".encode("utf-8") + remainder
+        )
+        shutil.copymode(source_script, destination_script)
+
+    verification = run(
+        [
+            str(destination_python),
+            "-c",
+            "import pip, pytest, sys; print(sys.prefix); print(sys.executable)",
+        ],
+        workspace,
+    )
+    assert isinstance(verification, str)
+    if verification.splitlines() != [str(destination), str(destination_python)]:
+        raise AdapterError("shared Python runtime shim did not preserve local identity")
 
 
 def prepare_runtime_links(workspace: Path, raw_links: Any) -> list[dict[str, str]]:
@@ -139,11 +238,34 @@ def prepare_runtime_links(workspace: Path, raw_links: Any) -> list[dict[str, str
             f"runtime_links[{index}].identity_sha256",
         )
         materialization = link.get("materialization", "symlink")
-        if materialization not in {"symlink", "copy"}:
+        if materialization not in {"symlink", "copy", "venv_shim"}:
             raise AdapterError(f"unsupported runtime materialization: {materialization}")
         actual_sha256 = hashlib.sha256(identity_path.read_bytes()).hexdigest()
         if actual_sha256 != expected_sha256:
             raise AdapterError(f"runtime identity mismatch: {target}")
+        python_version: str | None = None
+        if materialization == "venv_shim":
+            source_python = source / "bin" / "python"
+            expected_python_version = require_string(
+                link.get("python_version"),
+                f"runtime_links[{index}].python_version",
+            )
+            actual_python_version = run(
+                [str(source_python), "-c", "import platform; print(platform.python_version())"],
+                source,
+            )
+            assert isinstance(actual_python_version, str)
+            if actual_python_version != expected_python_version:
+                raise AdapterError(f"shared Python version differs from runtime identity: {target}")
+            python_version = actual_python_version
+            frozen = run(
+                [str(source_python), "-m", "pip", "freeze", "--all"],
+                source,
+                binary=True,
+            )
+            assert isinstance(frozen, bytes)
+            if frozen != identity_path.read_bytes():
+                raise AdapterError(f"shared Python package set differs from runtime identity: {target}")
         destination = workspace.joinpath(*target_path.parts)
         if destination.exists() or destination.is_symlink():
             raise AdapterError(f"runtime link target already exists: {target}")
@@ -167,17 +289,20 @@ def prepare_runtime_links(workspace: Path, raw_links: Any) -> list[dict[str, str
         destination.parent.mkdir(parents=True, exist_ok=True)
         if materialization == "copy":
             shutil.copytree(source, destination, symlinks=True)
+        elif materialization == "venv_shim":
+            materialize_shared_venv(source, destination, workspace)
         else:
             destination.symlink_to(source, target_is_directory=True)
-        prepared.append(
-            {
-                "identity_file": identity_file,
-                "identity_sha256": actual_sha256,
-                "materialization": materialization,
-                "source": str(source),
-                "target": target,
-            }
-        )
+        receipt = {
+            "identity_file": identity_file,
+            "identity_sha256": actual_sha256,
+            "materialization": materialization,
+            "source": str(source),
+            "target": target,
+        }
+        if python_version is not None:
+            receipt["python_version"] = python_version
+        prepared.append(receipt)
     return prepared
 
 
@@ -280,6 +405,11 @@ def execute() -> int:
     prompt_identity = require_string(binding.get("prompt_identity"), "binding.prompt_identity")
     if manifest.get("prompt_identity") != prompt_identity or manifest.get("bundle_sha256") != expected_hash:
         raise AdapterError("run binding does not match prompt bundle identity")
+    collisions = prompt_fixture_collisions(case, manifest)
+    if collisions:
+        raise AdapterError(
+            "prompt bundle targets collide with fixture condition paths: " + ", ".join(collisions)
+        )
     runtime_links = prepare_runtime_links(workspace, parameters.get("runtime_links"))
     if changed_paths(workspace) != expected_dirty:
         raise AdapterError("fixture dirty paths do not match the run capsule")
@@ -330,11 +460,14 @@ def execute() -> int:
     sys.stderr.buffer.write(completed.stderr)
     (adapter_extension / "codex-events.jsonl").write_bytes(completed.stdout)
     (adapter_extension / "codex-stderr.bin").write_bytes(completed.stderr)
-    external_failure = detect_external_failure(completed.stderr)
+    external_failure = detect_external_failure(completed.stderr, completed.stdout)
     if external_failure is not None:
         write_json(status_path, external_failure)
-    total_tokens, raw_usage = parse_usage(completed.stdout)
-    write_json(usage_path, {"total_tokens": total_tokens})
+        total_tokens = None
+        raw_usage = None
+    else:
+        total_tokens, raw_usage = parse_usage(completed.stdout)
+        write_json(usage_path, {"total_tokens": total_tokens})
     final_paths = changed_paths(workspace)
     unexpected_paths = sorted(final_paths - allowed_result_paths)
     codex_version = run(["codex", "--version"], workspace)

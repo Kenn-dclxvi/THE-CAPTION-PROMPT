@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import platform
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -137,6 +139,95 @@ class ExportPromptBundleTest(unittest.TestCase):
             self.assertEqual((workspace / ".venv" / "pyvenv.cfg").read_bytes(), identity.read_bytes())
             self.assertEqual(result[0]["materialization"], "copy")
             self.assertEqual(git(workspace, "status", "--short"), "")
+
+    def test_can_materialize_shared_venv_with_local_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            workspace = root / "workspace"
+            workspace.mkdir()
+            git(workspace, "init", "-q")
+            git(workspace, "config", "user.name", "Runtime Test")
+            git(workspace, "config", "user.email", "runtime@example.invalid")
+            (workspace / ".gitignore").write_text(".venv/\n", encoding="utf-8")
+            git(workspace, "add", ".gitignore")
+            git(workspace, "commit", "-qm", "workspace")
+
+            runtime = root / "runtime"
+            subprocess.run(
+                [sys.executable, "-m", "venv", runtime],
+                check=True,
+                capture_output=True,
+            )
+            purelib = subprocess.run(
+                [
+                    runtime / "bin" / "python",
+                    "-c",
+                    "import sysconfig; print(sysconfig.get_path('purelib'))",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            Path(purelib, "pytest.py").write_text("VALUE = 'shared-pytest'\n", encoding="utf-8")
+            identity = runtime / "requirements.freeze.txt"
+            frozen = subprocess.run(
+                [runtime / "bin" / "python", "-m", "pip", "freeze", "--all"],
+                check=True,
+                capture_output=True,
+            ).stdout
+            identity.write_bytes(frozen)
+
+            result = prepare_runtime_links(
+                workspace,
+                [
+                    {
+                        "target": ".venv",
+                        "source": str(runtime),
+                        "identity_file": "requirements.freeze.txt",
+                        "identity_sha256": hashlib.sha256(identity.read_bytes()).hexdigest(),
+                        "materialization": "venv_shim",
+                        "python_version": platform.python_version(),
+                    }
+                ],
+            )
+
+            local_runtime = (workspace / ".venv").resolve()
+            local_python = local_runtime / "bin" / "python"
+            probe = subprocess.run(
+                [
+                    local_python,
+                    "-c",
+                    (
+                        "import pip, pytest, sys; "
+                        "print(pip.__version__); print(pytest.VALUE); "
+                        "print(sys.prefix); print(sys.executable)"
+                    ),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.splitlines()
+            activated = subprocess.run(
+                ["/bin/sh", "-c", '. .venv/bin/activate && printf "%s" "$VIRTUAL_ENV"'],
+                cwd=workspace,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            byte_size = sum(
+                path.stat().st_size
+                for path in (workspace / ".venv").rglob("*")
+                if path.is_file()
+            )
+
+            self.assertTrue(probe[0])
+            self.assertEqual(probe[1], "shared-pytest")
+            self.assertEqual(probe[2:], [str(local_runtime), str(local_python)])
+            self.assertEqual(activated, str(local_runtime))
+            self.assertEqual(result[0]["materialization"], "venv_shim")
+            self.assertEqual(result[0]["python_version"], platform.python_version())
+            self.assertFalse((workspace / ".venv").is_symlink())
+            self.assertLess(byte_size, 1_000_000)
 
 
 if __name__ == "__main__":

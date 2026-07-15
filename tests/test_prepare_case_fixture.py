@@ -108,6 +108,7 @@ class PrepareCaseFixtureTest(unittest.TestCase):
             self.assertEqual(git(output, "remote"), "")
             self.assertEqual(git(output, "status", "--short"), "M target.txt")
             self.assertFalse((output / ".git" / "objects" / "info" / "alternates").exists())
+            self.assertTrue((output / "logs").is_dir())
             self.assertEqual(git(source, "status", "--short"), "")
 
     def test_removes_partial_output_when_postimage_check_fails(self) -> None:
@@ -151,6 +152,47 @@ class PrepareCaseFixtureTest(unittest.TestCase):
             self.assertEqual(git(output, "status", "--short"), "")
             self.assertEqual(git(output, "rev-parse", "HEAD^1"), source_head)
             self.assertEqual((output / "target.txt").read_text(encoding="utf-8"), "keep\n")
+            self.assertEqual(result["runtime_directories"], ["logs"])
+            self.assertTrue((output / "logs").is_dir())
+
+    def test_prepares_clean_checkout_without_a_seed_patch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source, case = self.make_source_and_case(root)
+            data_path = case / "private" / "case-data.json"
+            data = json.loads(data_path.read_text(encoding="utf-8"))
+            commit = git(source, "rev-parse", "HEAD^{commit}")
+            tree = git(source, "rev-parse", "HEAD^{tree}")
+            blob = git(source, "rev-parse", "HEAD:target.txt")
+            data["fixture"] = {
+                "target_identity": {"commit": commit, "tree": tree},
+                "source_files": [
+                    {
+                        "path": "target.txt",
+                        "mode": "100644",
+                        "git_blob_sha1": blob,
+                        "raw_sha256": sha256(source / "target.txt"),
+                    }
+                ],
+                "absent_paths": ["missing.txt"],
+            }
+            data["seed"] = {
+                "status": "clean_checkout",
+                "operations": [],
+                "fixture_materialization": {"mode": "clean_checkout"},
+            }
+            data_path.write_text(json.dumps(data), encoding="utf-8")
+            output = root / "fixture"
+
+            result = prepare_fixture(case, source, output)
+
+            self.assertEqual(result["seeded_paths"], [])
+            self.assertEqual(result["changed_paths"], [])
+            self.assertEqual(result["fixture_head_commit"], commit)
+            self.assertEqual(result["fixture_head_tree"], tree)
+            self.assertEqual(git(output, "status", "--short"), "")
+            self.assertEqual(git(output, "remote"), "")
+            self.assertTrue((output / "logs").is_dir())
 
     def test_refuses_output_inside_source_repository(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -174,6 +216,7 @@ class PrepareCaseFixtureTest(unittest.TestCase):
             capsule = json.loads((output / "set.json").read_text(encoding="utf-8"))
             self.assertEqual(result["set_id"], "test-case-r1")
             self.assertEqual(capsule["cases"][0]["fixture"], "fixture")
+            self.assertEqual(capsule["cases"][0]["fixture_condition_paths"], ["target.txt"])
             self.assertEqual(
                 capsule["cases"][0]["payload"]["trial_prompt_input"],
                 {"task_kind_goal_and_done_condition": "restore target behavior"},

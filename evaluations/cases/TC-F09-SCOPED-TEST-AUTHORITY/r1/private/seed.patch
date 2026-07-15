@@ -1,0 +1,12 @@
+diff --git a/tests/AGENTS.md b/tests/AGENTS.md
+index 062c1ded63a981f88aaf0c22c4d15089ef8d0417..e9b0ec696e46f117e7e95380d2da7260cab117e2 100644
+--- a/tests/AGENTS.md
++++ b/tests/AGENTS.md
+@@ -3,5 +3,5 @@
+ - 新しいテストは `tests/unit/` または `tests/integration/` 配下に置く。
+ - import とコマンドのガードカバレッジを、現行の正規パスと整合させて保つ。
+ - レガシーのルートエントリポイント・レガシー shim・レガシー import ルートは、テストでブロックしたまま保つ。
+-- レビュー依頼前に `pytest tests/ -v` を実行する。
+-- ローカルの pre-commit 期待値は、同じ `pytest tests/ -v` のベースラインと整合させて保つ。
++- レビュー依頼前に `pytest tests/unit/test_market_units_snapshot.py -v` を実行する。
++- ローカルの pre-commit 期待値は、同じ `pytest tests/unit/test_market_units_snapshot.py -v` のベースラインと整合させて保つ。
