@@ -2,7 +2,7 @@
 
 ## 目的
 
-固定済みEvaluation setの独立したLayer 2 runを、外側並列度`M`で同時実行する。wave barrier方式と、workerが空き次第次のrunを投入するglobal queue方式を提供する。評価基盤v1のLayer、KPI、出力schemaは変更しない。
+固定済みEvaluation setの独立したLayer 2 runを、外側並列度`M`で同時実行する。wave barrier方式と、workerが空き次第次のrunを投入するglobal queue方式を提供する。評価基盤v2のLayer、KPI、出力schemaは変更しない。
 
 このextensionが担当するのは次だけである。
 
