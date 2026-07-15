@@ -1,0 +1,403 @@
+#!/usr/bin/env python3
+"""Run independent Layer 2 capsules with bounded outer parallelism."""
+
+from __future__ import annotations
+
+import argparse
+import concurrent.futures
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import threading
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Callable
+
+
+class ParallelRunError(Exception):
+    pass
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def load_object(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        raise ParallelRunError(f"invalid JSON object: {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise ParallelRunError(f"JSON root must be an object: {path}")
+    return value
+
+
+def require_string(value: Any, name: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise ParallelRunError(f"{name} must be a non-empty string")
+    return value
+
+
+def require_positive_integer(value: Any, name: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        raise ParallelRunError(f"{name} must be a positive integer")
+    return value
+
+
+def require_positive_number(value: Any, name: str) -> float:
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
+        raise ParallelRunError(f"{name} must be a positive number")
+    return float(value)
+
+
+def write_json_once(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with path.open("x", encoding="utf-8", newline="\n") as handle:
+            json.dump(value, handle, ensure_ascii=False, indent=2, sort_keys=True)
+            handle.write("\n")
+    except FileExistsError as exc:
+        raise ParallelRunError(f"refusing to overwrite: {path}") from exc
+
+
+def append_jsonl(path: Path, value: dict[str, Any], lock: threading.Lock) -> None:
+    serialized = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    with lock:
+        with path.open("a", encoding="utf-8", newline="\n") as handle:
+            handle.write(serialized + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+
+
+def command_text(command: list[str]) -> str:
+    completed = subprocess.run(command, capture_output=True, check=False, text=True)
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or f"exit {completed.returncode}"
+        raise OSError(detail)
+    return completed.stdout
+
+
+def os_sample(disk_path: Path) -> dict[str, Any]:
+    sample: dict[str, Any] = {"sampled_at": utc_now()}
+    errors: list[str] = []
+    try:
+        load1, load5, load15 = os.getloadavg()
+        sample["load_average"] = {"one": load1, "five": load5, "fifteen": load15}
+    except OSError as exc:
+        errors.append(f"load_average: {exc}")
+    try:
+        usage = shutil.disk_usage(disk_path)
+        sample["disk"] = {
+            "path": str(disk_path),
+            "free_bytes": usage.free,
+            "total_bytes": usage.total,
+            "used_bytes": usage.used,
+        }
+    except OSError as exc:
+        errors.append(f"disk: {exc}")
+    try:
+        pressure = command_text(["memory_pressure", "-Q"])
+        match = re.search(r"System-wide memory free percentage:\s*(\d+)%", pressure)
+        if match is None:
+            raise OSError("free percentage was not reported")
+        sample["memory_free_percent"] = int(match.group(1))
+    except OSError as exc:
+        errors.append(f"memory_pressure: {exc}")
+    try:
+        swap = command_text(["sysctl", "-n", "vm.swapusage"])
+        match = re.search(r"used\s*=\s*([0-9.]+)([KMG])", swap)
+        if match is None:
+            raise OSError("swap usage was not reported")
+        scale = {"K": 1 / 1024, "M": 1, "G": 1024}[match.group(2)]
+        sample["swap_used_mib"] = float(match.group(1)) * scale
+    except OSError as exc:
+        errors.append(f"swap: {exc}")
+    try:
+        commands = command_text(["ps", "-axo", "command="]).splitlines()
+        sample["processes"] = {
+            "codex": sum(1 for command in commands if re.search(r"(^|/)codex(?:\s|$)", command)),
+            "evaluation_loop": sum(1 for command in commands if "evaluation_loop.py run" in command),
+        }
+    except OSError as exc:
+        errors.append(f"processes: {exc}")
+    if errors:
+        sample["sample_errors"] = errors
+    return sample
+
+
+class OsMonitor:
+    def __init__(
+        self,
+        path: Path,
+        disk_path: Path,
+        interval_seconds: float,
+        sampler: Callable[[Path], dict[str, Any]] = os_sample,
+    ) -> None:
+        self.path = path
+        self.disk_path = disk_path
+        self.interval_seconds = interval_seconds
+        self.sampler = sampler
+        self.stop_event = threading.Event()
+        self.lock = threading.Lock()
+        self.thread = threading.Thread(target=self._run, name="evaluation-os-monitor", daemon=True)
+
+    def _record(self) -> None:
+        try:
+            sample = self.sampler(self.disk_path)
+        except Exception as exc:  # Monitor failure must not alter execution output.
+            sample = {"sampled_at": utc_now(), "sample_errors": [f"sampler: {exc}"]}
+        append_jsonl(self.path, sample, self.lock)
+
+    def _run(self) -> None:
+        self._record()
+        while not self.stop_event.wait(self.interval_seconds):
+            self._record()
+
+    def start(self) -> None:
+        self.thread.start()
+
+    def stop(self) -> None:
+        self.stop_event.set()
+        self.thread.join()
+        self._record()
+
+
+def binding_from_capsule(path: Path) -> dict[str, Any]:
+    capsule = load_object(path)
+    binding = capsule.get("binding")
+    if not isinstance(binding, dict):
+        raise ParallelRunError(f"capsule binding must be an object: {path}")
+    condition = binding.get("condition")
+    if condition not in {"a", "b"}:
+        raise ParallelRunError(f"capsule condition must be a or b: {path}")
+    case_id = require_string(binding.get("case_id"), f"{path}.binding.case_id")
+    repetition = require_positive_integer(binding.get("repetition"), f"{path}.binding.repetition")
+    prompt_identity = require_string(
+        binding.get("prompt_identity"), f"{path}.binding.prompt_identity"
+    )
+    return {
+        "condition": condition,
+        "case_id": case_id,
+        "repetition": repetition,
+        "prompt_identity": prompt_identity,
+    }
+
+
+def validate_plan(path: Path) -> dict[str, Any]:
+    plan = load_object(path)
+    if plan.get("schema_version") != "the-caption-prompt.parallel-execution-plan/v1":
+        raise ParallelRunError("unsupported plan schema_version")
+    cycle = Path(require_string(plan.get("cycle"), "cycle")).resolve()
+    evaluator = Path(require_string(plan.get("evaluation_loop"), "evaluation_loop")).resolve()
+    if not (cycle / "layer1" / "set.json").is_file():
+        raise ParallelRunError(f"cycle is not frozen: {cycle}")
+    if not evaluator.is_file():
+        raise ParallelRunError(f"evaluation loop does not exist: {evaluator}")
+    max_workers = require_positive_integer(plan.get("max_workers"), "max_workers")
+    max_attempts = require_positive_integer(plan.get("max_attempts", 3), "max_attempts")
+    monitor_interval = require_positive_number(
+        plan.get("monitor_interval_seconds", 15), "monitor_interval_seconds"
+    )
+    raw_jobs = plan.get("jobs")
+    if not isinstance(raw_jobs, list) or not raw_jobs:
+        raise ParallelRunError("jobs must be a non-empty array")
+    jobs: list[dict[str, Any]] = []
+    keys: set[tuple[str, str, int]] = set()
+    wave_counts: dict[int, int] = {}
+    for index, raw_job in enumerate(raw_jobs):
+        if not isinstance(raw_job, dict):
+            raise ParallelRunError(f"jobs[{index}] must be an object")
+        capsule = Path(require_string(raw_job.get("capsule"), f"jobs[{index}].capsule")).resolve()
+        if not capsule.is_file():
+            raise ParallelRunError(f"capsule does not exist: {capsule}")
+        binding = binding_from_capsule(capsule)
+        key = (binding["condition"], binding["case_id"], binding["repetition"])
+        if key in keys:
+            raise ParallelRunError(f"duplicate execution slot: {key}")
+        keys.add(key)
+        wave = require_positive_integer(raw_job.get("wave"), f"jobs[{index}].wave")
+        wave_counts[wave] = wave_counts.get(wave, 0) + 1
+        jobs.append({"capsule": capsule, "binding": binding, "index": index, "wave": wave})
+    waves = sorted(wave_counts)
+    if waves != list(range(1, max(waves) + 1)):
+        raise ParallelRunError("job waves must be contiguous and start at 1")
+    oversized = [wave for wave, count in wave_counts.items() if count > max_workers]
+    if oversized:
+        raise ParallelRunError(f"job wave exceeds max_workers: {oversized[0]}")
+    return {
+        "cycle": cycle,
+        "evaluation_loop": evaluator,
+        "max_workers": max_workers,
+        "max_attempts": max_attempts,
+        "monitor_interval_seconds": monitor_interval,
+        "jobs": jobs,
+        "waves": waves,
+    }
+
+
+def parse_result(stdout: str) -> dict[str, Any]:
+    lines = [line for line in stdout.splitlines() if line.strip()]
+    if not lines:
+        raise ParallelRunError("evaluation loop produced no result")
+    try:
+        result = json.loads(lines[-1])
+    except json.JSONDecodeError as exc:
+        raise ParallelRunError(f"evaluation loop result is not JSON: {lines[-1]}") from exc
+    if not isinstance(result, dict) or result.get("status") not in {"valid", "excluded"}:
+        raise ParallelRunError("evaluation loop result has no valid status")
+    return result
+
+
+def execute_job(
+    job: dict[str, Any],
+    cycle: Path,
+    evaluator: Path,
+    max_attempts: int,
+    attempt_path: Path,
+    log_lock: threading.Lock,
+) -> dict[str, Any]:
+    binding = job["binding"]
+    capsule = job["capsule"]
+    for attempt in range(1, max_attempts + 1):
+        started_at = utc_now()
+        started = time.perf_counter()
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(evaluator),
+                "run",
+                "--cycle",
+                str(cycle),
+                "--capsule",
+                str(capsule),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        elapsed = time.perf_counter() - started
+        record: dict[str, Any] = {
+            **binding,
+            "attempt": attempt,
+            "capsule": str(capsule),
+            "started_at": started_at,
+            "ended_at": utc_now(),
+            "runner_elapsed_seconds": elapsed,
+            "controller_exit_code": completed.returncode,
+        }
+        if completed.returncode != 0:
+            record["controller_stderr"] = completed.stderr
+            append_jsonl(attempt_path, record, log_lock)
+            raise ParallelRunError(
+                f"Layer 2 controller failed for {binding['case_id']} "
+                f"{binding['condition']} r{binding['repetition']}: {completed.stderr.strip()}"
+            )
+        result = parse_result(completed.stdout)
+        record["result"] = result
+        append_jsonl(attempt_path, record, log_lock)
+        if result["status"] == "valid":
+            return record
+    raise ParallelRunError(
+        f"external failure retry limit reached for {binding['case_id']} "
+        f"{binding['condition']} r{binding['repetition']}"
+    )
+
+
+def run_plan(plan_path: Path, output: Path) -> dict[str, Any]:
+    plan = validate_plan(plan_path.resolve())
+    output = output.resolve()
+    if output.exists():
+        raise ParallelRunError(f"refusing to overwrite output: {output}")
+    output.mkdir(parents=True)
+    plan_copy = load_object(plan_path.resolve())
+    write_json_once(output / "plan.json", plan_copy)
+    attempt_path = output / "attempts.jsonl"
+    attempt_path.touch(exist_ok=False)
+    monitor_path = output / "os-samples.jsonl"
+    monitor_path.touch(exist_ok=False)
+    log_lock = threading.Lock()
+    monitor = OsMonitor(
+        monitor_path,
+        plan["cycle"],
+        plan["monitor_interval_seconds"],
+    )
+    started_at = utc_now()
+    started = time.perf_counter()
+    results: list[dict[str, Any]] = []
+    errors: list[str] = []
+    monitor.start()
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=plan["max_workers"]) as pool:
+            for wave in plan["waves"]:
+                wave_jobs = [job for job in plan["jobs"] if job["wave"] == wave]
+                futures = [
+                    pool.submit(
+                        execute_job,
+                        job,
+                        plan["cycle"],
+                        plan["evaluation_loop"],
+                        plan["max_attempts"],
+                        attempt_path,
+                        log_lock,
+                    )
+                    for job in wave_jobs
+                ]
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        results.append(future.result())
+                    except ParallelRunError as exc:
+                        errors.append(str(exc))
+                if errors:
+                    break
+    finally:
+        monitor.stop()
+    elapsed = time.perf_counter() - started
+    attempts = [
+        json.loads(line)
+        for line in attempt_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    excluded = [item for item in attempts if item.get("result", {}).get("status") == "excluded"]
+    summary = {
+        "schema_version": "the-caption-prompt.parallel-execution-summary/v1",
+        "started_at": started_at,
+        "ended_at": utc_now(),
+        "elapsed_seconds": elapsed,
+        "max_workers": plan["max_workers"],
+        "requested_slots": len(plan["jobs"]),
+        "valid_slots": len(results),
+        "attempt_count": len(attempts),
+        "excluded_attempt_count": len(excluded),
+        "status": "complete" if not errors and len(results) == len(plan["jobs"]) else "failed",
+        "errors": errors,
+    }
+    write_json_once(output / "summary.json", summary)
+    if summary["status"] != "complete":
+        raise ParallelRunError("parallel execution did not complete every requested slot")
+    return summary
+
+
+def parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(description=__doc__)
+    result.add_argument("--plan", required=True)
+    result.add_argument("--output", required=True)
+    return result
+
+
+def main() -> int:
+    args = parser().parse_args()
+    try:
+        summary = run_plan(Path(args.plan), Path(args.output))
+    except (ParallelRunError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
