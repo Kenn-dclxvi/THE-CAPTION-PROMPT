@@ -2,6 +2,14 @@
 
 固定済みprofileで得た再現可能な結果を置く。raw logを無条件にcommitせず、必要なprovenance、集計、比較情報、除外理由を残す。
 
+このdirectoryの既存文書はv1 / v2の履歴resultである。v3の一次結果は1 prompt setごとのappend-only registry resultであり、旧A / B resultをin-place変換しない。sanitized resultをrepositoryへ公開する場合もruntime registryからの別artifact単位として扱う。
+
+最初のv3 standalone resultは[`candidate2 expanded 12-case global M=24 N=1`](candidate2-expanded12-global-m24-n1_2026-07-15.md)である。candidate2だけをimmutableな`prompt_set_identity`へ結び付けて保存し、比較、winner、採用判断は行っていない。
+
+同じ互換条件で新規実行した[`baseline standalone result`](baseline-expanded12-global-m24-n1_2026-07-15.md)とcandidate2から、[`baseline / candidate2 comparison view`](baseline-vs-candidate2-expanded12-global-m24-n1_2026-07-15.md)を生成した。差分方向は`candidate2 - baseline`であり、3 KPIの数値差だけを記録する。
+
+さらに[`candidate1 standalone result`](candidate1-expanded12-global-m24-n1_2026-07-15.md)を同じ互換条件で追記し、[`baseline / candidate1 / candidate2 comparison view`](baseline-candidate1-candidate2-expanded12-global-m24-n1_2026-07-15.md)を生成した。既存の2-result viewは履歴として変更しない。
+
 最新のv2 full-set comparisonは[`revision 2 expanded 12-case global M=24 N=1`](revision-2-expanded12-global-m24-n1_2026-07-15.md)である。3 KPIと`B - A`差分だけを出力し、winner、改善・悪化、採用判断は行わない。
 
 最新の完了済みcore comparisonは[`revision-2-core9-r2-global-m4-staged-n3_2026-07-15.md`](revision-2-core9-r2-global-m4-staged-n3_2026-07-15.md)である。これはv1のwinnerを含む履歴resultであり、v2では3 KPIと観測事項を判断材料として読む。`M=4`の事前確認は[`global-m4-qualification-f01-f04-n2_2026-07-15.md`](global-m4-qualification-f01-f04-n2_2026-07-15.md)、最小負荷確認は[`M=6`](global-m6-minimal-load-f01-n3_2026-07-15.md)、[`M=8`](global-m8-minimal-load-f01-n4_2026-07-15.md)、[`M=24`](global-m24-minimal-load-f01-n12_2026-07-15.md)に分離する。

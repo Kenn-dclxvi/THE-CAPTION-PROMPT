@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.evaluation_loop import kpi_difference_b_minus_a
+from scripts.evaluation_loop import kpi_difference
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,13 +15,13 @@ CLI = ROOT / "scripts" / "evaluation_loop.py"
 
 
 class EvaluationLoopTest(unittest.TestCase):
-    def test_kpi_difference_reports_b_minus_a_without_a_winner(self) -> None:
+    def test_kpi_difference_names_no_winner(self) -> None:
         self.assertEqual(
-            kpi_difference_b_minus_a(
+            kpi_difference(
                 {"quality_score": 75, "total_tokens": 200, "elapsed_seconds": 20},
                 {"quality_score": 50, "total_tokens": 100, "elapsed_seconds": 10},
             ),
-            {"quality_score": -25, "total_tokens": -100, "elapsed_seconds": -10},
+            {"quality_score": 25, "total_tokens": 100, "elapsed_seconds": 10},
         )
 
     def cli(self, *args: str) -> dict:
@@ -34,6 +34,17 @@ class EvaluationLoopTest(unittest.TestCase):
         )
         return json.loads(completed.stdout)
 
+    def cli_failure(self, *args: str) -> subprocess.CompletedProcess[str]:
+        completed = subprocess.run(
+            [sys.executable, str(CLI), *args],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 2)
+        return completed
+
     def make_set(self, root: Path) -> Path:
         fixture = root / "fixture"
         fixture.mkdir(parents=True)
@@ -43,7 +54,9 @@ class EvaluationLoopTest(unittest.TestCase):
         manifest.write_text(
             json.dumps(
                 {
+                    "schema_version": "the-caption-prompt.evaluation-set-source/v2",
                     "set_id": "test-set",
+                    "revision": "r1",
                     "cases": [
                         {
                             "id": "TEST-CASE",
@@ -57,7 +70,25 @@ class EvaluationLoopTest(unittest.TestCase):
         )
         return manifest
 
-    def execute(self, cycle: Path, condition: str, identity: str, repetition: int, tokens: int) -> str:
+    def conditions(self, iterations: int, model: str = "test-model") -> dict:
+        return {
+            "target_repository_ref": "example/repo@abc123",
+            "model": model,
+            "agent_environment": {"agent": "codex", "version": "test"},
+            "task_spec": {"TEST-CASE": "task-spec-r1"},
+            "permission": "workspace-write/never",
+            "executor_parameters": {"reasoning_effort": "high"},
+            "repetition_condition": {"iterations": iterations, "order": "case-major"},
+        }
+
+    def execute(
+        self,
+        cycle: Path,
+        identity: dict,
+        iteration: int,
+        tokens: int,
+        conditions: dict,
+    ) -> str:
         command = (
             "import json,os,pathlib; "
             "case=json.loads(pathlib.Path(os.environ['EVAL_CASE_FILE']).read_text()); "
@@ -70,99 +101,230 @@ class EvaluationLoopTest(unittest.TestCase):
             "(extension/'provider-usage.json').write_text(json.dumps({'future_detail': 42})); "
             f"pathlib.Path(os.environ['EVAL_USAGE_FILE']).write_text(json.dumps({{'total_tokens': {tokens}}}))"
         )
-        capsule = cycle.parent / f"{condition}-{repetition}.json"
+        capsule = cycle.parent / f"{cycle.name}-{identity['name']}-{iteration}.json"
         capsule.write_text(
             json.dumps(
                 {
-                    "schema_version": "the-caption-prompt.execution-capsule/v1",
+                    "schema_version": "the-caption-prompt.execution-capsule/v2",
                     "binding": {
-                        "condition": condition,
-                        "prompt_identity": identity,
+                        "prompt_set_identity": identity,
                         "case_id": "TEST-CASE",
-                        "repetition": repetition,
+                        "iteration": iteration,
                     },
+                    "comparison_conditions": conditions,
                     "adapter": {"argv": [sys.executable, "-c", command]},
                     "parameters": {"future_parameter": 42},
                 }
             ),
             encoding="utf-8",
         )
-        result = self.cli(
-            "run",
-            "--cycle",
-            str(cycle),
-            "--capsule",
-            str(capsule),
-        )
+        result = self.cli("run", "--cycle", str(cycle), "--capsule", str(capsule))
         return result["run_id"]
 
-    def test_four_layer_kpi_comparison_without_scenario_or_prompt(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            cycle = root / "cycle"
-            manifest = self.make_set(root)
-            frozen = self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
-            self.assertEqual(frozen["case_count"], 1)
-            self.assertTrue((cycle / "layer1" / "fixtures" / "TEST-CASE" / "input-link.txt").is_symlink())
-
-            set_a_ids = [self.execute(cycle, "a", "prompt-set-a", n, 120) for n in (1, 2)]
-            set_b_ids = [self.execute(cycle, "b", "prompt-set-b", n, 100) for n in (1, 2)]
-            for run_id in set_a_ids + set_b_ids:
-                evidence = cycle / "layer2" / "evidence" / run_id
-                self.assertTrue((evidence / "workspace" / "input-link.txt").is_symlink())
-                execution = json.loads((evidence / "execution.json").read_text())
-                self.assertNotIn("condition", execution)
-                self.assertFalse((evidence / "run-capsule.json").exists())
-                self.assertEqual(
-                    json.loads((evidence / "usage.json").read_text()),
-                    {"total_tokens": execution["total_tokens"]},
-                )
-                self.assertFalse((evidence / "extensions").exists())
-                self.assertTrue(
-                    (cycle / "layer2" / "extensions" / run_id / "token-analysis" / "provider-usage.json").exists()
-                )
-                self.assertTrue((cycle / "layer2" / "capsules" / f"{run_id}.json").exists())
-                self.assertTrue((cycle / "layer2" / "bindings" / f"{run_id}.json").exists())
-            for run_id in set_a_ids:
-                self.cli("rate", "--cycle", str(cycle), "--run-id", run_id, "--score", "3", "--reason", "test rating")
-            for run_id in set_b_ids:
-                self.cli("rate", "--cycle", str(cycle), "--run-id", run_id, "--score", "4", "--reason", "test rating")
-
-            result = self.cli("compare", "--cycle", str(cycle))
-            self.assertEqual(result["repetition_count"], 2)
-            comparison = json.loads((cycle / "layer4" / "comparison.json").read_text())
-            self.assertNotIn("winner", comparison)
-            self.assertEqual(comparison["schema_version"], "the-caption-prompt.kpi-comparison/v2")
-            self.assertEqual(comparison["b"]["prompt_identity"], "prompt-set-b")
-            self.assertEqual(comparison["difference_b_minus_a"]["quality_score"], 25.0)
-            self.assertEqual(comparison["difference_b_minus_a"]["total_tokens"], -20.0)
-            self.assertIsInstance(comparison["difference_b_minus_a"]["elapsed_seconds"], float)
-            self.assertEqual(comparison["excluded_attempts"], [])
-            self.assertFalse((cycle / "prompts").exists())
-            self.assertFalse((cycle / "layer5").exists())
-
-    def test_layer_outputs_are_not_overwritten(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            cycle = root / "cycle"
-            manifest = self.make_set(root)
-            self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
-            completed = subprocess.run(
-                [sys.executable, str(CLI), "freeze-set", "--set", str(manifest), "--cycle", str(cycle)],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
+    def record_prompt_set(
+        self,
+        manifest: Path,
+        root: Path,
+        registry: Path,
+        name: str,
+        score: int,
+        tokens: int,
+        model: str = "test-model",
+    ) -> dict:
+        cycle = root / f"cycle-{name}-{model}"
+        frozen = self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
+        self.assertEqual(frozen["revision"], "r1")
+        identity = {"name": name, "revision": "r1"}
+        conditions = self.conditions(2, model)
+        run_ids = [
+            self.execute(cycle, identity, iteration, tokens, conditions)
+            for iteration in (1, 2)
+        ]
+        for run_id in run_ids:
+            evidence = cycle / "layer2" / "evidence" / run_id
+            self.assertTrue((evidence / "workspace" / "input-link.txt").is_symlink())
+            execution = json.loads((evidence / "execution.json").read_text())
+            self.assertNotIn("prompt_set_identity", execution)
+            self.assertNotIn("condition", execution)
+            self.assertEqual(json.loads((evidence / "usage.json").read_text()), {"total_tokens": tokens})
+            self.assertTrue(
+                (cycle / "layer2" / "extensions" / run_id / "token-analysis" / "provider-usage.json").exists()
             )
-            self.assertEqual(completed.returncode, 2)
-            self.assertIn("cycle directory is not empty", completed.stderr)
+            binding = json.loads(
+                (cycle / "layer2" / "bindings" / f"{run_id}.json").read_text()
+            )
+            self.assertEqual(binding["prompt_set_identity"], identity)
+            self.assertNotIn("condition", binding)
+            self.cli(
+                "rate",
+                "--cycle",
+                str(cycle),
+                "--run-id",
+                run_id,
+                "--score",
+                str(score),
+                "--reason",
+                "test rating",
+            )
+        return self.cli(
+            "record-result", "--cycle", str(cycle), "--registry", str(registry)
+        )
 
-    def test_excluded_external_failure_is_preserved_and_does_not_occupy_repetition(self) -> None:
+    def test_three_prompt_sets_are_stored_independently_and_compared_as_a_view(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            registry = root / "registry"
+            manifest = self.make_set(root)
+            baseline = self.record_prompt_set(manifest, root, registry, "baseline", 2, 120)
+            candidate1 = self.record_prompt_set(manifest, root, registry, "candidate1", 3, 110)
+            candidate2 = self.record_prompt_set(manifest, root, registry, "candidate2", 4, 100)
+
+            query = self.cli("query-results", "--registry", str(registry))
+            self.assertEqual(query["count"], 3)
+            self.assertEqual(
+                {item["prompt_set_identity"]["name"] for item in query["results"]},
+                {"baseline", "candidate1", "candidate2"},
+            )
+            self.assertEqual(
+                {item["compatibility_key"] for item in query["results"]},
+                {baseline["compatibility_key"]},
+            )
+            baseline_result = json.loads(Path(baseline["artifact"]).read_text())
+            self.assertEqual(
+                baseline_result["schema_version"],
+                "the-caption-prompt.prompt-set-result/v1",
+            )
+            self.assertEqual(len(baseline_result["result_content_sha256"]), 64)
+            self.assertEqual(
+                baseline_result["compatibility"]["evaluation_set"]["revision"], "r1"
+            )
+            self.assertIn("TEST-CASE", baseline_result["compatibility"]["fixtures"])
+            for key in (
+                "target_repository_ref",
+                "model",
+                "agent_environment",
+                "task_spec",
+                "permission",
+                "executor_parameters",
+                "repetition_condition",
+            ):
+                self.assertIn(key, baseline_result["compatibility"])
+            self.assertEqual(
+                [(item["case_id"], item["iteration"]) for item in baseline_result["case_results"]],
+                [("TEST-CASE", 1), ("TEST-CASE", 2)],
+            )
+
+            result_paths = sorted((registry / "results").glob("*.json"))
+            before = {path: path.read_bytes() for path in result_paths}
+            view_path = root / "three-prompt-view.json"
+            self.cli(
+                "compare",
+                "--registry",
+                str(registry),
+                "--result-id",
+                baseline["result_id"],
+                "--result-id",
+                candidate1["result_id"],
+                "--result-id",
+                candidate2["result_id"],
+                "--reference-result-id",
+                baseline["result_id"],
+                "--output",
+                str(view_path),
+            )
+            view = json.loads(view_path.read_text())
+            self.assertEqual(
+                view["schema_version"], "the-caption-prompt.prompt-set-comparison-view/v1"
+            )
+            self.assertEqual(len(view["prompt_sets"]), 3)
+            self.assertEqual(len(view["differences"]), 2)
+            candidate2_difference = next(
+                item
+                for item in view["differences"]
+                if item["minuend_result_id"] == candidate2["result_id"]
+            )
+            self.assertEqual(candidate2_difference["subtrahend_result_id"], baseline["result_id"])
+            self.assertEqual(candidate2_difference["kpis"]["quality_score"], 50.0)
+            self.assertEqual(candidate2_difference["kpis"]["total_tokens"], -20.0)
+            self.assertNotIn("winner", view)
+            self.assertEqual(before, {path: path.read_bytes() for path in result_paths})
+            repeated_view = self.cli_failure(
+                "compare",
+                "--registry",
+                str(registry),
+                "--result-id",
+                baseline["result_id"],
+                "--result-id",
+                candidate1["result_id"],
+                "--reference-result-id",
+                baseline["result_id"],
+                "--output",
+                str(view_path),
+            )
+            self.assertIn("refusing to overwrite", repeated_view.stderr)
+
+    def test_layer_outputs_and_registered_result_are_not_overwritten(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            registry = root / "registry"
+            manifest = self.make_set(root)
+            recorded = self.record_prompt_set(manifest, root, registry, "prompt", 3, 100)
+            cycle = root / "cycle-prompt-test-model"
+            repeated = self.cli_failure(
+                "record-result", "--cycle", str(cycle), "--registry", str(registry)
+            )
+            self.assertIn("already registered", repeated.stderr)
+            view = root / "view.json"
+            view.write_text("{}\n", encoding="utf-8")
+            compare = self.cli_failure(
+                "compare",
+                "--registry",
+                str(registry),
+                "--result-id",
+                recorded["result_id"],
+                "--result-id",
+                recorded["result_id"],
+                "--reference-result-id",
+                recorded["result_id"],
+                "--output",
+                str(view),
+            )
+            self.assertIn("must be unique", compare.stderr)
+
+    def test_incompatible_conditions_are_not_mixed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            registry = root / "registry"
+            manifest = self.make_set(root)
+            first = self.record_prompt_set(manifest, root, registry, "prompt-1", 3, 100)
+            second = self.record_prompt_set(
+                manifest, root, registry, "prompt-2", 3, 100, model="other-model"
+            )
+            completed = self.cli_failure(
+                "compare",
+                "--registry",
+                str(registry),
+                "--result-id",
+                first["result_id"],
+                "--result-id",
+                second["result_id"],
+                "--reference-result-id",
+                first["result_id"],
+                "--output",
+                str(root / "invalid-view.json"),
+            )
+            self.assertIn("compatibility keys do not match", completed.stderr)
+            self.assertFalse((root / "invalid-view.json").exists())
+
+    def test_excluded_external_failure_is_preserved_and_slot_can_be_retried(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             cycle = root / "cycle"
+            registry = root / "registry"
             manifest = self.make_set(root)
             self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
-
+            identity = {"name": "prompt", "revision": "r1"}
+            conditions = self.conditions(1)
             excluded_command = (
                 "import json,os,pathlib,sys; "
                 "pathlib.Path(os.environ['EVAL_RUN_STATUS_FILE']).write_text(json.dumps({"
@@ -175,12 +337,13 @@ class EvaluationLoopTest(unittest.TestCase):
             capsule.write_text(
                 json.dumps(
                     {
+                        "schema_version": "the-caption-prompt.execution-capsule/v2",
                         "binding": {
-                            "condition": "a",
-                            "prompt_identity": "prompt-set-a",
+                            "prompt_set_identity": identity,
                             "case_id": "TEST-CASE",
-                            "repetition": 1,
+                            "iteration": 1,
                         },
+                        "comparison_conditions": conditions,
                         "adapter": {"argv": [sys.executable, "-c", excluded_command]},
                     }
                 ),
@@ -188,49 +351,70 @@ class EvaluationLoopTest(unittest.TestCase):
             )
             excluded = self.cli("run", "--cycle", str(cycle), "--capsule", str(capsule))
             self.assertEqual(excluded["status"], "excluded")
-            excluded_id = excluded["run_id"]
-            excluded_evidence = cycle / "layer2" / "evidence" / excluded_id
-            self.assertTrue((excluded_evidence / "exclusion.json").is_file())
-            excluded_execution = json.loads((excluded_evidence / "execution.json").read_text())
-            self.assertEqual(excluded_execution["status"], "excluded")
-            self.assertIsNone(excluded_execution["total_tokens"])
-
-            rate = subprocess.run(
-                [
-                    sys.executable,
-                    str(CLI),
-                    "rate",
-                    "--cycle",
-                    str(cycle),
-                    "--run-id",
-                    excluded_id,
-                    "--score",
-                    "4",
-                    "--reason",
-                    "must not be accepted",
-                ],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
+            rate = self.cli_failure(
+                "rate",
+                "--cycle",
+                str(cycle),
+                "--run-id",
+                excluded["run_id"],
+                "--score",
+                "4",
+                "--reason",
+                "must not be accepted",
             )
-            self.assertEqual(rate.returncode, 2)
             self.assertIn("excluded run cannot be quality-rated", rate.stderr)
 
-            valid_a = self.execute(cycle, "a", "prompt-set-a", 1, 120)
-            valid_b = self.execute(cycle, "b", "prompt-set-b", 1, 120)
-            for run_id in (valid_a, valid_b):
-                self.cli("rate", "--cycle", str(cycle), "--run-id", run_id, "--score", "4", "--reason", "valid")
-            self.cli("compare", "--cycle", str(cycle))
-            comparison = json.loads((cycle / "layer4" / "comparison.json").read_text())
-            self.assertEqual(comparison["repetition_count"], 1)
-            self.assertEqual(comparison["a"]["median"]["total_tokens"], 120)
-            self.assertEqual(comparison["b"]["median"]["total_tokens"], 120)
-            self.assertEqual(len(comparison["excluded_attempts"]), 1)
+            valid = self.execute(cycle, identity, 1, 120, conditions)
+            self.cli(
+                "rate",
+                "--cycle",
+                str(cycle),
+                "--run-id",
+                valid,
+                "--score",
+                "4",
+                "--reason",
+                "valid",
+            )
+            recorded = self.cli(
+                "record-result", "--cycle", str(cycle), "--registry", str(registry)
+            )
+            result = json.loads(
+                (registry / "results" / f"{recorded['result_id']}.json").read_text()
+            )
+            self.assertEqual(len(result["excluded_attempts"]), 1)
             self.assertEqual(
-                comparison["excluded_attempts"][0]["reason_code"],
+                result["excluded_attempts"][0]["reason_code"],
                 "codex_collab_parent_thread_missing",
             )
-            self.assertEqual(len(list((cycle / "layer2" / "bindings").glob("*.json"))), 3)
+            self.assertEqual(len(list((cycle / "layer2" / "bindings").glob("*.json"))), 2)
+
+    def test_prompt_set_identity_requires_revision_or_bundle_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cycle = root / "cycle"
+            manifest = self.make_set(root)
+            self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
+            capsule = root / "invalid-identity.json"
+            capsule.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "the-caption-prompt.execution-capsule/v2",
+                        "binding": {
+                            "prompt_set_identity": {"name": "mutable-name-only"},
+                            "case_id": "TEST-CASE",
+                            "iteration": 1,
+                        },
+                        "comparison_conditions": self.conditions(1),
+                        "adapter": {"argv": [sys.executable, "-c", "pass"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            completed = self.cli_failure(
+                "run", "--cycle", str(cycle), "--capsule", str(capsule)
+            )
+            self.assertIn("needs revision or bundle_sha256", completed.stderr)
 
 
 if __name__ == "__main__":

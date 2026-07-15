@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Expand one A/B capsule pair per case into a wave-isolated parallel plan."""
+"""Expand one capsule template per case into a wave-isolated parallel plan."""
 
 from __future__ import annotations
 
 import argparse
 import copy
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -36,29 +37,34 @@ def load_object(path: Path) -> dict[str, Any]:
     return value
 
 
-def collect_templates(paths: list[Path]) -> list[tuple[str, dict[str, dict[str, Any]]]]:
-    cases: dict[str, dict[str, dict[str, Any]]] = {}
-    order: list[str] = []
+def collect_templates(paths: list[Path]) -> list[tuple[str, dict[str, Any]]]:
+    templates: list[tuple[str, dict[str, Any]]] = []
+    seen_cases: set[str] = set()
+    signature: tuple[str, str] | None = None
     for path in paths:
         resolved = path.resolve()
         binding = binding_from_capsule(resolved)
         case_id = binding["case_id"]
-        condition = binding["condition"]
-        if case_id not in cases:
-            cases[case_id] = {}
-            order.append(case_id)
-        if condition in cases[case_id]:
-            raise ParallelRunError(f"duplicate template for {case_id} condition {condition}")
-        cases[case_id][condition] = load_object(resolved)
-    for case_id, templates in cases.items():
-        if set(templates) != {"a", "b"}:
-            raise ParallelRunError(f"case needs one a and one b template: {case_id}")
-    return [(case_id, cases[case_id]) for case_id in order]
+        if case_id in seen_cases:
+            raise ParallelRunError(f"duplicate template for case: {case_id}")
+        seen_cases.add(case_id)
+        current_signature = (
+            binding["prompt_set_identity_sha256"],
+            binding["comparison_conditions_sha256"],
+        )
+        if signature is None:
+            signature = current_signature
+        elif current_signature != signature:
+            raise ParallelRunError("templates must use one prompt identity and comparison conditions")
+        templates.append((case_id, load_object(resolved)))
+    if not templates:
+        raise ParallelRunError("at least one template is required")
+    return templates
 
 
 def prepare_plan(
     templates: list[Path],
-    repetitions: int,
+    iterations: int,
     cycle: Path,
     evaluator: Path,
     output: Path,
@@ -66,14 +72,12 @@ def prepare_plan(
     max_attempts: int = 3,
     monitor_interval_seconds: int = 15,
 ) -> dict[str, Any]:
-    repetitions = require_positive_integer(repetitions, "repetitions")
+    iterations = require_positive_integer(iterations, "iterations")
     max_workers = require_positive_integer(max_workers, "max_workers")
     max_attempts = require_positive_integer(max_attempts, "max_attempts")
     monitor_interval_seconds = require_positive_integer(
         monitor_interval_seconds, "monitor_interval_seconds"
     )
-    if max_workers < 2:
-        raise ParallelRunError("A/B wave execution requires max_workers >= 2")
     cycle = cycle.resolve()
     evaluator = evaluator.resolve()
     output = output.resolve()
@@ -83,28 +87,34 @@ def prepare_plan(
         raise ParallelRunError(f"evaluation loop does not exist: {evaluator}")
     if output.exists():
         raise ParallelRunError(f"refusing to overwrite output: {output}")
-    pairs = collect_templates(templates)
+    case_templates = collect_templates(templates)
+    for case_id, template in case_templates:
+        conditions = template.get("comparison_conditions")
+        repetition = conditions.get("repetition_condition") if isinstance(conditions, dict) else None
+        if not isinstance(repetition, dict) or repetition.get("iterations") != iterations:
+            raise ParallelRunError(
+                f"template repetition_condition.iterations must equal {iterations}: {case_id}"
+            )
     output.mkdir(parents=True)
     capsule_dir = output / "capsules"
     capsule_dir.mkdir()
     jobs: list[dict[str, Any]] = []
-    wave = 0
-    for repetition in range(1, repetitions + 1):
-        for case_index, (case_id, pair) in enumerate(pairs, start=1):
-            wave += 1
-            condition_order = ("a", "b") if (repetition + case_index) % 2 == 0 else ("b", "a")
-            for condition in condition_order:
-                capsule = copy.deepcopy(pair[condition])
-                binding = capsule.get("binding")
-                if not isinstance(binding, dict):
-                    raise ParallelRunError(f"capsule template has no binding: {case_id} {condition}")
-                binding["repetition"] = repetition
-                filename = f"{case_id}-{condition}-r{repetition}.json"
-                destination = capsule_dir / filename
-                write_json_once(destination, capsule)
-                jobs.append({"wave": wave, "capsule": str(destination)})
+    waves_per_iteration = math.ceil(len(case_templates) / max_workers)
+    for iteration in range(1, iterations + 1):
+        for case_index, (case_id, template) in enumerate(case_templates):
+            capsule = copy.deepcopy(template)
+            binding = capsule.get("binding")
+            if not isinstance(binding, dict):
+                raise ParallelRunError(f"capsule template has no binding: {case_id}")
+            binding["iteration"] = iteration
+            filename = f"{case_id}-i{iteration}.json"
+            destination = capsule_dir / filename
+            write_json_once(destination, capsule)
+            wave = (iteration - 1) * waves_per_iteration + case_index // max_workers + 1
+            jobs.append({"wave": wave, "capsule": str(destination)})
     plan = {
-        "schema_version": "the-caption-prompt.parallel-execution-plan/v1",
+        "schema_version": "the-caption-prompt.parallel-execution-plan/v3",
+        "schedule_policy": "wave_barrier",
         "cycle": str(cycle),
         "evaluation_loop": str(evaluator),
         "max_workers": max_workers,
@@ -116,17 +126,17 @@ def prepare_plan(
     write_json_once(plan_path, plan)
     return {
         "plan": str(plan_path),
-        "case_count": len(pairs),
-        "repetitions": repetitions,
+        "case_count": len(case_templates),
+        "iterations": iterations,
         "slot_count": len(jobs),
-        "wave_count": wave,
+        "wave_count": waves_per_iteration * iterations,
     }
 
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--template", action="append", required=True)
-    result.add_argument("--repetitions", type=int, required=True)
+    result.add_argument("--iterations", type=int, required=True)
     result.add_argument("--cycle", required=True)
     result.add_argument("--evaluation-loop", required=True)
     result.add_argument("--output", required=True)
@@ -141,7 +151,7 @@ def main() -> int:
     try:
         result = prepare_plan(
             [Path(path) for path in args.template],
-            args.repetitions,
+            args.iterations,
             Path(args.cycle),
             Path(args.evaluation_loop),
             Path(args.output),

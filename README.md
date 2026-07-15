@@ -12,7 +12,7 @@ THE-CAPTION向けプロンプトを設計、比較、評価し、反映可能な
 
 ## 現在の状態
 
-`evaluation_foundation_v2`。4 Layerの最小実行基盤、prompt file bundle exporter、Codex execution adapter、評価caseを作成した状態です。v1ではbit-identicalなprompt間でも実行ばらつきから機械的winnerが生じ、core9の反復間でもwinnerが変わりました。このためv2は勝敗判定を廃止し、A / Bの3 KPI、数値差、除外attemptを判断材料として返します。候補の採用、THE-CAPTION本体への反映、runtime有効化は行っていません。
+`evaluation_foundation_v3`。1つのimmutableなprompt set identityごとに3 KPIをappend-onlyで保存し、互換条件を満たす任意個のresultを後から取得・比較できます。固定A / B pair、winner、改善・悪化は保存・出力しません。v1 / v2 resultは履歴として保持し、migrationや再解釈は行っていません。候補の採用、THE-CAPTION本体への反映、runtime有効化も行っていません。
 
 ## 構成
 
@@ -24,7 +24,7 @@ THE-CAPTION向けプロンプトを設計、比較、評価し、反映可能な
 | `prompts/releases/` | 承認可能な単位へ固定したprompt bundle |
 | `evaluations/cases/` | 評価caseとmodel-visible / private境界 |
 | `evaluations/profiles/` | model、Agent、環境、反復条件、比較条件 |
-| `evaluations/results/` | 再現可能性を満たす評価結果 |
+| `evaluations/results/` | 公開済みの履歴評価結果。v3 runtime registryとは分離 |
 
 運用境界は[`docs/repository-contract.md`](docs/repository-contract.md)を正本とします。
 評価基盤のLayerと境界は[`docs/prompt-comparison-workflow.md`](docs/prompt-comparison-workflow.md)に定義します。実行方法は[`docs/evaluation-loop-manual.md`](docs/evaluation-loop-manual.md)を参照します。

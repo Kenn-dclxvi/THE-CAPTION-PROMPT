@@ -1,0 +1,14 @@
+{
+  "cases": [
+    {
+      "fixture": "fixture",
+      "id": "EXAMPLE-CASE",
+      "payload": {
+        "task": "example task"
+      }
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "the-caption-prompt.evaluation-set-source/v2",
+  "set_id": "prompt-set-result-registry-example"
+}

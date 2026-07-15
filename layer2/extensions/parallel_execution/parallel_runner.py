@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import hashlib
 import json
 import os
 import re
@@ -168,38 +169,45 @@ class OsMonitor:
 
 def binding_from_capsule(path: Path) -> dict[str, Any]:
     capsule = load_object(path)
+    if capsule.get("schema_version") != "the-caption-prompt.execution-capsule/v2":
+        raise ParallelRunError(f"unsupported capsule schema_version: {path}")
     binding = capsule.get("binding")
     if not isinstance(binding, dict):
         raise ParallelRunError(f"capsule binding must be an object: {path}")
-    condition = binding.get("condition")
-    if condition not in {"a", "b"}:
-        raise ParallelRunError(f"capsule condition must be a or b: {path}")
     case_id = require_string(binding.get("case_id"), f"{path}.binding.case_id")
-    repetition = require_positive_integer(binding.get("repetition"), f"{path}.binding.repetition")
-    prompt_identity = require_string(
-        binding.get("prompt_identity"), f"{path}.binding.prompt_identity"
-    )
+    iteration = require_positive_integer(binding.get("iteration"), f"{path}.binding.iteration")
+    prompt_set_identity = binding.get("prompt_set_identity")
+    if not isinstance(prompt_set_identity, dict):
+        raise ParallelRunError(f"capsule prompt_set_identity must be an object: {path}")
+    require_string(prompt_set_identity.get("name"), f"{path}.binding.prompt_set_identity.name")
+    if not any(prompt_set_identity.get(key) for key in ("revision", "bundle_sha256")):
+        raise ParallelRunError(f"capsule prompt_set_identity needs revision or bundle_sha256: {path}")
+    comparison_conditions = capsule.get("comparison_conditions")
+    if not isinstance(comparison_conditions, dict):
+        raise ParallelRunError(f"capsule comparison_conditions must be an object: {path}")
+    identity_document = json.dumps(
+        prompt_set_identity, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")
+    conditions_document = json.dumps(
+        comparison_conditions, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")
     return {
-        "condition": condition,
         "case_id": case_id,
-        "repetition": repetition,
-        "prompt_identity": prompt_identity,
+        "iteration": iteration,
+        "prompt_set_identity": prompt_set_identity,
+        "prompt_set_identity_sha256": hashlib.sha256(identity_document).hexdigest(),
+        "comparison_conditions_sha256": hashlib.sha256(conditions_document).hexdigest(),
     }
 
 
 def validate_plan(path: Path) -> dict[str, Any]:
     plan = load_object(path)
     schema_version = plan.get("schema_version")
-    if schema_version not in {
-        "the-caption-prompt.parallel-execution-plan/v1",
-        "the-caption-prompt.parallel-execution-plan/v2",
-    }:
+    if schema_version != "the-caption-prompt.parallel-execution-plan/v3":
         raise ParallelRunError("unsupported plan schema_version")
     schedule_policy = plan.get("schedule_policy", "wave_barrier")
-    if schema_version.endswith("/v1") and schedule_policy != "wave_barrier":
-        raise ParallelRunError("v1 plan only supports wave_barrier")
-    if schema_version.endswith("/v2") and schedule_policy != "global_queue":
-        raise ParallelRunError("v2 plan only supports global_queue")
+    if schedule_policy not in {"wave_barrier", "global_queue"}:
+        raise ParallelRunError("unsupported schedule_policy")
     cycle = Path(require_string(plan.get("cycle"), "cycle")).resolve()
     evaluator = Path(require_string(plan.get("evaluation_loop"), "evaluation_loop")).resolve()
     if not (cycle / "layer1" / "set.json").is_file():
@@ -215,7 +223,8 @@ def validate_plan(path: Path) -> dict[str, Any]:
     if not isinstance(raw_jobs, list) or not raw_jobs:
         raise ParallelRunError("jobs must be a non-empty array")
     jobs: list[dict[str, Any]] = []
-    keys: set[tuple[str, str, int]] = set()
+    keys: set[tuple[str, int]] = set()
+    cycle_signature: tuple[str, str] | None = None
     wave_counts: dict[int, int] = {}
     sequences: list[int] = []
     for index, raw_job in enumerate(raw_jobs):
@@ -225,7 +234,15 @@ def validate_plan(path: Path) -> dict[str, Any]:
         if not capsule.is_file():
             raise ParallelRunError(f"capsule does not exist: {capsule}")
         binding = binding_from_capsule(capsule)
-        key = (binding["condition"], binding["case_id"], binding["repetition"])
+        signature = (
+            binding["prompt_set_identity_sha256"],
+            binding["comparison_conditions_sha256"],
+        )
+        if cycle_signature is None:
+            cycle_signature = signature
+        elif signature != cycle_signature:
+            raise ParallelRunError("all jobs must use one prompt identity and comparison conditions")
+        key = (binding["case_id"], binding["iteration"])
         if key in keys:
             raise ParallelRunError(f"duplicate execution slot: {key}")
         keys.add(key)
@@ -326,7 +343,7 @@ def execute_job(
             append_jsonl(attempt_path, record, log_lock)
             raise ParallelRunError(
                 f"Layer 2 controller failed for {binding['case_id']} "
-                f"{binding['condition']} r{binding['repetition']}: {completed.stderr.strip()}"
+                f"iteration {binding['iteration']}: {completed.stderr.strip()}"
             )
         result = parse_result(completed.stdout)
         record["result"] = result
@@ -335,7 +352,7 @@ def execute_job(
             return record
     raise ParallelRunError(
         f"external failure retry limit reached for {binding['case_id']} "
-        f"{binding['condition']} r{binding['repetition']}"
+        f"iteration {binding['iteration']}"
     )
 
 

@@ -2,55 +2,55 @@
 
 ## 目的
 
-固定済みEvaluation setの独立したLayer 2 runを、外側並列度`M`で同時実行する。wave barrier方式と、workerが空き次第次のrunを投入するglobal queue方式を提供する。評価基盤v2のLayer、KPI、出力schemaは変更しない。
+1つのprompt set resultに属する独立したLayer 2 runを、外側並列度`M`で実行する。wave barrierとglobal queueを提供するが、評価基盤v3の保存単位、4 Layer、3 KPIを変更しない。
 
-このextensionが担当するのは次だけである。
+このextensionはcontroller起動、客観的`external_failure`の再実施、OS sample、実行summaryだけを扱う。採点、result登録、複数prompt set比較、改善、release判断は行わない。
 
-- `max_workers`を上限とするLayer 2 controllerの起動
-- 客観的に`external_failure`と分類されたattemptの再実施
-- 実行中のOS sample保存
-- slot数、attempt数、除外数、wall timeのsummary保存
+1 planの全capsuleは同じ`prompt_set_identity`と`comparison_conditions`を持たなければならない。重複する`case_id / iteration`は実行前に拒否する。
 
-採点、A / B比較、prompt改善、release判断は行わない。
+## Wave plan
 
-## Plan
-
-caseごとにA / BのRun capsule templateが1つずつある場合、反復番号とwaveは機械生成する。
+caseごとにRun capsule templateを1つ用意する。generatorはその他の値を変更せず、`binding.iteration`だけを`1..N`へ展開する。
 
 ```bash
 python3 layer2/extensions/parallel_execution/prepare_plan.py \
-  --template /absolute/path/to/F01-a-template.json \
-  --template /absolute/path/to/F01-b-template.json \
-  --template /absolute/path/to/F02-a-template.json \
-  --template /absolute/path/to/F02-b-template.json \
-  --repetitions 3 \
+  --template /absolute/path/to/F01-template.json \
+  --template /absolute/path/to/F02-template.json \
+  --iterations 3 \
   --cycle /absolute/path/to/frozen-cycle \
   --evaluation-loop /absolute/path/to/scripts/evaluation_loop.py \
+  --max-workers 2 \
   --output /absolute/path/to/new-parallel-inputs
 ```
 
-generatorはtemplateのその他のparameterを変更せず、`binding.repetition`だけを`1..N`へ展開する。case順と反復番号からA / Bの投入順を交互化し、同じcase・反復のA / Bを同じwaveへ置く。
+同じiterationのcaseを`max_workers`件ずつwaveへ置き、全job終了後に次waveへ進む。plan schemaは`the-caption-prompt.parallel-execution-plan/v3`、`schedule_policy`は`wave_barrier`である。
 
-生成されるplanの形式は次のとおりである。
+## Global queue
+
+空いたworkerへlongest-firstで次のslotを投入する。duration hintはcase IDから正の秒数へのmappingであり、処理時間短縮にだけ使う。KPI、quality score、互換条件の補正には使わない。
 
 ```json
 {
-  "schema_version": "the-caption-prompt.parallel-execution-plan/v1",
-  "cycle": "/absolute/path/to/frozen-cycle",
-  "evaluation_loop": "/absolute/path/to/scripts/evaluation_loop.py",
-  "max_workers": 2,
-  "max_attempts": 3,
-  "monitor_interval_seconds": 15,
-  "jobs": [
-    {"wave": 1, "capsule": "/absolute/path/to/a-case-r1.json"},
-    {"wave": 1, "capsule": "/absolute/path/to/b-case-r1.json"},
-    {"wave": 2, "capsule": "/absolute/path/to/b-case-r2.json"},
-    {"wave": 2, "capsule": "/absolute/path/to/a-case-r2.json"}
-  ]
+  "duration_hints_seconds": {
+    "F01": 120,
+    "F02": 45
+  }
 }
 ```
 
-同じ`condition / case_id / repetition`の重複は実行前に拒否する。同じ`wave`のjobを同時投入し、全jobの終了後に次のwaveへ進む。1 waveのjob数は`max_workers`以下、wave番号は1から連続でなければならない。これによりA / B pairを同じ実行窓へ置き、次の反復との混在を防ぐ。
+```bash
+python3 layer2/extensions/parallel_execution/prepare_global_plan.py \
+  --template /absolute/path/to/F01-template.json \
+  --template /absolute/path/to/F02-template.json \
+  --iteration 1 \
+  --iteration 2 \
+  --cycle /absolute/path/to/frozen-cycle \
+  --evaluation-loop /absolute/path/to/scripts/evaluation_loop.py \
+  --duration-hints /absolute/path/to/duration-hints.json \
+  --output /absolute/path/to/new-global-inputs
+```
+
+`--max-workers`の既定は、履歴上このhostでqualification済みの`24`である。別host、model、Agent条件または別`M`は新しい`comparison_conditions.executor_parameters`として固定し、必要なqualificationを別cycleで行う。既存v1 / v2 profileは変更しない。
 
 ## 実行
 
@@ -60,7 +60,7 @@ python3 layer2/extensions/parallel_execution/parallel_runner.py \
   --output /absolute/path/to/new-runner-evidence
 ```
 
-outputは既存directoryへ上書きしない。次を新規作成する。
+outputはwrite-onceで次を作る。
 
 ```text
 runner-evidence/
@@ -70,43 +70,4 @@ runner-evidence/
 └── summary.json
 ```
 
-`attempts.jsonl`はcontroller実行の順序と外部失敗retryを記録する。model-visibleな入力ではない。Layer 2のworkspace、Codex JSONL、binding、execution artifactは従来どおりcycle内へ保存される。
-
-`os-samples.jsonl`はload average、memory free、swap、disk free、関連process数を保存する。monitor取得の失敗は`sample_errors`として記録し、case結果へ変換しない。
-
-## Global queue
-
-case、condition、repetitionの境界でworkerを待機させず、空いたworkerへ次のslotを投入する。実行環境の揺れをqueue順で補正せず、実測tokenと時間をそのまま保存する。
-
-duration hintは過去の固定runから作ったexecutor parameterであり、KPI入力やquality scoreには使用しない。longest-first順は処理時間短縮だけを目的とする。
-
-`global_queue`の既定`max_workers`は`24`とする。これは[`M=24` minimal load qualification](../../../evaluations/results/global-m24-minimal-load-f01-n12_2026-07-15.md)で24 / 24 valid、retry 0、external failure 0、swap 0を確認したこのホストの既定値である。別host、model、Agent条件で使う場合や明示的に異なる`M`を使う場合は、新しい実行条件としてqualificationする。既存profileに固定済みの`max_workers`は履歴値のまま変更しない。
-
-```bash
-python3 layer2/extensions/parallel_execution/prepare_global_plan.py \
-  --template /absolute/path/to/F01-a-template.json \
-  --template /absolute/path/to/F01-b-template.json \
-  --repetition 1 \
-  --repetition 2 \
-  --cycle /absolute/path/to/frozen-cycle \
-  --evaluation-loop /absolute/path/to/scripts/evaluation_loop.py \
-  --duration-hints /absolute/path/to/profile.json \
-  --output /absolute/path/to/new-global-inputs
-```
-
-`--max-workers`を省略すると`24`をplanへ固定する。明示指定した値は既定値より優先される。
-
-生成planは`the-caption-prompt.parallel-execution-plan/v2`で、`sequence`と`estimated_seconds`を保存する。queue順はprovenanceであり、A / Bの環境差を補正または正規化する根拠にはしない。
-
-```text
-global-inputs/
-├── capsules/
-│   └── <case>-<condition>-r<repetition>.json
-└── global-plan.json
-```
-
-実行commandとevidence directoryはwave planと同じである。
-
-## Qualification boundary
-
-新しい`M`は新しい実行条件として別cycleでqualificationする。直列cycleのrunと混在させない。resource競合、workspace衝突、未分類のcontroller failureがあるcycleは正式なprompt比較へ使用しない。
+`attempts.jsonl`とOS sampleはmodel-visible入力ではない。Layer 2のworkspace、capsule、binding、execution artifactはcycle内へ保存される。resource競合、workspace衝突、未分類controller failureがあるcycleはprompt set resultへ登録しない。
