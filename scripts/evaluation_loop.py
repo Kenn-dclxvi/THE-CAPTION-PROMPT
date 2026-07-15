@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import statistics
 import subprocess
 import sys
@@ -16,6 +15,11 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+if __package__:
+    from .storage_copy import StorageCopyError, materialize_tree
+else:
+    from storage_copy import StorageCopyError, materialize_tree
 
 
 class EvaluationError(Exception):
@@ -167,7 +171,10 @@ def layer1_freeze(args: argparse.Namespace) -> dict[str, Any]:
     for case in cases:
         destination = fixture_root / case["id"]
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(case["_source_fixture"], destination, symlinks=True)
+        try:
+            materialize_tree(case["_source_fixture"], destination)
+        except StorageCopyError as exc:
+            raise EvaluationError(f"failed to materialize fixture: {exc}") from exc
         frozen_case = {
             key: value
             for key, value in case.items()
@@ -334,7 +341,10 @@ def layer2_run(args: argparse.Namespace) -> dict[str, Any]:
     workspace = evidence / "workspace"
     source_fixture = cycle / "layer1" / case["fixture"]
     evidence.mkdir(parents=True, exist_ok=False)
-    shutil.copytree(source_fixture, workspace, symlinks=True)
+    try:
+        materialize_tree(source_fixture, workspace)
+    except StorageCopyError as exc:
+        raise EvaluationError(f"failed to materialize workspace: {exc}") from exc
     case_path = evidence / "case.json"
     capsule_path = cycle / "layer2" / "capsules" / f"{run_id}.json"
     write_json_once(case_path, case)

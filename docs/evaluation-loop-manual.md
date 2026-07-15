@@ -56,7 +56,7 @@ capsuleへsecretやcredentialを直接保存しない。非公開のraw run evid
 }
 ```
 
-`fixture`は`set.json`からの相対pathで指定する。基盤が解釈するsource fieldは`set_id`、`revision`、caseの`id`と`fixture`である。それ以外は変更せず固定setへcopyする。
+`fixture`は`set.json`からの相対pathで指定する。基盤が解釈するsource fieldは`set_id`、`revision`、caseの`id`と`fixture`である。それ以外は変更せず固定setへcopyする。macOSでは独立性を保つclonefile-backed Copy-on-Writeを先に試し、使用できないfilesystemでは通常copyへfallbackする。物理copy方式はset identityへ含めない。
 
 `freeze-set`はcase別fixture identityとset content identityを計算する。fixture identityは`.git`内部を除くpath、type、mode、file content、symlink targetに結び付く。
 
@@ -122,7 +122,7 @@ capsuleへsecretやcredentialを直接保存しない。非公開のraw run evid
 
 ## 6. Executor contract
 
-`run`は`adapter.argv`をfixture copy内でshellを介さず実行する。executorへ次の環境変数を渡す。
+`run`は`adapter.argv`を独立したfixture copy内でshellを介さず実行する。Layer 1と同じくCopy-on-Writeを使用できる場合は利用するが、workspaceの変更は固定fixtureへ反映されない。executorへ次の環境変数を渡す。
 
 | 変数 | 内容 |
 | --- | --- |
@@ -308,12 +308,18 @@ v1の`decide`、`decision.json`、`winner`と、v2の固定A / B `compare`、`co
 
 旧resultをv3 registryへ入れるmigrationは未実装であり、このworkflowの対象外である。必要になった場合はprovenanceを維持する別schema・別要件として扱う。
 
-## 13. Self-test
+## 13. Storage maintenance
+
+検証cloneのcopy mode、容量監査、期限切れscratchのguarded GCは[`evaluation-storage-maintenance.md`](evaluation-storage-maintenance.md)を参照する。登録済みresultまたはrepositoryから参照するraw evidenceは自動GCしない。
+
+## 14. Self-test
 
 ```bash
 cd /Users/kenn/repos/THE-CAPTION-PROMPT
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v \
   tests/test_evaluation_loop.py \
+  tests/test_evaluation_storage.py \
+  tests/test_storage_copy.py \
   tests/test_run_codex_evaluation.py \
   tests/test_parallel_runner.py \
   tests/test_prepare_case_fixture.py

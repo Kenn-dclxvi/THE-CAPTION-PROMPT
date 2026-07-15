@@ -27,7 +27,7 @@ THE-CAPTION向けプロンプトを設計、比較、評価し、反映可能な
 | `evaluations/results/` | 公開済みの履歴評価結果。v3 runtime registryとは分離 |
 
 運用境界は[`docs/repository-contract.md`](docs/repository-contract.md)を正本とします。
-評価基盤のLayerと境界は[`docs/prompt-comparison-workflow.md`](docs/prompt-comparison-workflow.md)に定義します。実行方法は[`docs/evaluation-loop-manual.md`](docs/evaluation-loop-manual.md)を参照します。
+評価基盤のLayerと境界は[`docs/prompt-comparison-workflow.md`](docs/prompt-comparison-workflow.md)に定義します。実行方法は[`docs/evaluation-loop-manual.md`](docs/evaluation-loop-manual.md)、検証cloneの容量維持は[`docs/evaluation-storage-maintenance.md`](docs/evaluation-storage-maintenance.md)を参照します。
 
 ## 初期作業
 
