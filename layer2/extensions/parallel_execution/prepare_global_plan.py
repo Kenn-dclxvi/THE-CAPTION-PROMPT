@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Expand A/B capsule templates into a longest-first global execution queue."""
+"""Expand prompt-set capsule templates into a longest-first global queue."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ except ImportError:  # Direct script execution.
 DEFAULT_MAX_WORKERS = 24
 
 
-def load_duration_hints(path: Path) -> dict[str, dict[str, float]]:
+def load_duration_hints(path: Path) -> dict[str, float]:
     document = load_object(path.resolve())
     execution = document.get("execution")
     raw_hints = (
@@ -32,23 +32,19 @@ def load_duration_hints(path: Path) -> dict[str, dict[str, float]]:
     )
     if not isinstance(raw_hints, dict) or not raw_hints:
         raise ParallelRunError("duration hints must be a non-empty object")
-    hints: dict[str, dict[str, float]] = {}
-    for case_id, raw_conditions in raw_hints.items():
-        if not isinstance(case_id, str) or not case_id or not isinstance(raw_conditions, dict):
-            raise ParallelRunError("duration hints need case objects")
-        conditions: dict[str, float] = {}
-        for condition in ("a", "b"):
-            value = raw_conditions.get(condition)
-            if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
-                raise ParallelRunError(f"duration hint must be positive: {case_id} {condition}")
-            conditions[condition] = float(value)
-        hints[case_id] = conditions
+    hints: dict[str, float] = {}
+    for case_id, value in raw_hints.items():
+        if not isinstance(case_id, str) or not case_id:
+            raise ParallelRunError("duration hint case id must be a non-empty string")
+        if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
+            raise ParallelRunError(f"duration hint must be positive: {case_id}")
+        hints[case_id] = float(value)
     return hints
 
 
 def prepare_global_plan(
     templates: list[Path],
-    repetitions: list[int],
+    selected_iterations: list[int],
     cycle: Path,
     evaluator: Path,
     duration_hints_path: Path,
@@ -57,11 +53,11 @@ def prepare_global_plan(
     max_attempts: int = 3,
     monitor_interval_seconds: int = 15,
 ) -> dict[str, Any]:
-    normalized_repetitions = sorted(
-        {require_positive_integer(value, "repetition") for value in repetitions}
+    iterations = sorted(
+        {require_positive_integer(value, "iteration") for value in selected_iterations}
     )
-    if len(normalized_repetitions) != len(repetitions):
-        raise ParallelRunError("repetitions must not contain duplicates")
+    if len(iterations) != len(selected_iterations):
+        raise ParallelRunError("iterations must not contain duplicates")
     max_workers = require_positive_integer(max_workers, "max_workers")
     max_attempts = require_positive_integer(max_attempts, "max_attempts")
     monitor_interval_seconds = require_positive_integer(
@@ -78,9 +74,19 @@ def prepare_global_plan(
     if output.exists():
         raise ParallelRunError(f"refusing to overwrite output: {output}")
 
-    pairs = collect_templates(templates)
+    case_templates = collect_templates(templates)
+    for case_id, template in case_templates:
+        conditions = template.get("comparison_conditions")
+        repetition = conditions.get("repetition_condition") if isinstance(conditions, dict) else None
+        total_iterations = repetition.get("iterations") if isinstance(repetition, dict) else None
+        if not isinstance(total_iterations, int) or isinstance(total_iterations, bool):
+            raise ParallelRunError(f"template repetition_condition.iterations is invalid: {case_id}")
+        if max(iterations) > total_iterations:
+            raise ParallelRunError(
+                f"selected iteration exceeds repetition_condition.iterations: {case_id}"
+            )
     hints = load_duration_hints(duration_hints_path)
-    missing = [case_id for case_id, _ in pairs if case_id not in hints]
+    missing = [case_id for case_id, _ in case_templates if case_id not in hints]
     if missing:
         raise ParallelRunError(f"duration hint missing for case: {missing[0]}")
 
@@ -88,33 +94,30 @@ def prepare_global_plan(
     capsule_dir = output / "capsules"
     capsule_dir.mkdir()
     pending: list[dict[str, Any]] = []
-    for repetition in normalized_repetitions:
-        for case_id, pair in pairs:
-            for condition in ("a", "b"):
-                capsule = copy.deepcopy(pair[condition])
-                binding = capsule.get("binding")
-                if not isinstance(binding, dict):
-                    raise ParallelRunError(f"capsule template has no binding: {case_id} {condition}")
-                binding["repetition"] = repetition
-                filename = f"{case_id}-{condition}-r{repetition}.json"
-                destination = capsule_dir / filename
-                write_json_once(destination, capsule)
-                pending.append(
-                    {
-                        "capsule": str(destination),
-                        "estimated_seconds": hints[case_id][condition],
-                        "case_id": case_id,
-                        "condition": condition,
-                        "repetition": repetition,
-                    }
-                )
+    for iteration in iterations:
+        for case_id, template in case_templates:
+            capsule = copy.deepcopy(template)
+            binding = capsule.get("binding")
+            if not isinstance(binding, dict):
+                raise ParallelRunError(f"capsule template has no binding: {case_id}")
+            binding["iteration"] = iteration
+            filename = f"{case_id}-i{iteration}.json"
+            destination = capsule_dir / filename
+            write_json_once(destination, capsule)
+            pending.append(
+                {
+                    "capsule": str(destination),
+                    "estimated_seconds": hints[case_id],
+                    "case_id": case_id,
+                    "iteration": iteration,
+                }
+            )
 
     pending.sort(
         key=lambda item: (
             -item["estimated_seconds"],
             item["case_id"],
-            item["condition"],
-            item["repetition"],
+            item["iteration"],
         )
     )
     jobs = [
@@ -127,7 +130,7 @@ def prepare_global_plan(
     ]
     hints_sha256 = hashlib.sha256(duration_hints_path.read_bytes()).hexdigest()
     plan = {
-        "schema_version": "the-caption-prompt.parallel-execution-plan/v2",
+        "schema_version": "the-caption-prompt.parallel-execution-plan/v3",
         "schedule_policy": "global_queue",
         "ordering": "estimated_seconds_descending",
         "duration_hints": str(duration_hints_path),
@@ -143,8 +146,8 @@ def prepare_global_plan(
     write_json_once(plan_path, plan)
     return {
         "plan": str(plan_path),
-        "case_count": len(pairs),
-        "repetitions": normalized_repetitions,
+        "case_count": len(case_templates),
+        "iterations": iterations,
         "slot_count": len(jobs),
         "max_workers": max_workers,
     }
@@ -153,7 +156,7 @@ def prepare_global_plan(
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--template", action="append", required=True)
-    result.add_argument("--repetition", action="append", type=int, required=True)
+    result.add_argument("--iteration", action="append", type=int, required=True)
     result.add_argument("--cycle", required=True)
     result.add_argument("--evaluation-loop", required=True)
     result.add_argument("--duration-hints", required=True)
@@ -169,7 +172,7 @@ def main() -> int:
     try:
         result = prepare_global_plan(
             [Path(path) for path in args.template],
-            args.repetition,
+            args.iteration,
             Path(args.cycle),
             Path(args.evaluation_loop),
             Path(args.duration_hints),

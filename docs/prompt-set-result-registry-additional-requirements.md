@@ -3,11 +3,11 @@
 ## Status
 
 - artifact: `additional_requirement`
-- scope: 評価基盤の将来変更に対する要件記録
-- implementation: 未実施
-- schema / workflow変更: 未実施
-- existing result migration: 未判断、未実施
-- current work priority: `candidate2`構築
+- scope: 評価基盤v3へ反映済みの要件記録
+- implementation: `implemented_as_evaluation_foundation_v3`
+- schema / workflow変更: 新revisionとして実施
+- existing result migration: 対象外、未実施
+- current work boundary: `candidate2`構築とは分離
 
 ## 背景
 
@@ -31,13 +31,11 @@ prompt setが`baseline`、`candidate1`、`candidate2`と増える場合、固定
 
 ## 境界
 
-このartifactは追加要件だけを記録する。次はこの作業に含めない。
+このartifactは追加要件と実装statusだけを記録する。v3実装でも次は対象外とする。
 
-- 現行Evaluation foundation v2の固定文書、script、schemaの変更
 - 既存A / B resultのmigrationまたは再解釈
-- result index、query command、comparison viewの具体設計と実装
 - KPI、Layer、quality rating責務の追加
 - prompt setの優劣、採用、release判断
 - `candidate2`のprompt設計または評価条件との混在
 
-評価基盤へ反映する際は、この追加要件を明示的な要件変更として別artifact単位で設計する。それまでは`candidate2`構築を優先する。
+具体設計とinterfaceは`docs/prompt-comparison-workflow.md`と`docs/evaluation-loop-manual.md`を正本とする。v1 / v2 artifactは履歴として保持し、v3へ読み替えない。

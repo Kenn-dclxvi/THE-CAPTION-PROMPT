@@ -1,0 +1,39 @@
+{
+  "adapter": {
+    "argv": [
+      "python3",
+      "/absolute/path/to/executor.py"
+    ]
+  },
+  "binding": {
+    "case_id": "EXAMPLE-CASE",
+    "iteration": 1,
+    "prompt_set_identity": {
+      "name": "example-prompt-set",
+      "revision": "r1"
+    }
+  },
+  "comparison_conditions": {
+    "agent_environment": {
+      "agent": "codex",
+      "version": "example-version"
+    },
+    "executor_parameters": {
+      "reasoning_effort": "high"
+    },
+    "model": "example-model",
+    "permission": "workspace-write/never",
+    "repetition_condition": {
+      "iterations": 3,
+      "order": "case-major"
+    },
+    "target_repository_ref": "owner/repository@example-commit",
+    "task_spec": {
+      "EXAMPLE-CASE": "example-task-spec-r1"
+    }
+  },
+  "parameters": {
+    "prompt_bundle": "/absolute/path/to/example-prompt-set"
+  },
+  "schema_version": "the-caption-prompt.execution-capsule/v2"
+}

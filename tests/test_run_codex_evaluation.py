@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.run_codex_evaluation import detect_external_failure, prompt_fixture_collisions
+from scripts.run_codex_evaluation import (
+    AdapterError,
+    detect_external_failure,
+    prompt_fixture_collisions,
+    prompt_set_identity_from_binding,
+)
 
 
 class RunCodexEvaluationTest(unittest.TestCase):
@@ -55,6 +60,28 @@ class RunCodexEvaluationTest(unittest.TestCase):
         }
 
         self.assertEqual(prompt_fixture_collisions(case, manifest), ["tests/AGENTS.md"])
+
+    def test_validates_immutable_prompt_set_identity_against_bundle(self) -> None:
+        digest = "a" * 64
+        identity = prompt_set_identity_from_binding(
+            {
+                "prompt_set_identity": {
+                    "name": "prompt-r1",
+                    "revision": "r1",
+                    "bundle_sha256": digest,
+                }
+            },
+            {"prompt_identity": "prompt-r1", "bundle_sha256": digest},
+            digest,
+        )
+        self.assertEqual(identity["revision"], "r1")
+
+        with self.assertRaisesRegex(AdapterError, "does not match"):
+            prompt_set_identity_from_binding(
+                {"prompt_set_identity": {"name": "other", "revision": "r1"}},
+                {"prompt_identity": "prompt-r1", "bundle_sha256": digest},
+                digest,
+            )
 
 
 if __name__ == "__main__":

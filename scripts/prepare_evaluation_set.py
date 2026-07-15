@@ -48,8 +48,9 @@ def prepare_evaluation_set(case_root: Path, source_repo: Path, output: Path) -> 
     try:
         fixture_result = prepare_fixture(case_root, source_repo, fixture)
         capsule = {
-            "schema_version": "the-caption-prompt.evaluation-set-source/v1",
+            "schema_version": "the-caption-prompt.evaluation-set-source/v2",
             "set_id": set_id,
+            "revision": case_revision,
             "cases": [
                 {
                     "id": case_id,

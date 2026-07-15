@@ -306,7 +306,7 @@ def prepare_runtime_links(workspace: Path, raw_links: Any) -> list[dict[str, str
     return prepared
 
 
-def condition_commit(workspace: Path, targets: list[str]) -> tuple[str, str]:
+def prompt_overlay_commit(workspace: Path, targets: list[str]) -> tuple[str, str]:
     run(["git", "add", "--", *targets], workspace)
     env = os.environ.copy()
     env.update(
@@ -328,7 +328,7 @@ def condition_commit(workspace: Path, targets: list[str]) -> tuple[str, str]:
             "--allow-empty",
             "--no-verify",
             "-qm",
-            "evaluation prompt condition",
+            "evaluation prompt overlay",
         ],
         workspace,
         env=env,
@@ -384,6 +384,31 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
     )
 
 
+def prompt_set_identity_from_binding(
+    binding: dict[str, Any], manifest: dict[str, Any], expected_hash: str
+) -> dict[str, Any]:
+    prompt_set_identity = require_object(
+        binding.get("prompt_set_identity"), "binding.prompt_set_identity"
+    )
+    prompt_identity = require_string(
+        prompt_set_identity.get("name"), "binding.prompt_set_identity.name"
+    )
+    if not any(prompt_set_identity.get(key) for key in ("revision", "bundle_sha256")):
+        raise AdapterError("binding.prompt_set_identity needs revision or bundle_sha256")
+    identity_bundle_hash = prompt_set_identity.get("bundle_sha256")
+    if identity_bundle_hash is not None:
+        identity_bundle_hash = require_string(
+            identity_bundle_hash, "binding.prompt_set_identity.bundle_sha256"
+        )
+    if (
+        manifest.get("prompt_identity") != prompt_identity
+        or manifest.get("bundle_sha256") != expected_hash
+        or (identity_bundle_hash is not None and identity_bundle_hash != expected_hash)
+    ):
+        raise AdapterError("run binding does not match prompt bundle identity")
+    return prompt_set_identity
+
+
 def execute() -> int:
     workspace = Path.cwd().resolve()
     case_path = Path(require_string(os.environ.get("EVAL_CASE_FILE"), "EVAL_CASE_FILE"))
@@ -402,9 +427,7 @@ def execute() -> int:
     model = require_string(parameters.get("model"), "parameters.model")
     reasoning_effort = require_string(parameters.get("reasoning_effort"), "parameters.reasoning_effort")
     manifest = verify_bundle(bundle)
-    prompt_identity = require_string(binding.get("prompt_identity"), "binding.prompt_identity")
-    if manifest.get("prompt_identity") != prompt_identity or manifest.get("bundle_sha256") != expected_hash:
-        raise AdapterError("run binding does not match prompt bundle identity")
+    prompt_set_identity = prompt_set_identity_from_binding(binding, manifest, expected_hash)
     collisions = prompt_fixture_collisions(case, manifest)
     if collisions:
         raise AdapterError(
@@ -415,9 +438,9 @@ def execute() -> int:
         raise AdapterError("fixture dirty paths do not match the run capsule")
 
     targets = overlay_bundle(workspace, bundle, manifest)
-    commit, tree = condition_commit(workspace, targets)
+    commit, tree = prompt_overlay_commit(workspace, targets)
     if changed_paths(workspace) != expected_dirty:
-        raise AdapterError("condition commit did not preserve the seeded dirty state")
+        raise AdapterError("prompt overlay commit did not preserve the seeded dirty state")
 
     task = render_task(case)
     task_sha256 = hashlib.sha256(task.encode("utf-8")).hexdigest()
@@ -475,15 +498,15 @@ def execute() -> int:
     write_json(
         adapter_extension / "execution.json",
         {
-            "adapter_schema_version": "the-caption-prompt.codex-adapter/v1",
+            "adapter_schema_version": "the-caption-prompt.codex-adapter/v2",
             "bundle_sha256": expected_hash,
             "codex_exit_code": completed.returncode,
             "codex_version": codex_version,
-            "condition_commit": commit,
-            "condition_tree": tree,
+            "prompt_overlay_commit": commit,
+            "prompt_overlay_tree": tree,
             "final_changed_paths": sorted(final_paths),
             "model": model,
-            "prompt_identity": prompt_identity,
+            "prompt_set_identity": prompt_set_identity,
             "raw_usage": raw_usage,
             "reasoning_effort": reasoning_effort,
             "runtime_links": runtime_links,

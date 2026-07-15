@@ -2,91 +2,124 @@
 
 ## 目的
 
-固定した評価セット上で2つのprompt setを同じ条件で実行し、判断材料となる比較情報を返す。
+固定条件下で1つのprompt setを実行した結果を独立して保存し、後から互換条件を満たす2つ以上のresultを任意に取得・比較する。
 
 扱うKPIは次の3つだけとする。
 
-- `quality_score`: 成果の品質。高いほど良い
-- `total_tokens`: 使用したinput / output token。少ないほど良い
-- `elapsed_seconds`: task開始から終了までの時間。短いほど良い
+- `quality_score`: case成果全体の0〜4 scoreから算出した値
+- `total_tokens`: input / outputを合わせたtoken総数
+- `elapsed_seconds`: task開始から終了までの時間
 
-各反復の`total_tokens`と`elapsed_seconds`は全caseの合計とする。3 KPIの代表値には、それぞれ`N`回の中央値を使う。Layer 4はA / Bの値と数値差を固定するが、優先順位、閾値、`winner`、改善・悪化を出力しない。
+各iterationの`total_tokens`と`elapsed_seconds`は全caseの合計、`quality_score`は全case scoreを0〜100へ正規化した値とする。代表値は`1..N`の中央値である。数値差は明示したminuend resultからsubtrahend resultを引くが、優先順位、閾値、`winner`、改善・悪化を出力しない。
 
-このworkflowはpromptの作成、改善、採用、release判断を行わない。
+このworkflowはpromptの作成、改善、採用、release判断、THE-CAPTION本体反映を行わない。
+
+## 保存単位
+
+一次結果の単位は、1つのEvaluation set上で1つのimmutableな`prompt_set_identity`を`1..N`回実行したprompt set resultである。1 cycleへ複数prompt setを混ぜず、固定A / B pairやcondition labelを保存identityにしない。
+
+`prompt_set_identity`は少なくとも次を含む。
+
+```json
+{
+  "name": "<prompt set name>",
+  "revision": "<immutable revision>"
+}
+```
+
+`revision`の代わりに、または併記してlowercase SHA-256の`bundle_sha256`を使用できる。可変の名前だけではresultを登録できない。
 
 ## Layer
 
 | Layer | 役割 | 出力 | 禁止 |
 | --- | --- | --- | --- |
-| 1. Evaluation set | 外部の評価セットとfixtureを固定する | 固定したEvaluation set capsule | 実行結果を見て同じcycle内のsetを変えること、prompt変更 |
-| 2. Execution | prompt set AまたはBで実行する | 成果、token、時間 | 採点、優劣判定、prompt変更 |
-| 3. Quality rating | 各成果をblindで採点する | 0〜4のscoreと短い事実根拠 | A / Bの比較、改善提案、artifact変更 |
-| 4. KPI comparison | A / Bの3 KPIを集計する | A / Bの反復別値、中央値、`B - A`差分、除外attempt | score変更、優劣判定、改善提案、prompt変更 |
+| 1. Evaluation set | 外部setとfixtureを固定する | revision、set identity、case別fixture identityを含むcapsule | 結果を見た後のin-place変更、prompt変更 |
+| 2. Execution | 1 prompt setの1 case / 1 iterationを実行する | 成果、`total_tokens`、時間、model-invisible binding | 採点、比較、prompt変更 |
+| 3. Quality rating | 各成果をblindで採点する | 0〜4のscoreと短い事実根拠 | prompt identityの参照、比較、改善提案 |
+| 4. KPI comparison | prompt set resultを登録し、保存resultからviewを作る | append-only result、任意個の一覧・中央値・明示差分 | 一次結果の変更、優劣判定、改善提案 |
 
-情報はLayer 1から4へ一方向に渡す。各Layerは自分の出力だけを作り、既存Layerの出力を上書きしない。評価基盤の責務はLayer 4の比較情報で終了する。
-
-A / Bは比較条件を識別するlabelであり、順位や採用状態を表さない。比較情報をどう解釈し、次の作業へ何を優先するかは評価基盤の範囲外とする。
+情報はLayer 1から4へ一方向に渡す。各Layerは自分の出力だけを作り、既存出力を上書きしない。比較viewは保存済みresultを参照する派生artifactであり、一次結果を変更しない。
 
 ## Capsule boundary
 
-workflowは個別のmodel、Agent、permission、task、executor parameterを持たない。変化する入力はEvaluation set capsuleまたはRun capsuleへ格納し、CLIにはcapsule pathだけを渡す。
+Evaluation set sourceは`set_id`と`revision`を持つ。Run capsuleは次を分離する。
 
-基盤が解釈するのはcondition、prompt identity、case ID、repetitionなどLayer接続に必要な最小bindingだけとする。それ以外のpayloadとparametersはopaqueに扱い、入力parameterの追加をworkflow変更にしない。
+- `binding`: `prompt_set_identity`、`case_id`、`iteration`
+- `comparison_conditions`: prompt identity以外の互換条件
+- `adapter` / `parameters`: executor入力。`parameters`は基盤に対してopaque
 
-tokenについて基盤が解釈するのは`total_tokens`だけとする。詳細分析用データはLayer 2の`extensions/<run_id>/<feature>/`へ分離する。評価基盤はその内容を読まず、分析schemaの追加や変更をworkflow変更にしない。
+`comparison_conditions`は次を必須とする。
+
+- `target_repository_ref`
+- `model`
+- `agent_environment`
+- `task_spec`
+- `permission`
+- `executor_parameters`
+- `repetition_condition`。少なくとも正の整数`iterations`を含む
+
+prompt bundle pathやprompt固有parameterを`comparison_conditions.executor_parameters`へ混ぜない。比較対象間で固定するexecutor条件だけを格納し、prompt固有値は`binding.prompt_set_identity`またはopaqueな`parameters`へ置く。
+
+Layer 1は`.git`内部を除くfixtureのpath、type、mode、contentまたはsymlink targetからcase別fixture identityを計算する。resultの互換条件にはEvaluation setの`set_id`、`revision`、content identity、case別fixture identity、Run capsuleの全`comparison_conditions`、case集合、iteration集合を含める。
 
 ## `quality_score`
 
 quality raterが各caseの成果全体を0から4で採点する。
 
 ```text
-quality_score[r] = sum(case_score[r]) / (4 * case数) * 100
+quality_score[i] = sum(case_score[i]) / (4 * case数) * 100
 quality_score = median(quality_score[1], ..., quality_score[N])
 ```
 
-採点基準は`evaluations/cases/README.md`に定義する。quality raterはscoreと短い事実根拠だけを作り、prompt identityとconditionを知らない状態で採点する。
+quality raterへ渡すのはmodel-visible caseとblindなexecution evidenceだけである。`layer2/bindings/`、Run capsule、oracle、grader、expected resultをmodel-visible入力へ混ぜない。raterはscoreと短い事実根拠だけを返し、promptの選択や改善提案を行わない。
 
-## 反復回数`N`
+## Append-only result registry
 
-`N`は任意の正の整数とし、固定値にしない。prompt set AとBを同じ`N`回だけ実行し、各回のKPIを保存する。
+`record-result`は全caseと`1..N`が揃い、全valid runが採点済みであることを確認して次へwrite-onceで保存する。
 
-比較に使うcycleでは、AとBのcase、反復番号、評価条件を一致させる。外部要因を客観的証跡から自動検出したattemptはraw artifactを保持して除外し、同じslotを再実施する。不足または除外後の有効run数が不一致のcycleからLayer 4の比較情報を作らない。
-
-除外attemptは3 KPIへ入力しない。ただし判断材料から外部要因の発生を隠さないため、`condition`、`case_id`、`repetition`、`category`、`reason_code`をLayer 4へ列挙する。
-
-## KPI comparison
-
-Layer 4はA / Bそれぞれについて次を保存する。
-
-- prompt identity
-- 反復ごとの3 KPI
-- `N`回の中央値
-- 中央値の`B - A`差分
-- 外部要因により除外したattempt
-
-`difference_b_minus_a`は単純な数値差であり、有利・不利を表す符号ではない。`quality_score`では正値がBの高値、`total_tokens`と`elapsed_seconds`では正値がBの多値を示す。評価基盤はこれらを単一の順位へ畳み込まない。
-
-## 最小出力
-
-```yaml
-prompt_set_a: <prompt identity>
-prompt_set_b: <prompt identity>
-repetitions: <N>
-median:
-  quality_score: <a> vs <b>
-  total_tokens: <a> vs <b>
-  elapsed_seconds: <a> vs <b>
-difference_b_minus_a:
-  quality_score: <number>
-  total_tokens: <number>
-  elapsed_seconds: <number>
-excluded_attempts: []
+```text
+<registry>/
+└── results/
+    └── <result_id>.json
 ```
 
-`winner`、改善・悪化、採用可否は出力しない。
+各resultは次を保持する。
 
-## v1 artifactの扱い
+- immutableな`prompt_set_identity`とそのSHA-256
+- 互換条件の実体と`compatibility_key`
+- case別の`quality_score`、`total_tokens`、`elapsed_seconds`
+- iteration別の3 KPIと中央値
+- 除外attempt
+- 作成時刻とresult全体のcontent SHA-256
 
-2026-07-15までに作成したv1 cycle、result、profileには`winner`、`kpi_order`、`decision.json`が含まれる。これらは当時の契約による履歴であり、内容やidentityを遡及変更しない。
+registryはmutableなA / B indexを持たず、`query-results`が保存fileを走査する。既存resultを別比較のために書き換えたり、現行prompt revisionへ読み替えたりしない。
 
-v2ではCLIを`decide`から`compare`へ、Layer 4 artifactを`decision.json`から`comparison.json`へ変更する。v1の`winner`をv2の現行判断として再利用せず、必要な場合は元の3 KPIと観測事項を判断材料として読む。
+## 互換条件と任意個比較
+
+`compare`は2件以上の`result_id`を受け付ける。全resultの`compatibility_key`と互換条件実体が完全一致しない場合はfail closedする。
+
+viewには選択した全prompt setのidentity、iteration別KPI、中央値、除外attemptを列挙する。数値差は利用者が指定した`reference_result_id`をsubtrahendとし、他の各resultをminuendとして次の形で出力する。
+
+```json
+{
+  "minuend_result_id": "<selected result>",
+  "subtrahend_result_id": "<reference result>",
+  "kpis": {
+    "quality_score": "minuend - subtrahend",
+    "total_tokens": "minuend - subtrahend",
+    "elapsed_seconds": "minuend - subtrahend"
+  }
+}
+```
+
+差分の符号を有利・不利へ変換しない。referenceは基準線にすぎず、baseline、採用状態、順位を意味しない。
+
+## Token extension boundary
+
+評価基盤が解釈するtoken値は`total_tokens`だけである。詳細分析用データは`layer2/extensions/<run_id>/<feature>/`へ分離し、quality rating、result登録、比較viewへ入力しない。
+
+## 旧artifactの扱い
+
+2026-07-15までに作成したv1 cycle、result、profileには`winner`、`kpi_order`、`decision.json`が含まれる。v2には固定A / Bの`comparison.json`と`difference_b_minus_a`が含まれる。いずれも当時の契約による履歴であり、内容やidentityを遡及変更しない。
+
+v3は`execution-capsule/v2`、`evaluation-set/v2`、`prompt-set-result/v1`、`prompt-set-comparison-view/v1`を使用する。v1/v2 cycleをv3 resultとして読み込まず、migrationや再解釈が必要な場合は別の明示要件として扱う。

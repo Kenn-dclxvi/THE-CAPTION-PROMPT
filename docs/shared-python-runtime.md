@@ -64,7 +64,7 @@ package codeだけを共有し、次はworkspaceごとに分離する。
 - `.venv` shimとlocal site-packages
 - `.coverage`、`.pytest_cache`、reports、logs
 - repository stateとAgent成果
-- condition commitと実行証跡
+- prompt overlay commitと実行証跡
 
 共有runtimeは評価中に更新しない。dependencyを変える場合は新しいruntimeを作り、新しいfreeze identityとしてRun capsuleをrevisionする。既存runtimeをin-place更新して過去runと同じidentityを名乗らせてはならない。
 

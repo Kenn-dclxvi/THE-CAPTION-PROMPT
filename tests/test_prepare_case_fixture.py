@@ -215,6 +215,8 @@ class PrepareCaseFixtureTest(unittest.TestCase):
 
             capsule = json.loads((output / "set.json").read_text(encoding="utf-8"))
             self.assertEqual(result["set_id"], "test-case-r1")
+            self.assertEqual(capsule["schema_version"], "the-caption-prompt.evaluation-set-source/v2")
+            self.assertEqual(capsule["revision"], "r1")
             self.assertEqual(capsule["cases"][0]["fixture"], "fixture")
             self.assertEqual(capsule["cases"][0]["fixture_condition_paths"], ["target.txt"])
             self.assertEqual(
