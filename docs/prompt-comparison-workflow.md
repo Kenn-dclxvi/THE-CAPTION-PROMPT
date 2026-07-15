@@ -40,6 +40,8 @@
 
 情報はLayer 1から4へ一方向に渡す。各Layerは自分の出力だけを作り、既存出力を上書きしない。比較viewは保存済みresultを参照する派生artifactであり、一次結果を変更しない。
 
+fixtureとworkspaceの物理materializationはLayer接続の実装詳細である。sourceとdestinationの独立性および論理contentを保つ限りCopy-on-Writeを使用でき、copy方式をprompt set identity、互換条件、KPIへ追加しない。storage監査とGCは[`evaluation-storage-maintenance.md`](evaluation-storage-maintenance.md)に分離する。
+
 ## Capsule boundary
 
 Evaluation set sourceは`set_id`と`revision`を持つ。Run capsuleは次を分離する。
