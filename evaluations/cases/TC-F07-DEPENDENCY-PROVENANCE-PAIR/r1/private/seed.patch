@@ -1,0 +1,24 @@
+diff --git a/requirements.in b/requirements.in
+index 04422581b2bcbccd99eac12bf6a5419e2bea9a62..03ff8408d3dfc44381a8ddc8655f6547d6b93d89 100644
+--- a/requirements.in
++++ b/requirements.in
+@@ -7,5 +7,5 @@ certifi>=2023.0.0
+ jpholiday>=0.1.0
+ pandas-market-calendars>=4.0.0
+ cryptography>=41.0.0
+-PyYAML>=6.0.1
++PyYAML>=7.0.0
+ yfinance>=0.2.0
+diff --git a/requirements.txt b/requirements.txt
+index 9f67f84a7cf1bf5d3a0e398e89cc53126d06a3b4..ac682a63d9965882c18eab4421d22d2e97f942d0 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -103,7 +103,7 @@ python-dotenv==1.2.1
+ pytz==2025.2
+     # via yfinance
+ pyyaml==6.0.3
+-    # via -r requirements.in
++    # via manual override
+ requests==2.32.5
+     # via yfinance
+ six==1.17.0

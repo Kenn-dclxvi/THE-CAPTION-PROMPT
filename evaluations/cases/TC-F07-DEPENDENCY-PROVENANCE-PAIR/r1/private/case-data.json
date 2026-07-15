@@ -1,0 +1,223 @@
+{
+  "schema_version": "the-caption-prompt-evaluation-private-case-v1",
+  "case_id": "TC-F07-DEPENDENCY-PROVENANCE-PAIR",
+  "case_revision": "r1",
+  "visibility": "model_invisible",
+  "fixture": {
+    "target_identity": {
+      "repository": "Kenn-dclxvi/THE-CAPTION",
+      "commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+      "tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b"
+    },
+    "case_spec": {
+      "family": "F07",
+      "equivalence_cluster_id": "dependency-provenance-pair",
+      "coverage_tags": [
+        "dependency",
+        "paired-file",
+        "provenance",
+        "static-validation",
+        "bounded-edit"
+      ],
+      "package_connection_keys": [
+        "TC-REQ-002",
+        "TC-REQ-003",
+        "TC-REQ-005",
+        "TC-REQ-006",
+        "TC-REQ-010",
+        "TC-REQ-011"
+      ],
+      "source_control_trace_keys": [
+        "SC-02",
+        "SC-03",
+        "SC-04",
+        "SC-05",
+        "SC-07",
+        "SC-08",
+        "SC-09",
+        "SC-10"
+      ],
+      "historical_candidate_evidence_eligible_trace_keys": [],
+      "historical_candidate_scope": "out_of_scope"
+    },
+    "authority_selectors": [
+      "AGENTS.md"
+    ],
+    "source_files": [
+      {
+        "path": "requirements.in",
+        "mode": "100644",
+        "git_blob_sha1": "04422581b2bcbccd99eac12bf6a5419e2bea9a62",
+        "role": "seed_and_reference_postimage",
+        "raw_sha256": "96ef0b1e808c00037c19b65bfabdd8352b1e54ad37465e709c2de01a3c53ac7a"
+      },
+      {
+        "path": "requirements.txt",
+        "mode": "100644",
+        "git_blob_sha1": "9f67f84a7cf1bf5d3a0e398e89cc53126d06a3b4",
+        "role": "seed_and_reference_postimage",
+        "raw_sha256": "ea5bf43d60b6c407f8946388186c4fd759ab46e8e1e6098f6df0fb79771dd355"
+      }
+    ],
+    "absent_paths": []
+  },
+  "seed": {
+    "status": "materialized_not_applied",
+    "post_seed_intent": "The declared PyYAML constraint and the compiled pin provenance disagree with the known paired baseline.",
+    "design_operations": [
+      {
+        "operation": "replace_exact_text",
+        "path": "requirements.in",
+        "expected_preimage_blob": "04422581b2bcbccd99eac12bf6a5419e2bea9a62",
+        "expected_occurrences": 1,
+        "before_text": "PyYAML>=6.0.1",
+        "after_text": "PyYAML>=7.0.0"
+      },
+      {
+        "operation": "replace_exact_text",
+        "path": "requirements.txt",
+        "expected_preimage_blob": "9f67f84a7cf1bf5d3a0e398e89cc53126d06a3b4",
+        "expected_occurrences": 1,
+        "before_text": "pyyaml==6.0.3\n    # via -r requirements.in",
+        "after_text": "pyyaml==6.0.3\n    # via manual override"
+      }
+    ],
+    "artifact": {
+      "path": "private/seed.patch",
+      "format": "git_diff",
+      "raw_sha256": "da7d370e52dec3572891bf67f0533eea3db89fd2d931968b72d261caaf5251d4"
+    },
+    "application_contract": {
+      "target_commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+      "target_tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b",
+      "preimage_files": [
+        {
+          "path": "requirements.in",
+          "mode": "100644",
+          "git_blob_sha1": "04422581b2bcbccd99eac12bf6a5419e2bea9a62",
+          "raw_sha256": "96ef0b1e808c00037c19b65bfabdd8352b1e54ad37465e709c2de01a3c53ac7a"
+        },
+        {
+          "path": "requirements.txt",
+          "mode": "100644",
+          "git_blob_sha1": "9f67f84a7cf1bf5d3a0e398e89cc53126d06a3b4",
+          "raw_sha256": "ea5bf43d60b6c407f8946388186c4fd759ab46e8e1e6098f6df0fb79771dd355"
+        }
+      ],
+      "check": "resolve artifact.path from the case revision root and run git apply --check before applying",
+      "apply": "apply the same resolved patch only after every identity and preimage check passes",
+      "failure_mode": "fail_closed_no_partial_fixture"
+    },
+    "expected_post_seed_files": [
+      {
+        "path": "requirements.in",
+        "mode": "100644",
+        "git_blob_sha1": "03ff8408d3dfc44381a8ddc8655f6547d6b93d89",
+        "raw_sha256": "a366415de699dccefcf9a675eea10f0bddc9cd6a844a0f03fe6970aae7b5e3f9"
+      },
+      {
+        "path": "requirements.txt",
+        "mode": "100644",
+        "git_blob_sha1": "ac682a63d9965882c18eab4421d22d2e97f942d0",
+        "raw_sha256": "4b8ae1955128e28f666c559c8c8da72911c9d275b8180eb7d4bb16a0e8fdf68e"
+      }
+    ],
+    "fixture_materialization": {
+      "mode": "committed_seed",
+      "commit": {
+        "message": "evaluation fixture seed",
+        "timestamp": "2000-01-01T00:00:00Z",
+        "author_name": "THE-CAPTION Prompt Evaluation",
+        "author_email": "evaluation@example.invalid",
+        "expected_commit": "07ca562d4e70d3b4f5e451b2098259a0d26e9fcb",
+        "expected_tree": "9f975e8dad8f61ffb30f8d2e0fe5707018d5f32f"
+      }
+    }
+  },
+  "oracle": {
+    "mode": "semantic_predicate_with_reference_postimage",
+    "reference_postimage_files": [
+      {
+        "path": "requirements.in",
+        "mode": "100644",
+        "git_blob_sha1": "04422581b2bcbccd99eac12bf6a5419e2bea9a62"
+      },
+      {
+        "path": "requirements.txt",
+        "mode": "100644",
+        "git_blob_sha1": "9f67f84a7cf1bf5d3a0e398e89cc53126d06a3b4"
+      }
+    ],
+    "reference_postimage_is_exclusive": true,
+    "assertions": [
+      {
+        "criterion_id": "F07-P-C1",
+        "type": "direct_constraint",
+        "expected": "requirements.in contains exactly one PyYAML>=6.0.1 direct constraint."
+      },
+      {
+        "criterion_id": "F07-P-C2",
+        "type": "compiled_pin_provenance",
+        "expected": "requirements.txt retains pyyaml==6.0.3 and its immediately following provenance is # via -r requirements.in."
+      },
+      {
+        "criterion_id": "F07-P-C3",
+        "type": "paired_path_and_operation_boundary",
+        "expected": "Only requirements.in and requirements.txt differ from the seeded fixture; no resolver, install, test-suite, or network operation occurs."
+      }
+    ]
+  },
+  "grader": {
+    "status": "designed_not_implemented",
+    "contract_revision": "grader-contract-r1",
+    "mode": "repository_state_command_and_operation_trace_evidence",
+    "human_calibration_owner": "independent_contract_check",
+    "criteria": [
+      {
+        "criterion_id": "F07-P-C1",
+        "evidence_sources": [
+          "final_repository_state",
+          "static_validation_receipt"
+        ]
+      },
+      {
+        "criterion_id": "F07-P-C2",
+        "evidence_sources": [
+          "final_repository_state",
+          "static_validation_receipt"
+        ]
+      },
+      {
+        "criterion_id": "F07-P-C3",
+        "evidence_sources": [
+          "operation_trace",
+          "condition_relative_drift_manifest",
+          "terminal_outcome"
+        ]
+      }
+    ],
+    "commands": [
+      "python3 -c paired text assertion from trial-prompt-input.json",
+      "git diff --check",
+      "git diff --name-only"
+    ],
+    "success_rule": "all listed criteria pass from final state, operation trace, and command evidence; worker self-report alone is insufficient"
+  },
+  "qualification": {
+    "status": "fixture_qualified_prompt_not_evaluated",
+    "receipt": {
+      "date": "2026-07-15",
+      "fixture_materialization": "pass; deterministic committed seed 07ca562d4e70d3b4f5e451b2098259a0d26e9fcb with clean worktree",
+      "semantic_seed_check": "paired static assertion failed before repair as designed",
+      "reference_postimage_check": "inverse seed restored both files; static assertion and git diff --check passed; changed paths were exactly requirements.in and requirements.txt",
+      "network_dependency_resolution_or_test": "not_run",
+      "model_invocation": "not_run"
+    }
+  },
+  "design_provenance": {
+    "repository": "Kenn-dclxvi/THE-CAPTION-PROMPT",
+    "coverage_requirement": "FULL-F07-PAIRED",
+    "coverage_blocker": "B-F07-PAIRED",
+    "selection_basis": "Add a deterministic paired-file dependency provenance invariant without network or dependency-resolution variance."
+  }
+}
