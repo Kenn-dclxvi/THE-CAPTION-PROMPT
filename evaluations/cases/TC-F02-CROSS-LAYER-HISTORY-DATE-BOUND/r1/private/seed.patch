@@ -1,0 +1,35 @@
+diff --git a/src/app/v4_engine.py b/src/app/v4_engine.py
+index 2d43488..ccadeda 100644
+--- a/src/app/v4_engine.py
++++ b/src/app/v4_engine.py
+@@ -91,10 +91,7 @@ class V4Engine:
+ 
+             us_context = self.__timeline.get_us_market_context(target_date_str)
+             trading_date = us_context.get("trading_date") or target_date_str
+-            self.__history_updater.refresh(
+-                target_date=target_date_str,
+-                us_market_date=trading_date,
+-            )
++            self.__history_updater.refresh()
+             shadow_ledger = self.__ingester.run(target_date_str, output_path=self.__SHADOW_OUTPUT)
+             finalized_ledger = self.__finalizer.finalize(shadow_ledger)
+             finalized_ledger = self.__retry_incomplete_market_pricing(
+diff --git a/src/domain/collection_history_updater.py b/src/domain/collection_history_updater.py
+index 179beed..c2f4317 100644
+--- a/src/domain/collection_history_updater.py
++++ b/src/domain/collection_history_updater.py
+@@ -101,13 +101,7 @@ class CollectionHistoryUpdater:
+         if asset["asset_class"] == "MUTUAL_FUNDS":
+             self._fetch_fund_history(asset)
+             return
+-        market_end_date = self._resolve_market_end_date(
+-            asset,
+-            target_date=target_date,
+-            us_market_date=us_market_date,
+-            end_date=end_date,
+-        )
+-        self._fetch_market_history(asset, end_date=market_end_date)
++        self._fetch_market_history(asset)
+ 
+     def _resolve_market_end_date(
+         self,

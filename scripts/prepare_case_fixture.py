@@ -19,6 +19,9 @@ class FixtureError(Exception):
     pass
 
 
+FIXTURE_RUNTIME_DIRECTORIES = ("logs",)
+
+
 def run(
     command: list[str],
     cwd: Path | None = None,
@@ -148,6 +151,40 @@ def changed_paths(workspace: Path) -> set[str]:
     return paths
 
 
+def verify_clean_fixture_inputs(workspace: Path, fixture: dict[str, Any]) -> None:
+    raw_files = fixture.get("source_files")
+    if not isinstance(raw_files, list) or not raw_files:
+        raise FixtureError("fixture.source_files must be a non-empty array")
+    for index, raw_entry in enumerate(raw_files):
+        entry = require_object(raw_entry, f"fixture.source_files[{index}]")
+        path = require_string(entry.get("path"), f"fixture.source_files[{index}].path")
+        expected_mode = require_string(entry.get("mode"), f"fixture.source_files[{index}].mode")
+        expected_blob = require_string(
+            entry.get("git_blob_sha1"), f"fixture.source_files[{index}].git_blob_sha1"
+        )
+        expected_sha256 = require_string(
+            entry.get("raw_sha256"), f"fixture.source_files[{index}].raw_sha256"
+        )
+        mode, object_type, blob = read_tree_entry(workspace, "HEAD", path)
+        if object_type != "blob" or mode != expected_mode or blob != expected_blob:
+            raise FixtureError(f"fixture source Git identity mismatch: {path}")
+        content = run(["git", "cat-file", "blob", blob], cwd=workspace, binary=True)
+        assert isinstance(content, bytes)
+        if sha256_bytes(content) != expected_sha256:
+            raise FixtureError(f"fixture source SHA-256 mismatch: {path}")
+
+    raw_absent = fixture.get("absent_paths", [])
+    if not isinstance(raw_absent, list):
+        raise FixtureError("fixture.absent_paths must be an array")
+    for index, raw_path in enumerate(raw_absent):
+        path = require_string(raw_path, f"fixture.absent_paths[{index}]")
+        resolved = (workspace / path).resolve()
+        if not resolved.is_relative_to(workspace):
+            raise FixtureError(f"absent path escapes fixture: {path}")
+        if resolved.exists() or resolved.is_symlink():
+            raise FixtureError(f"expected absent fixture path exists: {path}")
+
+
 def materialize_seed_state(
     workspace: Path,
     seed: dict[str, Any],
@@ -224,16 +261,56 @@ def prepare_fixture(case_root: Path, source_repo: Path, output: Path) -> dict[st
     output = output.resolve()
     data = load_object(case_root / "private" / "case-data.json")
     seed = require_object(data.get("seed"), "seed")
-    artifact = require_object(seed.get("artifact"), "seed.artifact")
-    application = require_object(seed.get("application_contract"), "seed.application_contract")
-    patch_relative = require_string(artifact.get("path"), "seed.artifact.path")
-    patch = resolve_case_path(case_root, patch_relative)
-    if artifact.get("format") != "git_diff":
-        raise FixtureError("seed.artifact.format must be git_diff")
-    if sha256_bytes(patch.read_bytes()) != require_string(artifact.get("raw_sha256"), "seed.artifact.raw_sha256"):
-        raise FixtureError("seed patch SHA-256 mismatch")
-    target_commit = require_string(application.get("target_commit"), "seed.application_contract.target_commit")
-    target_tree = require_string(application.get("target_tree"), "seed.application_contract.target_tree")
+    raw_materialization = seed.get("fixture_materialization")
+    if raw_materialization is None:
+        materialization_mode = "uncommitted_seed"
+    else:
+        materialization = require_object(raw_materialization, "seed.fixture_materialization")
+        materialization_mode = require_string(
+            materialization.get("mode"), "seed.fixture_materialization.mode"
+        )
+
+    artifact: dict[str, Any] | None = None
+    application: dict[str, Any] | None = None
+    patch: Path | None = None
+    fixture: dict[str, Any] | None = None
+    if materialization_mode in {"committed_seed", "uncommitted_seed"}:
+        artifact = require_object(seed.get("artifact"), "seed.artifact")
+        application = require_object(seed.get("application_contract"), "seed.application_contract")
+        target_commit = require_string(
+            application.get("target_commit"), "seed.application_contract.target_commit"
+        )
+        target_tree = require_string(
+            application.get("target_tree"), "seed.application_contract.target_tree"
+        )
+        if data.get("fixture") is not None:
+            fixture = require_object(data.get("fixture"), "fixture")
+            target_identity = require_object(
+                fixture.get("target_identity"), "fixture.target_identity"
+            )
+            fixture_commit = require_string(
+                target_identity.get("commit"), "fixture.target_identity.commit"
+            )
+            fixture_tree = require_string(
+                target_identity.get("tree"), "fixture.target_identity.tree"
+            )
+            if fixture_commit != target_commit or fixture_tree != target_tree:
+                raise FixtureError("seed application target does not match fixture target identity")
+        patch_relative = require_string(artifact.get("path"), "seed.artifact.path")
+        patch = resolve_case_path(case_root, patch_relative)
+        if artifact.get("format") != "git_diff":
+            raise FixtureError("seed.artifact.format must be git_diff")
+        if sha256_bytes(patch.read_bytes()) != require_string(
+            artifact.get("raw_sha256"), "seed.artifact.raw_sha256"
+        ):
+            raise FixtureError("seed patch SHA-256 mismatch")
+    elif materialization_mode == "clean_checkout":
+        fixture = require_object(data.get("fixture"), "fixture")
+        target_identity = require_object(fixture.get("target_identity"), "fixture.target_identity")
+        target_commit = require_string(target_identity.get("commit"), "fixture.target_identity.commit")
+        target_tree = require_string(target_identity.get("tree"), "fixture.target_identity.tree")
+    else:
+        raise FixtureError(f"unsupported seed fixture materialization mode: {materialization_mode}")
 
     if output == source_repo or output.is_relative_to(source_repo):
         raise FixtureError("output must not be inside the source repository")
@@ -252,21 +329,33 @@ def prepare_fixture(case_root: Path, source_repo: Path, output: Path) -> dict[st
         assert isinstance(head, str) and isinstance(tree, str)
         if head.strip() != target_commit or tree.strip() != target_tree:
             raise FixtureError("cloned target identity mismatch")
-        verify_preimages(output, application.get("preimage_files"))
-        run(["git", "apply", "--check", str(patch)], cwd=output)
-        run(["git", "apply", str(patch)], cwd=output)
-        expected_paths = verify_postimages(output, seed.get("expected_post_seed_files"))
-        actual_paths = changed_paths(output)
-        if actual_paths != expected_paths:
-            raise FixtureError(
-                f"fixture drift mismatch: expected {sorted(expected_paths)}, got {sorted(actual_paths)}"
+        if materialization_mode == "clean_checkout":
+            assert fixture is not None
+            verify_clean_fixture_inputs(output, fixture)
+            expected_paths: set[str] = set()
+            actual_paths: set[str] = set()
+            final_changed_paths = changed_paths(output)
+            if final_changed_paths:
+                raise FixtureError(f"clean checkout fixture drifted: {sorted(final_changed_paths)}")
+            fixture_head = target_commit
+            fixture_tree = target_tree
+        else:
+            assert application is not None and patch is not None
+            verify_preimages(output, application.get("preimage_files"))
+            run(["git", "apply", "--check", str(patch)], cwd=output)
+            run(["git", "apply", str(patch)], cwd=output)
+            expected_paths = verify_postimages(output, seed.get("expected_post_seed_files"))
+            actual_paths = changed_paths(output)
+            if actual_paths != expected_paths:
+                raise FixtureError(
+                    f"fixture drift mismatch: expected {sorted(expected_paths)}, got {sorted(actual_paths)}"
+                )
+            fixture_head, fixture_tree, final_changed_paths = materialize_seed_state(
+                output,
+                seed,
+                expected_paths,
+                target_commit,
             )
-        fixture_head, fixture_tree, final_changed_paths = materialize_seed_state(
-            output,
-            seed,
-            expected_paths,
-            target_commit,
-        )
         remotes = run(["git", "remote"], cwd=output)
         assert isinstance(remotes, str)
         if remotes.strip():
@@ -274,6 +363,11 @@ def prepare_fixture(case_root: Path, source_repo: Path, output: Path) -> dict[st
         alternates = output / ".git" / "objects" / "info" / "alternates"
         if alternates.exists() and alternates.read_text(encoding="utf-8").strip():
             raise FixtureError("fixture must not depend on an alternate object database")
+        for relative in FIXTURE_RUNTIME_DIRECTORIES:
+            runtime_directory = output / relative
+            runtime_directory.mkdir(parents=True, exist_ok=True)
+            if not runtime_directory.is_dir():
+                raise FixtureError(f"fixture runtime directory is not a directory: {relative}")
     except Exception:
         if output.exists():
             shutil.rmtree(output)
@@ -289,6 +383,7 @@ def prepare_fixture(case_root: Path, source_repo: Path, output: Path) -> dict[st
         "changed_paths": sorted(final_changed_paths),
         "fixture_head_commit": fixture_head,
         "fixture_head_tree": fixture_tree,
+        "runtime_directories": list(FIXTURE_RUNTIME_DIRECTORIES),
     }
 
 

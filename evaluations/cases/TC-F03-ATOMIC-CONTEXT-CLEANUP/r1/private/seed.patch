@@ -1,0 +1,15 @@
+diff --git a/src/infra/context_repository.py b/src/infra/context_repository.py
+index 1c7a3acd14d26b248ddf19e6dfe1e8d5e072bb9b..99a32bc58b5d1d4d5ccba46de03d41b513f092f2 100644
+--- a/src/infra/context_repository.py
++++ b/src/infra/context_repository.py
+@@ -39,10 +39,6 @@ class ContextRepository:
+                     json.dump(data, f, indent=2, ensure_ascii=False)
+                 os.replace(tmp_path, path)
+             except Exception:
+-                try:
+-                    os.unlink(tmp_path)
+-                except OSError:
+-                    pass
+                 raise
+             logger.info(f"[Parsing] Saved context cache to {os.path.basename(path)}")
+             return True
