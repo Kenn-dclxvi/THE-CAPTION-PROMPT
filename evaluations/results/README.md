@@ -4,7 +4,7 @@
 
 このdirectoryの既存文書はv1 / v2の履歴resultである。v3の一次結果は1 prompt setごとのappend-only registry resultであり、旧A / B resultをin-place変換しない。sanitized resultをrepositoryへ公開する場合もruntime registryからの別artifact単位として扱う。
 
-最新のv3 resultは[`baseline N=5`](baseline-expanded12-global-m24-n5_2026-07-15.md)、[`candidate1 N=5`](candidate1-expanded12-global-m24-n5_2026-07-15.md)、[`candidate2 N=5`](candidate2-expanded12-global-m24-n5_2026-07-15.md)である。同じcompatibility keyを持つ保存済み3 resultから[`N=5 comparison view`](baseline-candidate1-candidate2-expanded12-global-m24-n5_2026-07-15.md)を生成した。3 KPIの値と明示した差分だけを出力し、winner、改善・悪化、採用判断は行っていない。
+最新のv3 resultは[`baseline N=5`](baseline-expanded12-global-m24-n5_2026-07-15.md)、[`candidate1 N=5`](candidate1-expanded12-global-m24-n5_2026-07-15.md)、[`candidate2 N=5`](candidate2-expanded12-global-m24-n5_2026-07-15.md)、[`candidate3 N=5`](candidate3-expanded12-global-m24-n5_2026-07-15.md)である。同じcompatibility keyを持つ保存済み4 resultから[`N=5 comparison view`](baseline-candidate1-candidate2-candidate3-expanded12-global-m24-n5_2026-07-15.md)を生成した。3 KPIの値と明示した差分だけを出力し、winner、改善・悪化、採用判断は行っていない。
 
 最初のv3 standalone resultは[`candidate2 expanded 12-case global M=24 N=1`](candidate2-expanded12-global-m24-n1_2026-07-15.md)である。candidate2だけをimmutableな`prompt_set_identity`へ結び付けて保存し、比較、winner、採用判断は行っていない。
 

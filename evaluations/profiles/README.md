@@ -4,7 +4,7 @@
 
 実行順は再現用provenanceとして保存するが、A / Bの実行環境を揃える補正には使わない。global queueでは処理時間短縮のために過去の所要時間が長いslotから投入し、空いたworkerへ次のslotを渡す。実測tokenと時間は環境補正せずKPIへ渡す。
 
-最新のv3 profileは[`baseline N=5`](baseline-expanded12-global-m24-n5-r1.json)、[`candidate1 N=5`](candidate1-expanded12-global-m24-n5-r1.json)、[`candidate2 N=5`](candidate2-expanded12-global-m24-n5-r1.json)である。各prompt setをexpanded 12 case、`1..5`、`M=24`の同一互換条件へ固定し、単独resultを登録してから3-result比較viewを生成した。既存`N=1` profileとresultは変更していない。
+最新のv3 profileは[`baseline N=5`](baseline-expanded12-global-m24-n5-r1.json)、[`candidate1 N=5`](candidate1-expanded12-global-m24-n5-r1.json)、[`candidate2 N=5`](candidate2-expanded12-global-m24-n5-r1.json)、[`candidate3 N=5`](candidate3-expanded12-global-m24-n5-r1.json)である。各prompt setをexpanded 12 case、`1..5`、`M=24`の同一互換条件へ固定し、単独resultを登録してから4-result比較viewを生成した。既存`N=1` profileとresultは変更していない。
 
 最初のv3 standalone profileは[`candidate2-expanded12-global-m24-n1-r1.json`](candidate2-expanded12-global-m24-n1-r1.json)である。candidate2の12 caseを`N=1`、`M=24`で実行し、[`result`](../results/candidate2-expanded12-global-m24-n1_2026-07-15.md)へ単一prompt setの3 KPIを記録した。
 
