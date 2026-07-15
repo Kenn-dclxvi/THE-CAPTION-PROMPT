@@ -80,6 +80,8 @@ case、condition、repetitionの境界でworkerを待機させず、空いたwor
 
 duration hintは過去の固定runから作ったexecutor parameterであり、KPI入力やquality scoreには使用しない。longest-first順は処理時間短縮だけを目的とする。
 
+`global_queue`の既定`max_workers`は`24`とする。これは[`M=24` minimal load qualification](../../../evaluations/results/global-m24-minimal-load-f01-n12_2026-07-15.md)で24 / 24 valid、retry 0、external failure 0、swap 0を確認したこのホストの既定値である。別host、model、Agent条件で使う場合や明示的に異なる`M`を使う場合は、新しい実行条件としてqualificationする。既存profileに固定済みの`max_workers`は履歴値のまま変更しない。
+
 ```bash
 python3 layer2/extensions/parallel_execution/prepare_global_plan.py \
   --template /absolute/path/to/F01-a-template.json \
@@ -89,9 +91,10 @@ python3 layer2/extensions/parallel_execution/prepare_global_plan.py \
   --cycle /absolute/path/to/frozen-cycle \
   --evaluation-loop /absolute/path/to/scripts/evaluation_loop.py \
   --duration-hints /absolute/path/to/profile.json \
-  --max-workers 4 \
   --output /absolute/path/to/new-global-inputs
 ```
+
+`--max-workers`を省略すると`24`をplanへ固定する。明示指定した値は既定値より優先される。
 
 生成planは`the-caption-prompt.parallel-execution-plan/v2`で、`sequence`と`estimated_seconds`を保存する。queue順はprovenanceであり、A / Bの環境差を補正または正規化する根拠にはしない。
 

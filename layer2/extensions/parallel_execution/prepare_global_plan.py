@@ -19,6 +19,9 @@ except ImportError:  # Direct script execution.
     from prepare_plan import collect_templates, load_object
 
 
+DEFAULT_MAX_WORKERS = 24
+
+
 def load_duration_hints(path: Path) -> dict[str, dict[str, float]]:
     document = load_object(path.resolve())
     execution = document.get("execution")
@@ -50,7 +53,7 @@ def prepare_global_plan(
     evaluator: Path,
     duration_hints_path: Path,
     output: Path,
-    max_workers: int = 4,
+    max_workers: int = DEFAULT_MAX_WORKERS,
     max_attempts: int = 3,
     monitor_interval_seconds: int = 15,
 ) -> dict[str, Any]:
@@ -155,7 +158,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--evaluation-loop", required=True)
     result.add_argument("--duration-hints", required=True)
     result.add_argument("--output", required=True)
-    result.add_argument("--max-workers", type=int, default=4)
+    result.add_argument("--max-workers", type=int, default=DEFAULT_MAX_WORKERS)
     result.add_argument("--max-attempts", type=int, default=3)
     result.add_argument("--monitor-interval-seconds", type=int, default=15)
     return result

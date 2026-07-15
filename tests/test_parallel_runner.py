@@ -283,6 +283,41 @@ class ParallelRunnerTest(unittest.TestCase):
             self.assertEqual(bindings[0]["case_id"], "CASE-2")
             self.assertEqual(bindings[0]["condition"], "b")
 
+    def test_global_queue_defaults_to_qualified_m24(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cycle = root / "cycle"
+            (cycle / "layer1").mkdir(parents=True)
+            (cycle / "layer1" / "set.json").write_text("{}\n", encoding="utf-8")
+            evaluator = root / "evaluation_loop.py"
+            evaluator.write_text("# test\n", encoding="utf-8")
+            templates = [
+                self.make_capsule(root, "a", "CASE-1", 99),
+                self.make_capsule(root, "b", "CASE-1", 99),
+            ]
+            hints = root / "profile.json"
+            hints.write_text(
+                json.dumps(
+                    {
+                        "duration_hints_seconds": {
+                            "CASE-1": {"a": 30, "b": 20},
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = prepare_global_plan(
+                templates,
+                repetitions=[1],
+                cycle=cycle,
+                evaluator=evaluator,
+                duration_hints_path=hints,
+                output=root / "global-inputs",
+            )
+            self.assertEqual(result["max_workers"], 24)
+            plan = json.loads(Path(result["plan"]).read_text())
+            self.assertEqual(plan["max_workers"], 24)
+
 
 if __name__ == "__main__":
     unittest.main()
