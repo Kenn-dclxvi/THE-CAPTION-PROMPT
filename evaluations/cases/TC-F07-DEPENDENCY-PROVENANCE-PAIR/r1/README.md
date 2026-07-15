@@ -35,6 +35,8 @@ workerへ渡すのは`trial-prompt-input.json`だけである。reference postim
 
 qualificationではdeterministic seed commitとclean worktreeを再現し、seed状態でpaired static assertionが失敗すること、inverse seedで2ファイルだけが既知の組へ戻りstatic assertionと`git diff --check`が通ることをmodel invocationなしで確認した。statusは`fixture_qualified_prompt_not_evaluated`である。
 
+その後、[`N=3 comparison`](../../../results/TC-F07-dependency-provenance-pair-r1-n3_2026-07-15.md)でA / B各3回を実行し、全6 runでreference blobへの復元、指定static validation、2ファイル限定差分、禁止operationなしを観測した。比較済みであることは採用、release、本体反映を意味しない。
+
 ## Fixture preparation
 
 ```bash
