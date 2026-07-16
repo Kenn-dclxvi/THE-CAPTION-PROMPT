@@ -1,5 +1,8 @@
 # Candidate5評価整理と次の方向性
 
+> [!IMPORTANT]
+> この文書のtoken数値とtoken由来の設計解釈はroot-only履歴であり、現行のall-agent再集計によって置き換えられた。現行値は[`v3 all-agent token再集計`](../evaluations/results/v3-all-agent-token-reaccounting_2026-07-16.md)を参照する。特に、root-onlyではBaselineがCandidate5より615,701少なく見えたが、all-agentではBaselineが3,185,357多く、SA利用setほどtokenが少ないという読みは成立しない。以下は当時の判断経緯として保持する。
+
 ## 位置づけ
 
 この文書は、Baseline、Candidate1、Candidate5のexpanded 12 case、`N=5`結果を整理し、次candidateの設計方向を固定するdesign preparationである。Candidate5の採用、release化、THE-CAPTION本体への反映は判断しない。

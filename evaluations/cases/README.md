@@ -34,7 +34,7 @@ quality raterが成果全体を見て、caseごとに1つのscoreを付ける。
 
 全caseのscoreを0から100へ正規化した値を`quality_score`とする。quality raterはscoreと短い事実根拠だけを返す。
 
-評価基盤はprompt set A / Bそれぞれの`quality_score`、`total_tokens`、`elapsed_seconds`と`B - A`差分を記録する。KPIからwinner、改善・悪化、採用可否を決めない。
+評価基盤はprompt setごとの`quality_score`、all-agent scopeの`total_tokens`、`elapsed_seconds`と、明示したresult間の数値差を記録する。KPIからwinner、改善・悪化、採用可否を決めない。
 
 quality raterは改善提案、修正、再実行、A / Bの選択を行わない。
 

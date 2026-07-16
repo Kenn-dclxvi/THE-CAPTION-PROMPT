@@ -16,7 +16,7 @@
 | 4. KPI comparison | `record-result` | 1 prompt set resultをregistryへ追記する |
 | 4. KPI comparison | `compare` | 互換な2件以上の保存resultからviewを作る |
 
-`query-results`はregistryのread-only取得interfaceである。各書込subcommandは既存artifactを上書きしない。
+`reaccount-result`はroot-only v3 resultを変更せずall-agent resultを追記する履歴補正interface、`query-results`はregistryのread-only取得interfaceである。各書込subcommandは既存artifactを上書きしない。
 
 ## 3. 必要なもの
 
@@ -88,7 +88,12 @@ capsuleへsecretやcredentialを直接保存しない。非公開のraw run evid
     },
     "permission": "workspace-write/never",
     "executor_parameters": {
-      "reasoning_effort": "high"
+      "reasoning_effort": "high",
+      "token_accounting": {
+        "scope": "all_agents",
+        "revision": "v1",
+        "source": "codex_rollout_final_usage_by_workspace"
+      }
     },
     "repetition_condition": {
       "iterations": 3,
@@ -128,7 +133,7 @@ capsuleへsecretやcredentialを直接保存しない。非公開のraw run evid
 | --- | --- |
 | `EVAL_CASE_FILE` | 固定済みcase capsule |
 | `EVAL_RUN_CAPSULE_FILE` | 固定済みRun capsule |
-| `EVAL_USAGE_FILE` | executorが`total_tokens`を書く一時JSON |
+| `EVAL_USAGE_FILE` | executorがall-agentの`total_tokens`とaccounting identityを書く一時JSON |
 | `EVAL_RUN_STATUS_FILE` | 外部要因による除外を通知する一時JSON |
 | `EVAL_EXTENSION_DIR` | 詳細分析用のopaque directory |
 
@@ -136,11 +141,17 @@ executorは終了までに次を書く。
 
 ```json
 {
+  "schema_version": "the-caption-prompt.token-usage/v2",
+  "token_accounting": {
+    "scope": "all_agents",
+    "revision": "v1",
+    "source": "codex_rollout_final_usage_by_workspace"
+  },
   "total_tokens": 12345
 }
 ```
 
-基盤が解釈するtoken値は0以上の整数`total_tokens`だけである。input / output内訳やturn別値は`EVAL_EXTENSION_DIR/<feature>/`へ保存し、rating、result登録、比較viewへ入力しない。`elapsed_seconds`は基盤が計測する。
+`total_tokens`はroot agentと全descendant SA sessionの最終usage合計でなければならない。基盤がKPIとして解釈するtoken値は0以上の整数`total_tokens`だけである。root / SA別値、input / output内訳、turn別値は`EVAL_EXTENSION_DIR/all-agent-usage/`または別featureへ保存し、rating、result登録、比較viewへ入力しない。全sessionの最終usageが揃わない場合は`codex_all_agent_usage_incomplete`として除外し、値を推定しない。`elapsed_seconds`は基盤が計測する。
 
 promptまたはtask behaviorではない外部要因を客観的証跡から検出した場合だけ、executorは次を出力できる。
 
@@ -212,7 +223,7 @@ python3 "$CLI" record-result \
   --registry "$REGISTRY"
 ```
 
-全caseと`1..N`、全rating、`total_tokens`、単一identity、単一`comparison_conditions`を検証し、次を新規作成する。
+全caseと`1..N`、全rating、all-agentの`total_tokens`、単一identity、単一`comparison_conditions`を検証し、次を新規作成する。
 
 ```text
 $REGISTRY/results/<result_id>.json
@@ -220,6 +231,25 @@ $CYCLE/layer4/result-registration.json
 ```
 
 同じcycleの再登録と既存resultの上書きを拒否する。別のprompt setは別cycleで同じ手順を実行し、同じregistryへ独立resultとして追記する。
+
+### root-only v3 resultの再集計
+
+保存済みCodex sessionから全runのusageを完全に復元できる場合は、まず`backfill_all_agent_usage.py`で独立したLayer 2 extensionを作り、次に元resultごとに`reaccount-result`を実行する。
+
+```bash
+python3 scripts/backfill_all_agent_usage.py \
+  --registry "$REGISTRY" \
+  --session-root /path/to/codex/sessions \
+  --output /path/to/reaccounting-cycle
+
+python3 "$CLI" reaccount-result \
+  --registry "$REGISTRY" \
+  --source-result-id <root-only result id> \
+  --usage-root /path/to/reaccounting-cycle \
+  --receipt-root /path/to/reaccounting-cycle/layer4
+```
+
+`reaccount-result`は元の`prompt-set-result/v1`を変更せず、`source_result_id`とall-agent accounting identityを持つ`prompt-set-result/v2`を新規登録する。不完全なsession usage、root token不一致、同じ元resultの再登録はfail closedする。
 
 ## 8. 保存resultの取得
 
@@ -235,6 +265,7 @@ python3 "$CLI" query-results --registry "$REGISTRY"
 - `--prompt-revision`
 - `--bundle-sha256`
 - `--compatibility-key`
+- `--token-scope root_agent|all_agents`
 
 filterはregistryを変更しない。2件に限定せず、該当する全resultを返す。
 

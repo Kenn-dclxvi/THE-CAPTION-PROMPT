@@ -7,7 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.evaluation_loop import kpi_difference
+from scripts.all_agent_usage import TOKEN_ACCOUNTING
+from scripts.evaluation_loop import identity_sha256, kpi_difference
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,7 +78,10 @@ class EvaluationLoopTest(unittest.TestCase):
             "agent_environment": {"agent": "codex", "version": "test"},
             "task_spec": {"TEST-CASE": "task-spec-r1"},
             "permission": "workspace-write/never",
-            "executor_parameters": {"reasoning_effort": "high"},
+            "executor_parameters": {
+                "reasoning_effort": "high",
+                "token_accounting": TOKEN_ACCOUNTING,
+            },
             "repetition_condition": {"iterations": iterations, "order": "case-major"},
         }
 
@@ -99,7 +103,9 @@ class EvaluationLoopTest(unittest.TestCase):
             "extension=pathlib.Path(os.environ['EVAL_EXTENSION_DIR'])/'token-analysis'; "
             "extension.mkdir(); "
             "(extension/'provider-usage.json').write_text(json.dumps({'future_detail': 42})); "
-            f"pathlib.Path(os.environ['EVAL_USAGE_FILE']).write_text(json.dumps({{'total_tokens': {tokens}}}))"
+            f"pathlib.Path(os.environ['EVAL_USAGE_FILE']).write_text(json.dumps({{"
+            "'schema_version':'the-caption-prompt.token-usage/v2',"
+            f"'token_accounting':{TOKEN_ACCOUNTING!r},'total_tokens':{tokens}}}))"
         )
         capsule = cycle.parent / f"{cycle.name}-{identity['name']}-{iteration}.json"
         capsule.write_text(
@@ -146,7 +152,14 @@ class EvaluationLoopTest(unittest.TestCase):
             execution = json.loads((evidence / "execution.json").read_text())
             self.assertNotIn("prompt_set_identity", execution)
             self.assertNotIn("condition", execution)
-            self.assertEqual(json.loads((evidence / "usage.json").read_text()), {"total_tokens": tokens})
+            self.assertEqual(
+                json.loads((evidence / "usage.json").read_text()),
+                {
+                    "schema_version": "the-caption-prompt.token-usage/v2",
+                    "token_accounting": TOKEN_ACCOUNTING,
+                    "total_tokens": tokens,
+                },
+            )
             self.assertTrue(
                 (cycle / "layer2" / "extensions" / run_id / "token-analysis" / "provider-usage.json").exists()
             )
@@ -192,8 +205,9 @@ class EvaluationLoopTest(unittest.TestCase):
             baseline_result = json.loads(Path(baseline["artifact"]).read_text())
             self.assertEqual(
                 baseline_result["schema_version"],
-                "the-caption-prompt.prompt-set-result/v1",
+                "the-caption-prompt.prompt-set-result/v2",
             )
+            self.assertEqual(baseline_result["token_accounting"], TOKEN_ACCOUNTING)
             self.assertEqual(len(baseline_result["result_content_sha256"]), 64)
             self.assertEqual(
                 baseline_result["compatibility"]["evaluation_set"]["revision"], "r1"
@@ -234,8 +248,9 @@ class EvaluationLoopTest(unittest.TestCase):
             )
             view = json.loads(view_path.read_text())
             self.assertEqual(
-                view["schema_version"], "the-caption-prompt.prompt-set-comparison-view/v1"
+                view["schema_version"], "the-caption-prompt.prompt-set-comparison-view/v2"
             )
+            self.assertEqual(view["token_accounting"], TOKEN_ACCOUNTING)
             self.assertEqual(len(view["prompt_sets"]), 3)
             self.assertEqual(len(view["differences"]), 2)
             candidate2_difference = next(
@@ -290,6 +305,92 @@ class EvaluationLoopTest(unittest.TestCase):
                 str(view),
             )
             self.assertIn("must be unique", compare.stderr)
+
+    def test_root_only_result_is_reaccounted_append_only_as_all_agent_v2(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            registry = root / "registry"
+            manifest = self.make_set(root)
+            recorded = self.record_prompt_set(manifest, root, registry, "prompt", 4, 100)
+            current = json.loads(Path(recorded["artifact"]).read_text())
+
+            source = json.loads(json.dumps(current))
+            source_id = "rootonlyresult00000000000000000001"
+            source["schema_version"] = "the-caption-prompt.prompt-set-result/v1"
+            source["result_id"] = source_id
+            source.pop("token_accounting")
+            source["compatibility"]["executor_parameters"].pop("token_accounting")
+            source["compatibility_key"] = identity_sha256(source["compatibility"])
+            source.pop("result_content_sha256")
+            source["result_content_sha256"] = identity_sha256(source)
+            source_path = registry / "results" / f"{source_id}.json"
+            source_path.write_text(json.dumps(source), encoding="utf-8")
+            source_before = source_path.read_bytes()
+
+            usage_root = root / "reaccounting"
+            for item in source["case_results"]:
+                usage_path = (
+                    usage_root
+                    / "layer2"
+                    / "extensions"
+                    / item["run_id"]
+                    / "all-agent-usage"
+                    / "usage.json"
+                )
+                usage_path.parent.mkdir(parents=True)
+                usage_path.write_text(
+                    json.dumps(
+                        {
+                            "schema_version": "the-caption-prompt.all-agent-usage/v1",
+                            "token_accounting": TOKEN_ACCOUNTING,
+                            "root_total_tokens": item["total_tokens"],
+                            "all_agent_total_tokens": item["total_tokens"] + 50,
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+            receipt_root = usage_root / "layer4"
+            reaccounted = self.cli(
+                "reaccount-result",
+                "--registry",
+                str(registry),
+                "--source-result-id",
+                source_id,
+                "--usage-root",
+                str(usage_root),
+                "--receipt-root",
+                str(receipt_root),
+            )
+            result = json.loads(Path(reaccounted["artifact"]).read_text())
+
+            self.assertEqual(result["schema_version"], "the-caption-prompt.prompt-set-result/v2")
+            self.assertEqual(result["source_result_id"], source_id)
+            self.assertEqual(result["token_accounting"], TOKEN_ACCOUNTING)
+            self.assertEqual(result["median"]["total_tokens"], 150)
+            self.assertEqual(
+                result["compatibility"]["executor_parameters"]["token_accounting"],
+                TOKEN_ACCOUNTING,
+            )
+            self.assertEqual(source_path.read_bytes(), source_before)
+            self.assertTrue(
+                (receipt_root / "result-registrations" / f"{source_id}.json").is_file()
+            )
+
+            mixed = self.cli_failure(
+                "compare",
+                "--registry",
+                str(registry),
+                "--result-id",
+                source_id,
+                "--result-id",
+                result["result_id"],
+                "--reference-result-id",
+                source_id,
+                "--output",
+                str(root / "mixed.json"),
+            )
+            self.assertIn("schema versions do not match", mixed.stderr)
 
     def test_incompatible_conditions_are_not_mixed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
