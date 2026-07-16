@@ -8,6 +8,8 @@ v3の現行token仕様は[`token-accounting-all-agents-v1`](token-accounting-all
 
 最新のv3 profileは[`baseline N=5`](baseline-expanded12-global-m24-n5-r1.json)、[`candidate1 N=5`](candidate1-expanded12-global-m24-n5-r1.json)、[`candidate2 N=5`](candidate2-expanded12-global-m24-n5-r1.json)、[`candidate3 N=5`](candidate3-expanded12-global-m24-n5-r1.json)、[`candidate4 N=5`](candidate4-expanded12-global-m24-n5-r1.json)、[`candidate5 N=5`](candidate5-expanded12-global-m24-n5-r1.json)、[`candidate6 N=5`](candidate6-expanded12-global-m24-n5-r1.json)である。各prompt setをexpanded 12 case、`1..5`、`M=24`の同一互換条件へ固定し、単独resultとして登録した。既存`N=1` profileとresultは変更していない。
 
+Candidate9のN=5は、[`F03 / F06先行stage`](candidate9-f03-f06-global-m24-n5-r1.json)と[`remaining 10 case stage`](candidate9-remaining10-global-m24-n5-r1.json)を同じprompt identity、固定環境、`1..5`、`M=24`で実行し、[`expanded 12-case campaign result`](../results/candidate9-expanded12-global-m24-n5_2026-07-16.md)へまとめた。各stageのEvaluation set identityと一次resultは分離したまま保持する。
+
 最初のv3 standalone profileは[`candidate2-expanded12-global-m24-n1-r1.json`](candidate2-expanded12-global-m24-n1-r1.json)である。candidate2の12 caseを`N=1`、`M=24`で実行し、[`result`](../results/candidate2-expanded12-global-m24-n1_2026-07-15.md)へ単一prompt setの3 KPIを記録した。
 
 比較用baselineも固定A / B profileへ戻さず、[`baseline-expanded12-global-m24-n1-r1.json`](baseline-expanded12-global-m24-n1-r1.json)として単独実行した。candidate2 profileとの互換条件key一致を確認し、保存済み2 resultから比較viewを生成した。
