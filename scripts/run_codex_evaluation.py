@@ -10,13 +10,27 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 try:
     from export_prompt_bundle import BundleError, verify_bundle
+    from all_agent_usage import (
+        AllAgentUsageError,
+        TOKEN_ACCOUNTING,
+        collect_workspace_usage,
+        parse_root_thread_id,
+    )
 except ModuleNotFoundError:  # Imported as scripts.run_codex_evaluation in tests.
     from scripts.export_prompt_bundle import BundleError, verify_bundle
+    from scripts.all_agent_usage import (
+        AllAgentUsageError,
+        TOKEN_ACCOUNTING,
+        collect_workspace_usage,
+        parse_root_thread_id,
+    )
 
 
 class AdapterError(Exception):
@@ -472,6 +486,7 @@ def execute() -> int:
         str(final_response),
         "-",
     ]
+    session_started_at = time.time()
     completed = subprocess.run(
         command,
         cwd=workspace,
@@ -484,13 +499,57 @@ def execute() -> int:
     (adapter_extension / "codex-events.jsonl").write_bytes(completed.stdout)
     (adapter_extension / "codex-stderr.bin").write_bytes(completed.stderr)
     external_failure = detect_external_failure(completed.stderr, completed.stdout)
+    root_total_tokens = None
+    all_agent_usage = None
     if external_failure is not None:
         write_json(status_path, external_failure)
         total_tokens = None
         raw_usage = None
     else:
-        total_tokens, raw_usage = parse_usage(completed.stdout)
-        write_json(usage_path, {"total_tokens": total_tokens})
+        root_total_tokens, raw_usage = parse_usage(completed.stdout)
+        codex_home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))).resolve()
+        try:
+            all_agent_usage = collect_workspace_usage(
+                codex_home / "sessions",
+                workspace,
+                parse_root_thread_id(completed.stdout),
+                root_total_tokens,
+                modified_since=session_started_at - 60,
+            )
+        except AllAgentUsageError as exc:
+            external_failure = {
+                "schema_version": "the-caption-prompt.run-status/v1",
+                "status": "excluded",
+                "category": "external_failure",
+                "reason_code": "codex_all_agent_usage_incomplete",
+                "detector": "codex-rollout-final-usage/v1",
+            }
+            write_json(
+                adapter_extension / "all-agent-usage-error.json",
+                {
+                    "schema_version": "the-caption-prompt.all-agent-usage-error/v1",
+                    "reason": str(exc),
+                },
+            )
+            write_json(status_path, external_failure)
+            total_tokens = None
+        else:
+            total_tokens = all_agent_usage["all_agent_total_tokens"]
+            all_agent_usage["run_id"] = extension_root.name
+            all_agent_usage["generated_at"] = datetime.now(timezone.utc).isoformat()
+            all_agent_usage["source"] = "local Codex rollout final usage grouped by exact workspace"
+            write_json(
+                extension_root / "all-agent-usage" / "usage.json",
+                all_agent_usage,
+            )
+            write_json(
+                usage_path,
+                {
+                    "schema_version": "the-caption-prompt.token-usage/v2",
+                    "token_accounting": TOKEN_ACCOUNTING,
+                    "total_tokens": total_tokens,
+                },
+            )
     final_paths = changed_paths(workspace)
     unexpected_paths = sorted(final_paths - allowed_result_paths)
     codex_version = run(["codex", "--version"], workspace)
@@ -498,7 +557,7 @@ def execute() -> int:
     write_json(
         adapter_extension / "execution.json",
         {
-            "adapter_schema_version": "the-caption-prompt.codex-adapter/v2",
+            "adapter_schema_version": "the-caption-prompt.codex-adapter/v3",
             "bundle_sha256": expected_hash,
             "codex_exit_code": completed.returncode,
             "codex_version": codex_version,
@@ -508,6 +567,9 @@ def execute() -> int:
             "model": model,
             "prompt_set_identity": prompt_set_identity,
             "raw_usage": raw_usage,
+            "root_total_tokens": root_total_tokens,
+            "all_agent_total_tokens": None if all_agent_usage is None else all_agent_usage["all_agent_total_tokens"],
+            "token_accounting": TOKEN_ACCOUNTING,
             "reasoning_effort": reasoning_effort,
             "runtime_links": runtime_links,
             "session_mode": "persisted",

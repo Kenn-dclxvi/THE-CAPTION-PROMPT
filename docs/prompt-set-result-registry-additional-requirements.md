@@ -24,7 +24,7 @@ prompt setが`baseline`、`candidate1`、`candidate2`と増える場合、固定
 5. 固定的なA / B condition labelを、保存結果のidentityまたは評価対象の概念として要求しない。
 6. `baseline`、`candidate1`、`candidate2`を含む任意個のprompt setについて、互換条件を満たす結果を後から取得できるようにする。取得数を2つに限定しない。
 7. 比較可能な集合には、prompt identity以外の固定条件が一致する結果だけを含める。条件が一致しない結果を同一比較へ暗黙に混ぜない。
-8. `quality_score`、`total_tokens`、`elapsed_seconds`はprompt setごとの結果として保持する。
+8. `quality_score`、all-agent scopeの`total_tokens`、`elapsed_seconds`はprompt setごとの結果として保持する。token accounting scopeとrevisionを互換条件へ含め、root-only resultと暗黙に混ぜない。
 9. 複数prompt setの一覧、中央値、数値差などは保存済み結果から生成するviewとし、一次結果を変更しない。
 10. 数値差を表示する場合は、どのprompt setからどのprompt setを引いた値かをview側で明示する。固定的な`B - A`を前提にしない。
 11. 過去のprompt revisionとその結果を引き続き取得できるよう、結果はappend-onlyで保持し、現行revisionへ読み替えない。

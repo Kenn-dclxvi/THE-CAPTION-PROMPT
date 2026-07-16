@@ -4,7 +4,9 @@
 
 このdirectoryの既存文書はv1 / v2の履歴resultである。v3の一次結果は1 prompt setごとのappend-only registry resultであり、旧A / B resultをin-place変換しない。sanitized resultをrepositoryへ公開する場合もruntime registryからの別artifact単位として扱う。
 
-最新のv3 resultは[`baseline N=5`](baseline-expanded12-global-m24-n5_2026-07-15.md)、[`candidate1 N=5`](candidate1-expanded12-global-m24-n5_2026-07-15.md)、[`candidate2 N=5`](candidate2-expanded12-global-m24-n5_2026-07-15.md)、[`candidate3 N=5`](candidate3-expanded12-global-m24-n5_2026-07-15.md)、[`candidate4 N=5`](candidate4-expanded12-global-m24-n5_2026-07-15.md)、[`candidate5 N=5`](candidate5-expanded12-global-m24-n5_2026-07-16.md)、[`candidate6 N=5`](candidate6-expanded12-global-m24-n5_2026-07-16.md)である。C6の設計対象に合わせ、同じcompatibility keyを持つBase、C1、C5、C6から[`4-result N=5 comparison view`](baseline-candidate1-candidate5-candidate6-expanded12-global-m24-n5_2026-07-16.md)を生成した。既存viewは履歴として変更せず、winner、採用、release判断は行っていない。
+v3で2026-07-16までに保存した`prompt-set-result/v1`の`total_tokens`はroot agentだけを数えていた。現行値は[`v3 all-agent token再集計`](v3-all-agent-token-reaccounting_2026-07-16.md)の`prompt-set-result/v2`を使用する。以下から参照する旧v3 standalone resultとcomparison viewのtoken値はroot-onlyの履歴であり、all-agent値として使用しない。qualityとelapsedの履歴は変更していない。
+
+root-only履歴のv3 resultは[`baseline N=5`](baseline-expanded12-global-m24-n5_2026-07-15.md)、[`candidate1 N=5`](candidate1-expanded12-global-m24-n5_2026-07-15.md)、[`candidate2 N=5`](candidate2-expanded12-global-m24-n5_2026-07-15.md)、[`candidate3 N=5`](candidate3-expanded12-global-m24-n5_2026-07-15.md)、[`candidate4 N=5`](candidate4-expanded12-global-m24-n5_2026-07-15.md)、[`candidate5 N=5`](candidate5-expanded12-global-m24-n5_2026-07-16.md)、[`candidate6 N=5`](candidate6-expanded12-global-m24-n5_2026-07-16.md)である。C6の設計対象に合わせ、同じ旧compatibility keyを持つBase、C1、C5、C6から[`4-result N=5 comparison view`](baseline-candidate1-candidate5-candidate6-expanded12-global-m24-n5_2026-07-16.md)を生成した。既存viewは履歴として変更せず、winner、採用、release判断は行っていない。
 
 最初のv3 standalone resultは[`candidate2 expanded 12-case global M=24 N=1`](candidate2-expanded12-global-m24-n1_2026-07-15.md)である。candidate2だけをimmutableな`prompt_set_identity`へ結び付けて保存し、比較、winner、採用判断は行っていない。
 

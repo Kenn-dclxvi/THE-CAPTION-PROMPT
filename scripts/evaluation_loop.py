@@ -17,8 +17,10 @@ from pathlib import Path
 from typing import Any
 
 if __package__:
+    from .all_agent_usage import TOKEN_ACCOUNTING
     from .storage_copy import StorageCopyError, materialize_tree
 else:
+    from all_agent_usage import TOKEN_ACCOUNTING
     from storage_copy import StorageCopyError, materialize_tree
 
 
@@ -35,6 +37,17 @@ REQUIRED_COMPARISON_CONDITIONS = (
     "executor_parameters",
     "repetition_condition",
 )
+EXECUTION_SCHEMA_V3 = "the-caption-prompt.execution/v3"
+RESULT_SCHEMA_V1 = "the-caption-prompt.prompt-set-result/v1"
+RESULT_SCHEMA_V2 = "the-caption-prompt.prompt-set-result/v2"
+VIEW_SCHEMA_V1 = "the-caption-prompt.prompt-set-comparison-view/v1"
+VIEW_SCHEMA_V2 = "the-caption-prompt.prompt-set-comparison-view/v2"
+TOKEN_USAGE_SCHEMA_V2 = "the-caption-prompt.token-usage/v2"
+ROOT_ONLY_ACCOUNTING = {
+    "scope": "root_agent",
+    "revision": "legacy_v1",
+    "source": "codex_exec_turn_completed",
+}
 
 
 def utc_now() -> str:
@@ -205,14 +218,18 @@ def layer1_freeze(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def parse_usage(path: Path) -> int | None:
+def parse_usage(path: Path) -> tuple[int, dict[str, str]] | None:
     if not path.exists():
         return None
     usage = load_json(path)
+    if usage.get("schema_version") != TOKEN_USAGE_SCHEMA_V2:
+        raise EvaluationError("usage has an unsupported schema_version")
+    if usage.get("token_accounting") != TOKEN_ACCOUNTING:
+        raise EvaluationError("usage must use all-agent token accounting v1")
     total = usage.get("total_tokens")
     if not isinstance(total, int) or isinstance(total, bool) or total < 0:
         raise EvaluationError("usage must contain a non-negative integer total_tokens")
-    return total
+    return total, TOKEN_ACCOUNTING
 
 
 def parse_run_status(path: Path) -> dict[str, Any] | None:
@@ -268,6 +285,13 @@ def validate_comparison_conditions(value: Any) -> dict[str, Any]:
         repetition.get("iterations"),
         "comparison_conditions.repetition_condition.iterations",
     )
+    executor_parameters = conditions["executor_parameters"]
+    if not isinstance(executor_parameters, dict):
+        raise EvaluationError("comparison_conditions.executor_parameters must be an object")
+    if executor_parameters.get("token_accounting") != TOKEN_ACCOUNTING:
+        raise EvaluationError(
+            "comparison_conditions.executor_parameters.token_accounting must use all_agents/v1"
+        )
     return conditions
 
 
@@ -372,21 +396,30 @@ def layer2_run(args: argparse.Namespace) -> dict[str, Any]:
     if status_report_path.exists():
         status_report_path.unlink()
     try:
-        total_tokens = parse_usage(usage_report_path)
+        usage = parse_usage(usage_report_path)
     except EvaluationError:
         if exclusion is None:
             raise
-        total_tokens = None
+        usage = None
+    total_tokens = None if usage is None else usage[0]
+    token_accounting = None if usage is None else usage[1]
     if usage_report_path.exists():
         usage_report_path.unlink()
     status = "excluded" if exclusion is not None else "valid"
     if total_tokens is not None:
-        write_json_once(evidence / "usage.json", {"total_tokens": total_tokens})
+        write_json_once(
+            evidence / "usage.json",
+            {
+                "schema_version": TOKEN_USAGE_SCHEMA_V2,
+                "token_accounting": token_accounting,
+                "total_tokens": total_tokens,
+            },
+        )
     if exclusion is not None:
         write_json_once(evidence / "exclusion.json", exclusion)
 
     execution = {
-        "schema_version": "the-caption-prompt.execution/v2",
+        "schema_version": EXECUTION_SCHEMA_V3,
         "run_id": run_id,
         "case_id": case_id,
         "iteration": iteration,
@@ -395,6 +428,7 @@ def layer2_run(args: argparse.Namespace) -> dict[str, Any]:
         "exit_code": completed.returncode,
         "elapsed_seconds": elapsed,
         "total_tokens": total_tokens,
+        "token_accounting": token_accounting,
         "status": status,
     }
     binding = {
@@ -460,6 +494,10 @@ def collect_runs(
             continue
         run_id = binding["run_id"]
         execution = load_json(cycle / "layer2" / "evidence" / run_id / "execution.json")
+        if execution.get("schema_version") != EXECUTION_SCHEMA_V3:
+            raise EvaluationError("valid run must use execution schema v3")
+        if execution.get("token_accounting") != TOKEN_ACCOUNTING:
+            raise EvaluationError("valid run must use all-agent token accounting v1")
         rating = load_json(cycle / "layer3" / "ratings" / f"{run_id}.json")
         runs.append({**binding, "execution": execution, "rating": rating})
     if not runs:
@@ -571,8 +609,9 @@ def layer4_record_result(args: argparse.Namespace) -> dict[str, Any]:
     compatibility_key = identity_sha256(compatibility)
     result_id = uuid.uuid4().hex
     result = {
-        "schema_version": "the-caption-prompt.prompt-set-result/v1",
+        "schema_version": RESULT_SCHEMA_V2,
         "result_id": result_id,
+        "token_accounting": TOKEN_ACCOUNTING,
         "prompt_set_identity": prompt_set_identity,
         "prompt_set_identity_sha256": identity_sha256(prompt_set_identity),
         "compatibility": compatibility,
@@ -589,11 +628,12 @@ def layer4_record_result(args: argparse.Namespace) -> dict[str, Any]:
     write_json_once(
         receipt_path,
         {
-            "schema_version": "the-caption-prompt.result-registration/v1",
+            "schema_version": "the-caption-prompt.result-registration/v2",
             "result_id": result_id,
             "result_path": str(artifact),
             "compatibility_key": compatibility_key,
             "result_content_sha256": result["result_content_sha256"],
+            "token_accounting": TOKEN_ACCOUNTING,
             "registered_at": utc_now(),
         },
     )
@@ -607,11 +647,131 @@ def layer4_record_result(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def token_accounting_for_result(result: dict[str, Any]) -> dict[str, str]:
+    if result.get("schema_version") == RESULT_SCHEMA_V1:
+        return ROOT_ONLY_ACCOUNTING
+    accounting = result.get("token_accounting")
+    if accounting != TOKEN_ACCOUNTING:
+        raise EvaluationError("v2 result must use all-agent token accounting v1")
+    return TOKEN_ACCOUNTING
+
+
+def reaccount_compatibility(source: dict[str, Any]) -> dict[str, Any]:
+    compatibility = json.loads(json.dumps(source))
+    executor_parameters = compatibility.get("executor_parameters")
+    if not isinstance(executor_parameters, dict):
+        raise EvaluationError("source compatibility executor_parameters must be an object")
+    existing = executor_parameters.get("token_accounting")
+    if existing is not None and existing != TOKEN_ACCOUNTING:
+        raise EvaluationError("source compatibility has conflicting token accounting")
+    executor_parameters["token_accounting"] = TOKEN_ACCOUNTING
+    return compatibility
+
+
+def load_all_agent_usage(usage_root: Path, run_id: str, root_total: int) -> int:
+    path = usage_root / "layer2" / "extensions" / run_id / "all-agent-usage" / "usage.json"
+    usage = load_json(path)
+    if usage.get("schema_version") != "the-caption-prompt.all-agent-usage/v1":
+        raise EvaluationError(f"unsupported all-agent usage schema: {path}")
+    if usage.get("token_accounting") != TOKEN_ACCOUNTING:
+        raise EvaluationError(f"all-agent usage accounting mismatch: {path}")
+    if usage.get("root_total_tokens") != root_total:
+        raise EvaluationError(f"all-agent usage root total mismatch: {path}")
+    total = usage.get("all_agent_total_tokens")
+    if not isinstance(total, int) or isinstance(total, bool) or total < root_total:
+        raise EvaluationError(f"invalid all-agent total_tokens: {path}")
+    return total
+
+
+def layer4_reaccount_result(args: argparse.Namespace) -> dict[str, Any]:
+    registry = Path(args.registry).resolve()
+    usage_root = Path(args.usage_root).resolve()
+    receipt_root = Path(args.receipt_root).resolve()
+    source_path = registry / "results" / f"{args.source_result_id}.json"
+    source = load_json(source_path)
+    if source.get("schema_version") != RESULT_SCHEMA_V1:
+        raise EvaluationError("reaccount-result source must be a root-only result v1")
+    if source.get("result_id") != args.source_result_id:
+        raise EvaluationError("source result id does not match filename")
+    receipt_path = receipt_root / "result-registrations" / f"{args.source_result_id}.json"
+    if receipt_path.exists():
+        raise EvaluationError(f"source result is already reaccounted: {receipt_path}")
+
+    case_results = []
+    for item in source["case_results"]:
+        case_results.append(
+            {
+                **item,
+                "total_tokens": load_all_agent_usage(
+                    usage_root,
+                    item["run_id"],
+                    item["total_tokens"],
+                ),
+            }
+        )
+    per_iteration = []
+    for source_iteration in source["iterations"]:
+        iteration = source_iteration["iteration"]
+        selected = [item for item in case_results if item["iteration"] == iteration]
+        if not selected:
+            raise EvaluationError(f"source result has no case rows for iteration: {iteration}")
+        per_iteration.append(
+            {
+                **source_iteration,
+                "total_tokens": sum(item["total_tokens"] for item in selected),
+            }
+        )
+    median = {
+        **source["median"],
+        "total_tokens": statistics.median(item["total_tokens"] for item in per_iteration),
+    }
+    compatibility = reaccount_compatibility(source["compatibility"])
+    compatibility_key = identity_sha256(compatibility)
+    result_id = uuid.uuid4().hex
+    result = {
+        "schema_version": RESULT_SCHEMA_V2,
+        "result_id": result_id,
+        "source_result_id": source["result_id"],
+        "prompt_set_identity": source["prompt_set_identity"],
+        "prompt_set_identity_sha256": source["prompt_set_identity_sha256"],
+        "token_accounting": TOKEN_ACCOUNTING,
+        "compatibility": compatibility,
+        "compatibility_key": compatibility_key,
+        "case_results": case_results,
+        "iterations": per_iteration,
+        "median": median,
+        "excluded_attempts": source["excluded_attempts"],
+        "created_at": utc_now(),
+    }
+    result["result_content_sha256"] = identity_sha256(result)
+    artifact = registry / "results" / f"{result_id}.json"
+    write_json_once(artifact, result)
+    write_json_once(
+        receipt_path,
+        {
+            "schema_version": "the-caption-prompt.token-reaccount-registration/v1",
+            "source_result_id": source["result_id"],
+            "result_id": result_id,
+            "result_path": str(artifact),
+            "compatibility_key": compatibility_key,
+            "result_content_sha256": result["result_content_sha256"],
+            "registered_at": utc_now(),
+        },
+    )
+    return {
+        "layer": 4,
+        "source_result_id": source["result_id"],
+        "result_id": result_id,
+        "artifact": str(artifact),
+        "compatibility_key": compatibility_key,
+    }
+
+
 def registry_results(registry: Path) -> list[tuple[Path, dict[str, Any]]]:
     results: list[tuple[Path, dict[str, Any]]] = []
     for path in sorted((registry / "results").glob("*.json")):
         result = load_json(path)
-        if result.get("schema_version") != "the-caption-prompt.prompt-set-result/v1":
+        if result.get("schema_version") not in {RESULT_SCHEMA_V1, RESULT_SCHEMA_V2}:
             raise EvaluationError(f"unsupported registry result schema: {path}")
         if result.get("result_id") != path.stem:
             raise EvaluationError(f"registry result id does not match filename: {path}")
@@ -624,6 +784,7 @@ def registry_results(registry: Path) -> list[tuple[Path, dict[str, Any]]]:
         content = {key: value for key, value in result.items() if key != "result_content_sha256"}
         if result.get("result_content_sha256") != identity_sha256(content):
             raise EvaluationError(f"registry result content hash mismatch: {path}")
+        token_accounting_for_result(result)
         results.append((path, result))
     return results
 
@@ -633,6 +794,7 @@ def query_results(args: argparse.Namespace) -> dict[str, Any]:
     selected: list[dict[str, Any]] = []
     for path, result in registry_results(registry):
         identity = result["prompt_set_identity"]
+        token_accounting = token_accounting_for_result(result)
         if args.prompt_name is not None and identity.get("name") != args.prompt_name:
             continue
         if args.prompt_revision is not None and identity.get("revision") != args.prompt_revision:
@@ -641,18 +803,23 @@ def query_results(args: argparse.Namespace) -> dict[str, Any]:
             continue
         if args.compatibility_key is not None and result["compatibility_key"] != args.compatibility_key:
             continue
+        if args.token_scope is not None and token_accounting["scope"] != args.token_scope:
+            continue
         selected.append(
             {
                 "result_id": result["result_id"],
+                "result_schema_version": result["schema_version"],
+                "source_result_id": result.get("source_result_id"),
                 "path": str(path),
                 "prompt_set_identity": identity,
+                "token_accounting": token_accounting,
                 "compatibility_key": result["compatibility_key"],
                 "median": result["median"],
                 "created_at": result["created_at"],
             }
         )
     return {
-        "schema_version": "the-caption-prompt.result-query/v1",
+        "schema_version": "the-caption-prompt.result-query/v2",
         "count": len(selected),
         "results": selected,
     }
@@ -683,14 +850,23 @@ def compare_results(args: argparse.Namespace) -> dict[str, Any]:
     selected = [available[result_id] for result_id in result_ids]
     reference = available[args.reference_result_id]
     for result in selected:
+        if result["schema_version"] != reference["schema_version"]:
+            raise EvaluationError("result schema versions do not match")
+        if token_accounting_for_result(result) != token_accounting_for_result(reference):
+            raise EvaluationError("result token accounting does not match")
         if result["compatibility_key"] != reference["compatibility_key"]:
             raise EvaluationError("result compatibility keys do not match")
         if result["compatibility"] != reference["compatibility"]:
             raise EvaluationError("result compatibility conditions do not match")
 
     view = {
-        "schema_version": "the-caption-prompt.prompt-set-comparison-view/v1",
+        "schema_version": (
+            VIEW_SCHEMA_V2
+            if reference["schema_version"] == RESULT_SCHEMA_V2
+            else VIEW_SCHEMA_V1
+        ),
         "compatibility_key": reference["compatibility_key"],
+        "token_accounting": token_accounting_for_result(reference),
         "reference_result_id": reference["result_id"],
         "prompt_sets": [
             {
@@ -750,12 +926,23 @@ def parser() -> argparse.ArgumentParser:
     record.add_argument("--registry", required=True)
     record.set_defaults(handler=layer4_record_result)
 
+    reaccount = commands.add_parser(
+        "reaccount-result",
+        help="Layer 4: append an all-agent v2 result from a root-only v1 result",
+    )
+    reaccount.add_argument("--registry", required=True)
+    reaccount.add_argument("--source-result-id", required=True)
+    reaccount.add_argument("--usage-root", required=True)
+    reaccount.add_argument("--receipt-root", required=True)
+    reaccount.set_defaults(handler=layer4_reaccount_result)
+
     query = commands.add_parser("query-results", help="List stored prompt-set results")
     query.add_argument("--registry", required=True)
     query.add_argument("--prompt-name")
     query.add_argument("--prompt-revision")
     query.add_argument("--bundle-sha256")
     query.add_argument("--compatibility-key")
+    query.add_argument("--token-scope", choices=("root_agent", "all_agents"))
     query.set_defaults(handler=query_results)
 
     compare = commands.add_parser(

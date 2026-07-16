@@ -1,5 +1,8 @@
 # Candidate6からCandidate8までの効率化調査
 
+> [!IMPORTANT]
+> この文書のtoken数値とtoken由来の設計解釈はroot-only履歴である。現行値は[`v3 all-agent token再集計`](../evaluations/results/v3-all-agent-token-reaccounting_2026-07-16.md)を参照する。all-agentではCandidate5が5,740,441、Candidate6が5,951,457、Candidate5追加18 resultの中央値が5,980,342.5である。Baselineに実装SAがあるためtokenが少ないというroot-only由来の仮説は再集計後の結果と一致しない。以下は調査時点の経緯として保持する。
+
 ## 位置づけ
 
 この文書は、Candidate5の品質と完了速度を維持したままtoken使用量を抑えるために作成したCandidate6、Candidate7、Candidate8の観測と、そこから得た設計上の結論を記録する。Evaluation set、test、quality rating基準は変更していない。
