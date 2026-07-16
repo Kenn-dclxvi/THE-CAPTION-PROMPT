@@ -13,5 +13,6 @@
 | `the-caption-3ce91a4-context-efficiency-r1` | `the-caption-3ce91a4-completion-persistence-r1` | C5の完了志向・実装主体判断・routingを維持し、JIT節参照、SA packet最小化、結果再掲抑制を加える3 target改訂 | [`observed_n5`](../../evaluations/results/candidate6-expanded12-global-m24-n5_2026-07-16.md) |
 | `the-caption-3ce91a4-command-evidence-projection-r1` | `the-caption-3ce91a4-completion-persistence-r1` | C5の実装主体判断・完了志向・routingを維持し、required commandの完全evidence保存とmodel-visible outputを分離する3 target改訂 | [`observed_f02_n1`](../../docs/candidate6-candidate8-efficiency-investigation.md#candidate7とcandidate8のf02診断観測) |
 | `the-caption-3ce91a4-phase-result-projection-r1` | `the-caption-3ce91a4-command-evidence-projection-r1` | C7のcommand単位projectionを工程間resultへ一般化し、次工程へchanged paths、scoped diff、validation summary、findings、unresolvedだけを渡す3 target改訂 | [`observed_f02_n1`](../../docs/candidate6-candidate8-efficiency-investigation.md#candidate7とcandidate8のf02診断観測) |
+| `the-caption-9b3a96a-task-spec-default-precedence-r1` | `the-caption-9b3a96a-revision-2-r1` | C1のcompact構造を維持し、invariant・TaskSpec明示値・change-class defaultの優先順位と解決済み契約のworker bindingを固定する3 target改訂 | [`observed_n5`](../../evaluations/results/candidate9-expanded12-global-m24-n5_2026-07-16.md) |
 
 candidate bundleのmanifestは構築時provenanceとしてimmutableに保持する。評価状態の更新はmanifestをin-place変更せず、このindexと独立したevaluation resultで表す。
