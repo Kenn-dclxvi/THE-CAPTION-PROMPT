@@ -1,0 +1,183 @@
+{
+  "artifact": {
+    "artifact_role": "candidate",
+    "baseline_identity": "the-caption-3ce91a4-completion-persistence-r1",
+    "change_reason": "candidate5の完了志向、実装主体のモデル判断、risk-based Audit / Review routingを維持し、required commandの完全evidence保存とmodel-visible outputを分離するcommand evidence projectionを追加する。",
+    "evaluation_status": "not_evaluated",
+    "non_goals": [
+      "改善の主張",
+      "採用判断",
+      "release判断",
+      "THE-CAPTION本体への反映",
+      "評価基盤、評価profile、評価result、Evaluation setの変更",
+      "実装主体、SA利用条件、Audit / Review routing、risk taxonomyの変更",
+      "required command、pass condition、permission、retry、cleanup、drift条件の変更",
+      "test output、warning、failureの隠蔽または成功扱い",
+      "case ID、特定command、出力量thresholdに固有の分岐",
+      "executorまたはTHE-CAPTION runtimeの実装変更"
+    ],
+    "problem": "baselineとcandidate5のN=5でcase別total_tokens中央値差が最大だったTC-F02では、candidate5の親直接実装時に親側command outputが大きく、増加の大半がcached inputだった。実装主体やtestを変えず、完全evidenceを保持したまま次工程へ投影する情報量だけを変更軸として分離する必要がある。",
+    "prompt_set_name": "candidate7",
+    "scope": "candidate5の直接childとなる18 pathのfull bundle。AGENTS.md、docs/orchestration-process.md、docs/prompt-guide.mdの3 targetだけを改訂し、残り15 targetはcandidate5と同一に保つ。",
+    "state": "draft"
+  },
+  "bundle_hash_algorithm": "sha256(canonical-json({schema_version,files}))",
+  "bundle_sha256": "b26a458f191a2fda58adb329e39cc49049e5dc99e12341a60305fe000919ec0b",
+  "content_relation": {
+    "changed_targets": [
+      "AGENTS.md",
+      "docs/orchestration-process.md",
+      "docs/prompt-guide.md"
+    ],
+    "kind": "direct_child_full_bundle",
+    "source_prompt_identity": "the-caption-3ce91a4-completion-persistence-r1"
+  },
+  "files": [
+    {
+      "git_blob_sha1": "e1cf15259e9a8679079d7db64aff7c34f4c15115",
+      "mode": "100644",
+      "sha256": "485893802e18bdea5cc546d59bb68d77340b62e6d08e6141ada907c46e9966c8",
+      "target": "AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "dc7446eae35eda9f0be9e162f9e81fb2dedcd97b",
+      "mode": "100644",
+      "sha256": "5b11d8b79b2ed9718d0a213ab5dbe5ea45a16ad03f1bfe93c625038d0041f8c8",
+      "target": "docs/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "docs/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "2fbcc1d606a0311deb1f4539fbd012f202243f34",
+      "mode": "100644",
+      "sha256": "2650c008fe5e38fa513e5ab826e0f9a22586546046b7ddce39f163a98ee11035",
+      "target": "docs/glossary.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "4a85298ded65e9db8bb7c8428f47cf370bdb3297",
+      "mode": "100644",
+      "sha256": "bfd13c7c8e2dd11e3dc1777bf78d9c530d8d5c39fc81a25f13b30fdacb6aad4f",
+      "target": "docs/how-to/index.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "744bd29a0201889bfc733d7a6b6c6dcd43ed1b60",
+      "mode": "100644",
+      "sha256": "21078b84c0740a12c0d0d0e63262348935e04bb869472dc47c951362ff1b608c",
+      "target": "docs/orchestration-process.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "29904108dd21626de56c5075f86a76081577c6de",
+      "mode": "100644",
+      "sha256": "b0e4deff97fa3c0aac2c68ec3371c98733f4b246f70409123a0d6feafd360c08",
+      "target": "docs/prompt-guide.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "b81e630c09d5d06a87b31e19efc4d2163971dd9b",
+      "mode": "100644",
+      "sha256": "12155b2c64e3259e1774d2761ca87162df66b2d548dc3d040fe3ac0beb672ecb",
+      "target": "docs/reference/project-contexts/the-caption.txt",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "8193bba57f46d478c666b43b2192e731af0b2f36",
+      "mode": "100644",
+      "sha256": "6a2f4c67e28ee88f3f67e9b0ed5e4ff51c880c3a0e8f77f1fa50713f9259fb45",
+      "target": "prompts/audit.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "72678ea0d1c30b6dd9011914f10d5c49e31ea615",
+      "mode": "100644",
+      "sha256": "e9b865838bf5b1076f2ededa778c397e19c7f97b28fa033190c167cf5f3a9712",
+      "target": "prompts/plan.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "17aef2fcea36e7aeac81334fbdaab08754c42906",
+      "mode": "100644",
+      "sha256": "40b4b51def80b54aa035927e95221875ef7ceba2f0cdd0ea77c11ebbc028c200",
+      "target": "prompts/review.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "fa7943fe3d687bc81cb7b1a46fe20ed95c3643c6",
+      "mode": "100644",
+      "sha256": "9ef019f1fda229b56c0c1f0180f8117b91071d83aaaf165608bd59f2d069f897",
+      "target": "scripts/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "scripts/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "2d0834867848fc02f236b4c390cfabb42a818565",
+      "mode": "100644",
+      "sha256": "15ac565c8b3ef9b678be5346dc6952490a7df2e6f17b856eebc949789fa45377",
+      "target": "src/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "src/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "062c1ded63a981f88aaf0c22c4d15089ef8d0417",
+      "mode": "100644",
+      "sha256": "d6eb6100a9125256136c3cf928b55aaa2cd7f0dc28f8208defbf654dad8e7bcd",
+      "target": "tests/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "tests/CLAUDE.md",
+      "type": "symlink"
+    }
+  ],
+  "prompt_identity": "the-caption-3ce91a4-command-evidence-projection-r1",
+  "provenance": {
+    "construction_repository": "https://github.com/Kenn-dclxvi/THE-CAPTION-PROMPT.git",
+    "construction_state": "uncommitted_working_tree",
+    "design_inputs": [
+      "evaluations/results/baseline-expanded12-global-m24-n5_2026-07-15.md",
+      "evaluations/results/candidate5-expanded12-global-m24-n5_2026-07-16.md",
+      "evaluations/results/baseline-candidate1-candidate5-candidate6-expanded12-global-m24-n5_2026-07-16.md"
+    ],
+    "design_status": "draft",
+    "evaluation_status": "not_evaluated",
+    "runtime_projection_status": "not_projected",
+    "source_interpretation": "source_prompt_identity identifies candidate5 as the direct prompt parent; source.commit retains the underlying THE-CAPTION repository ref"
+  },
+  "schema_version": "the-caption-prompt.bundle/v1",
+  "source": {
+    "commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+    "repository": "https://github.com/Kenn-dclxvi/THE-CAPTION.git",
+    "tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b"
+  }
+}
