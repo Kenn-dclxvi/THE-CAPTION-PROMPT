@@ -266,13 +266,13 @@ layer2/evidence/<run_id>/
 
 `result.diff`から除外するのはmanifestに記載されたbundle targetだけとする。Agentが変更した実装、test、その他の成果pathは残す。
 
-推奨案では、quality raterへ渡す範囲を該当caseのmodel-visible taskと`rating-view/`に限定する。`manifest.json`、Run capsule、bindings、完全なworkspaceは渡さない。採点後も完全なworkspaceは監査用証跡として保持する。
+quality raterへ渡す範囲を該当caseのmodel-visible taskと`rating-view/`に限定する。`manifest.json`、Run capsule、bindings、完全なworkspaceは渡さない。完全なworkspaceはexecution sealまでliveで保持し、その後もworkspace全体を含むlossless raw evidence archiveとseal manifestで固定artifactとして保持する。
 
 このrating viewはLayer 2が作る実行証跡の配下機能であり、新しいLayerまたはKPIを追加するものではない。
 
-現在の`docs/evaluation-loop-manual.md`は、quality rater入力をmodel-visible caseと必要なblind evidenceに限定し、Run capsule、binding、oracle、grader、expected result、prompt identityを除外する。ただし、そのblind evidenceを生成・検証する`rating-view/`機能自体は未実装である。
+`layer2/extensions/long_run_storage/`のexecution sealは、このblind evidenceをLayer 2配下機能として生成・検証する。`result.diff`は一時Git indexからtracked変更、削除、untracked成果を取得し、bundle manifestのtargetだけを除外する。`validation.json`はadapter exitと変更pathを記録するが、Agentの最終応答に書かれたtest結果から機械的なpass/failを推定しない。
 
-この未実装境界を暗黙に補わない。file bundleを使った正式runの前に、rating viewまたは同等の遮蔽機能を別artifactとして実装・検証する。この判断が完了するまで、file bundleを使ったrunをblind quality rating済みの正式evidenceとして扱わない。
+ratingにはmodel-visible caseと生成済み`rating-view/`だけを渡す。seal archive、Run capsule、binding、oracle、grader、expected result、prompt identityはblind rating入力へ含めない。
 
 ## 10. 実行時directoryの全体像
 
