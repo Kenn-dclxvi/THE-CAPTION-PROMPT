@@ -71,3 +71,5 @@ runner-evidence/
 ```
 
 `attempts.jsonl`とOS sampleはmodel-visible入力ではない。Layer 2のworkspace、capsule、binding、execution artifactはcycle内へ保存される。resource競合、workspace衝突、未分類controller failureがあるcycleはprompt set resultへ登録しない。
+
+8時間程度の反復controllerでは、各batchの前後に[long-run storage extension](../long_run_storage/README.md)を組み込む。parallel runnerはstorage削除を行わず、全slotがterminalになった後に別commandでevidenceをsealする。
