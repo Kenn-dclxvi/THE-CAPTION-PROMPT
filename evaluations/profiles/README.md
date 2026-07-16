@@ -20,6 +20,8 @@ Candidate14のN=5は[`candidate14-validation-authority-expanded12-global-m24-n5-
 
 Candidate15のN=5は[`candidate15-selected-role-control-input-expanded12-global-m24-n5-r1.json`](candidate15-selected-role-control-input-expanded12-global-m24-n5-r1.json)でC14直接派生のidentity、expanded 12 case、`1..5`、`M=24`、all-agent token accountingを固定した。[`result`](../results/candidate15-selected-role-control-input-expanded12-global-m24-n5_2026-07-16.md)は既存のexpanded 12-case all-agent resultと同じcompatibility keyへ登録した。
 
+制御プロンプトなしの2条件は、[`repository固有指示なし`](control-free-generic-expanded12-global-m24-n5-r1.json)と[`repository固有指示あり`](control-free-repository-expanded12-global-m24-n5-r1.json)へ分け、expanded 12 case、`1..5`、`M=24`、all-agent token accountingを固定した。両[`result`](../results/control-free-generic-repository-expanded12-global-m24-n5_2026-07-16.md)は既存のexpanded 12-case all-agent resultと同じcompatibility keyへ独立登録した。
+
 最初のv3 standalone profileは[`candidate2-expanded12-global-m24-n1-r1.json`](candidate2-expanded12-global-m24-n1-r1.json)である。candidate2の12 caseを`N=1`、`M=24`で実行し、[`result`](../results/candidate2-expanded12-global-m24-n1_2026-07-15.md)へ単一prompt setの3 KPIを記録した。
 
 比較用baselineも固定A / B profileへ戻さず、[`baseline-expanded12-global-m24-n1-r1.json`](baseline-expanded12-global-m24-n1-r1.json)として単独実行した。candidate2 profileとの互換条件key一致を確認し、保存済み2 resultから比較viewを生成した。
