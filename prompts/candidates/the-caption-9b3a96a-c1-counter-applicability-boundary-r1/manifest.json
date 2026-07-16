@@ -1,0 +1,188 @@
+{
+  "artifact": {
+    "artifact_role": "candidate",
+    "baseline_identity": "the-caption-9b3a96a-revision-2-r1",
+    "change_reason": "candidate1のcompact構造を維持し、machine reworkとenvironment recoveryのcounter domainを、TaskSpecでその責務が適用対象の場合だけ評価する境界へ限定する。",
+    "evaluation_status": "not_evaluated",
+    "non_goals": [
+      "改善の主張",
+      "採用判断",
+      "release判断",
+      "THE-CAPTION本体への反映",
+      "評価基盤、評価profile、評価result、Evaluation setの変更",
+      "candidate9のTaskSpec / default resolution、resolved execution contract、worker bindingの導入",
+      "audit / review、ordered gate、permission、single terminalの変更",
+      "counter上限のdefault値追加、required gateのfailed / unavailable、scope conflict、明示禁止の緩和",
+      "case ID、task種別、既知の停止文言に固有の例外"
+    ],
+    "problem": "candidate1のcounter規則は上限の数値domainを無条件に読めるため、TaskSpecで当該rework / recovery責務が適用対象でない場合にもcounter値を要求する解釈と、counterを持たず実行を続ける解釈が分岐する。",
+    "prompt_set_name": "candidate10",
+    "scope": "candidate1を直接sourceとする19 pathのfull bundle。AGENTS.mdのcounter applicability境界だけを改訂し、残り18 targetはcandidate1と同一に保つ。",
+    "state": "draft"
+  },
+  "bundle_hash_algorithm": "sha256(canonical-json({schema_version,files}))",
+  "bundle_sha256": "8309a7d83704849979c3c3972f5bf8c005b9ba377b2f8c866b2f8ab5ee576592",
+  "content_relation": {
+    "changed_targets": [
+      "AGENTS.md"
+    ],
+    "kind": "direct_child_full_bundle",
+    "source_prompt_identity": "the-caption-9b3a96a-revision-2-r1"
+  },
+  "files": [
+    {
+      "git_blob_sha1": "bcd3f61a8f6eddc8dabed4317f1874ecd654134d",
+      "mode": "100644",
+      "sha256": "c7caf84c5354ce5a6ddbcf6d4fedadc6d4f025abbfcd1d5a7857d3370f9b55c4",
+      "target": "AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "dc7446eae35eda9f0be9e162f9e81fb2dedcd97b",
+      "mode": "100644",
+      "sha256": "5b11d8b79b2ed9718d0a213ab5dbe5ea45a16ad03f1bfe93c625038d0041f8c8",
+      "target": "docs/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "docs/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "93337654ac12d972532ddbef066ac1789c387f60",
+      "mode": "100644",
+      "sha256": "aceb296498cb6145a52b52ea9951409cce87658731f7be4383ed48156aee029d",
+      "target": "docs/glossary.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "5cbbe1f6b933be5e17a6e3dd4743951087f9b4b4",
+      "mode": "100644",
+      "sha256": "277498bb071da9acb8229302e6ddcf1f9a4aac33d961af075a736535d5403155",
+      "target": "docs/how-to/index.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "93337654ac12d972532ddbef066ac1789c387f60",
+      "mode": "100644",
+      "sha256": "aceb296498cb6145a52b52ea9951409cce87658731f7be4383ed48156aee029d",
+      "target": "docs/orchestration-process.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "93337654ac12d972532ddbef066ac1789c387f60",
+      "mode": "100644",
+      "sha256": "aceb296498cb6145a52b52ea9951409cce87658731f7be4383ed48156aee029d",
+      "target": "docs/prompt-guide.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "5620ec5fb48fd32636367ac2717298e2d22906ce",
+      "mode": "100644",
+      "sha256": "9cde967a861f8639d7b43212c7d4e9d11f7c2320fe85978d3151992bf557b665",
+      "target": "docs/reference/project-contexts/the-caption.txt",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e1b8af423fd813cf3d2504da7f6d74bcc14d8ef3",
+      "mode": "100644",
+      "sha256": "2efc148824c2ac4768aedf040553e2ce544219bb4248785334cdf6542a6efefd",
+      "target": "prompts/audit.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "93337654ac12d972532ddbef066ac1789c387f60",
+      "mode": "100644",
+      "sha256": "aceb296498cb6145a52b52ea9951409cce87658731f7be4383ed48156aee029d",
+      "target": "prompts/implement.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "93337654ac12d972532ddbef066ac1789c387f60",
+      "mode": "100644",
+      "sha256": "aceb296498cb6145a52b52ea9951409cce87658731f7be4383ed48156aee029d",
+      "target": "prompts/plan.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "5b2335b97ca7bd59522cd6621314b4a2698d7a02",
+      "mode": "100644",
+      "sha256": "d108fcf061ec351fddc68b43d92931b03e1870c82a51f2bc58892614d17995ac",
+      "target": "prompts/review.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "fa7943fe3d687bc81cb7b1a46fe20ed95c3643c6",
+      "mode": "100644",
+      "sha256": "9ef019f1fda229b56c0c1f0180f8117b91071d83aaaf165608bd59f2d069f897",
+      "target": "scripts/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "scripts/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "2d0834867848fc02f236b4c390cfabb42a818565",
+      "mode": "100644",
+      "sha256": "15ac565c8b3ef9b678be5346dc6952490a7df2e6f17b856eebc949789fa45377",
+      "target": "src/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "src/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "062c1ded63a981f88aaf0c22c4d15089ef8d0417",
+      "mode": "100644",
+      "sha256": "d6eb6100a9125256136c3cf928b55aaa2cd7f0dc28f8208defbf654dad8e7bcd",
+      "target": "tests/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "tests/CLAUDE.md",
+      "type": "symlink"
+    }
+  ],
+  "prompt_identity": "the-caption-9b3a96a-c1-counter-applicability-boundary-r1",
+  "provenance": {
+    "construction_repository": "https://github.com/Kenn-dclxvi/THE-CAPTION-PROMPT.git",
+    "construction_state": "uncommitted_working_tree",
+    "design_inputs": [
+      "prompts/candidates/the-caption-9b3a96a-revision-2-r1/files/AGENTS.md",
+      "evaluations/results/candidate9-expanded12-global-m24-n5_2026-07-16.md",
+      "evaluations/cases/TC-F08-CANONICAL-CLI-REFERENCE-SYNC/r1/trial-prompt-input.json",
+      "evaluations/cases/TC-F10-ENTRYPOINT-INVENTORY-REVIEW/r1/trial-prompt-input.json"
+    ],
+    "design_status": "draft",
+    "evaluation_status": "not_evaluated",
+    "runtime_projection_status": "not_projected",
+    "source_interpretation": "source_prompt_identity identifies candidate1 as the direct prompt parent; source.commit retains the underlying THE-CAPTION repository ref"
+  },
+  "schema_version": "the-caption-prompt.bundle/v1",
+  "source": {
+    "commit": "9b3a96a305d08949b87a295c929e6248921f1fb3",
+    "repository": "https://github.com/Kenn-dclxvi/THE-CAPTION.git",
+    "tree": "c06b118765796e72c9ee6a89dad7e2384f5a4b30"
+  }
+}
