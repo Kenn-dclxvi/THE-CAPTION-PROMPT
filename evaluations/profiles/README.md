@@ -20,6 +20,8 @@ Candidate14のN=5は[`candidate14-validation-authority-expanded12-global-m24-n5-
 
 Candidate15のN=5は[`candidate15-selected-role-control-input-expanded12-global-m24-n5-r1.json`](candidate15-selected-role-control-input-expanded12-global-m24-n5-r1.json)でC14直接派生のidentity、expanded 12 case、`1..5`、`M=24`、all-agent token accountingを固定した。[`result`](../results/candidate15-selected-role-control-input-expanded12-global-m24-n5_2026-07-16.md)は既存のexpanded 12-case all-agent resultと同じcompatibility keyへ登録した。
 
+曖昧性・競合境界の独立setは、[`control-free repository N=3`](control-free-repository-ambiguity-boundaries-global-m10-n3-r1.json)と[`C15 N=3`](candidate15-ambiguity-boundaries-global-m10-n3-r1.json)へ分けた。両profileは[`the-caption-ambiguity-boundaries-r1`](../sets/the-caption-ambiguity-boundaries-r1/README.md)の5 case、`1..3`、`M=10`、all-agent token accountingを固定し、prompt identity以外の比較条件を同一にする。各15 runをappend-only resultへ登録し、[`comparison`](../results/control-free-repository-candidate15-ambiguity-boundaries-global-m10-n3_2026-07-17.md)へ3 KPIとcase別境界観測を記録した。採用判断は未実施である。
+
 制御プロンプトなしの2条件は、[`repository固有指示なし`](control-free-generic-expanded12-global-m24-n5-r1.json)と[`repository固有指示あり`](control-free-repository-expanded12-global-m24-n5-r1.json)へ分け、expanded 12 case、`1..5`、`M=24`、all-agent token accountingを固定した。両[`result`](../results/control-free-generic-repository-expanded12-global-m24-n5_2026-07-16.md)は既存のexpanded 12-case all-agent resultと同じcompatibility keyへ独立登録した。
 
 最初のv3 standalone profileは[`candidate2-expanded12-global-m24-n1-r1.json`](candidate2-expanded12-global-m24-n1-r1.json)である。candidate2の12 caseを`N=1`、`M=24`で実行し、[`result`](../results/candidate2-expanded12-global-m24-n1_2026-07-15.md)へ単一prompt setの3 KPIを記録した。

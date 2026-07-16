@@ -24,6 +24,8 @@ C13直接派生のCandidate14は[`expanded 12-case global M=24 N=5 result`](cand
 
 C14直接派生のCandidate15は[`expanded 12-case global M=24 N=5 result`](candidate15-selected-role-control-input-expanded12-global-m24-n5_2026-07-16.md)として60 runを単一のappend-only resultへ登録した。Baseline、C5、C14、C15の[`4-result N=5 comparison view`](baseline-candidate5-candidate14-candidate15-expanded12-global-m24-n5_2026-07-16.md)は、互換なall-agentの3 KPI、quality分布、case elapsed、selected-role control input境界の補助観測を記録し、winnerや採用判断は出力しない。
 
+制御promptなし・repository情報ありとC15は、独立した[`ambiguity boundaries 5-case global M=10 N=3 comparison`](control-free-repository-candidate15-ambiguity-boundaries-global-m10-n3_2026-07-17.md)として各15 runをappend-only resultへ登録した。互換な3 KPI、case別のclarify / execute / stopped境界、semanticな成果同等性を記録し、winner、採用、release判断は出力しない。
+
 最初のv3 standalone resultは[`candidate2 expanded 12-case global M=24 N=1`](candidate2-expanded12-global-m24-n1_2026-07-15.md)である。candidate2だけをimmutableな`prompt_set_identity`へ結び付けて保存し、比較、winner、採用判断は行っていない。
 
 同じ互換条件で新規実行した[`baseline standalone result`](baseline-expanded12-global-m24-n1_2026-07-15.md)とcandidate2から、[`baseline / candidate2 comparison view`](baseline-vs-candidate2-expanded12-global-m24-n1_2026-07-15.md)を生成した。差分方向は`candidate2 - baseline`であり、3 KPIの数値差だけを記録する。
