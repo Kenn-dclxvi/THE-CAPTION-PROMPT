@@ -10,6 +10,10 @@ root-only履歴のv3 resultは[`baseline N=5`](baseline-expanded12-global-m24-n5
 
 Candidate9の[`expanded 12-case staged N=5 result`](candidate9-expanded12-global-m24-n5_2026-07-16.md)は、F03 / F06先行stageとremaining 10 case stageの60 runを1つのcampaign summaryへまとめた。2つのEvaluation set identityとappend-only一次resultは変更せず、既存expanded resultとのKPI comparison view、winner、採用、release判断は生成していない。
 
+Candidate1直接派生のCandidate10は[`expanded 12-case global M=24 N=5 result`](candidate10-c1-counter-boundary-expanded12-global-m24-n5_2026-07-16.md)として60 runを単一のappend-only resultへ登録した。既存expanded 12-case all-agent resultと互換なfixture identityを使い、winner、採用、release判断は行っていない。
+
+Baseline、C1、C5、C1直接派生C10の[`4-result N=5 comparison view`](baseline-candidate1-candidate5-candidate10-c1-derived-expanded12-global-m24-n5_2026-07-16.md)は、all-agentの3 KPI中央値、反復値、quality分布、C10から各setを引いた数値差だけを記録する。winnerや採用判断は出力しない。
+
 最初のv3 standalone resultは[`candidate2 expanded 12-case global M=24 N=1`](candidate2-expanded12-global-m24-n1_2026-07-15.md)である。candidate2だけをimmutableな`prompt_set_identity`へ結び付けて保存し、比較、winner、採用判断は行っていない。
 
 同じ互換条件で新規実行した[`baseline standalone result`](baseline-expanded12-global-m24-n1_2026-07-15.md)とcandidate2から、[`baseline / candidate2 comparison view`](baseline-vs-candidate2-expanded12-global-m24-n1_2026-07-15.md)を生成した。差分方向は`candidate2 - baseline`であり、3 KPIの数値差だけを記録する。
