@@ -1,0 +1,189 @@
+{
+  "artifact": {
+    "artifact_role": "candidate",
+    "baseline_identity": "the-caption-9b3a96a-c1-counter-applicability-boundary-r1",
+    "change_reason": "candidate10のcounter applicability境界を維持し、workerのcontext継承を担当criterionに必要十分な最小範囲へ収束させるJIT境界を追加する。",
+    "evaluation_status": "not_evaluated",
+    "non_goals": [
+      "改善の主張",
+      "採用判断",
+      "release判断",
+      "THE-CAPTION本体への反映",
+      "評価基盤、評価profile、評価result、Evaluation setの変更",
+      "candidate10のcounter applicability境界の変更",
+      "audit / reviewの起動条件、順序、worker数、実行主体の固定",
+      "context継承の具体的なtool parameterまたは一律の継承値への固定",
+      "workerに必要なTaskSpec、diff、validation result、根拠pathの省略",
+      "case ID、task種別、既知のtoken値に固有の例外"
+    ],
+    "problem": "candidate10のJIT Contextは会話履歴を既定入力にしないが、worker起動時のcontext継承選択と必要十分なpacketの境界が接続されていない。そのため同じcriterionでも限定contextと全履歴継承が分岐し、modelの手段選択を保ったまま必要十分な範囲へ収束させる条件がない。",
+    "prompt_set_name": "candidate11",
+    "scope": "candidate10を直接sourceとする19 pathのfull bundle。AGENTS.mdのworker JIT context境界だけを改訂し、残り18 targetはcandidate10と同一に保つ。",
+    "state": "draft"
+  },
+  "bundle_hash_algorithm": "sha256(canonical-json({schema_version,files}))",
+  "bundle_sha256": "a28b65fe0d4e5b140ef475499403c3c05bf34d9fe90ad79158fa6f54e33173fd",
+  "content_relation": {
+    "changed_targets": [
+      "AGENTS.md"
+    ],
+    "kind": "direct_child_full_bundle",
+    "source_prompt_identity": "the-caption-9b3a96a-c1-counter-applicability-boundary-r1"
+  },
+  "files": [
+    {
+      "git_blob_sha1": "4da180174fb66aa49d349773b890ada0105cecab",
+      "mode": "100644",
+      "sha256": "178062fcff076a4b228d6119be953e7819bbb38a053b3ed4a0bb2ba75c620053",
+      "target": "AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "dc7446eae35eda9f0be9e162f9e81fb2dedcd97b",
+      "mode": "100644",
+      "sha256": "5b11d8b79b2ed9718d0a213ab5dbe5ea45a16ad03f1bfe93c625038d0041f8c8",
+      "target": "docs/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "docs/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "93337654ac12d972532ddbef066ac1789c387f60",
+      "mode": "100644",
+      "sha256": "aceb296498cb6145a52b52ea9951409cce87658731f7be4383ed48156aee029d",
+      "target": "docs/glossary.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "5cbbe1f6b933be5e17a6e3dd4743951087f9b4b4",
+      "mode": "100644",
+      "sha256": "277498bb071da9acb8229302e6ddcf1f9a4aac33d961af075a736535d5403155",
+      "target": "docs/how-to/index.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "93337654ac12d972532ddbef066ac1789c387f60",
+      "mode": "100644",
+      "sha256": "aceb296498cb6145a52b52ea9951409cce87658731f7be4383ed48156aee029d",
+      "target": "docs/orchestration-process.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "93337654ac12d972532ddbef066ac1789c387f60",
+      "mode": "100644",
+      "sha256": "aceb296498cb6145a52b52ea9951409cce87658731f7be4383ed48156aee029d",
+      "target": "docs/prompt-guide.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "5620ec5fb48fd32636367ac2717298e2d22906ce",
+      "mode": "100644",
+      "sha256": "9cde967a861f8639d7b43212c7d4e9d11f7c2320fe85978d3151992bf557b665",
+      "target": "docs/reference/project-contexts/the-caption.txt",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e1b8af423fd813cf3d2504da7f6d74bcc14d8ef3",
+      "mode": "100644",
+      "sha256": "2efc148824c2ac4768aedf040553e2ce544219bb4248785334cdf6542a6efefd",
+      "target": "prompts/audit.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "93337654ac12d972532ddbef066ac1789c387f60",
+      "mode": "100644",
+      "sha256": "aceb296498cb6145a52b52ea9951409cce87658731f7be4383ed48156aee029d",
+      "target": "prompts/implement.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "93337654ac12d972532ddbef066ac1789c387f60",
+      "mode": "100644",
+      "sha256": "aceb296498cb6145a52b52ea9951409cce87658731f7be4383ed48156aee029d",
+      "target": "prompts/plan.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "5b2335b97ca7bd59522cd6621314b4a2698d7a02",
+      "mode": "100644",
+      "sha256": "d108fcf061ec351fddc68b43d92931b03e1870c82a51f2bc58892614d17995ac",
+      "target": "prompts/review.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "fa7943fe3d687bc81cb7b1a46fe20ed95c3643c6",
+      "mode": "100644",
+      "sha256": "9ef019f1fda229b56c0c1f0180f8117b91071d83aaaf165608bd59f2d069f897",
+      "target": "scripts/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "scripts/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "2d0834867848fc02f236b4c390cfabb42a818565",
+      "mode": "100644",
+      "sha256": "15ac565c8b3ef9b678be5346dc6952490a7df2e6f17b856eebc949789fa45377",
+      "target": "src/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "src/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "062c1ded63a981f88aaf0c22c4d15089ef8d0417",
+      "mode": "100644",
+      "sha256": "d6eb6100a9125256136c3cf928b55aaa2cd7f0dc28f8208defbf654dad8e7bcd",
+      "target": "tests/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "tests/CLAUDE.md",
+      "type": "symlink"
+    }
+  ],
+  "prompt_identity": "the-caption-9b3a96a-sa-context-sufficiency-boundary-r1",
+  "provenance": {
+    "construction_repository": "https://github.com/Kenn-dclxvi/THE-CAPTION-PROMPT.git",
+    "construction_state": "uncommitted_working_tree",
+    "design_inputs": [
+      "prompts/candidates/the-caption-9b3a96a-c1-counter-applicability-boundary-r1/files/AGENTS.md",
+      "evaluations/results/baseline-candidate1-candidate5-candidate10-c1-derived-expanded12-global-m24-n5_2026-07-16.md",
+      "evaluations/cases/TC-F07-CANONICAL-V4-RUNNER/r2/trial-prompt-input.json",
+      "evaluations/cases/TC-F10-ENTRYPOINT-INVENTORY-REVIEW/r1/trial-prompt-input.json"
+    ],
+    "design_status": "draft",
+    "evaluation_status": "not_evaluated",
+    "runtime_projection_status": "not_projected",
+    "source_interpretation": "source_prompt_identity identifies candidate10 as the direct prompt parent; source.commit retains the underlying THE-CAPTION repository ref"
+  },
+  "schema_version": "the-caption-prompt.bundle/v1",
+  "source": {
+    "commit": "9b3a96a305d08949b87a295c929e6248921f1fb3",
+    "repository": "https://github.com/Kenn-dclxvi/THE-CAPTION.git",
+    "tree": "c06b118765796e72c9ee6a89dad7e2384f5a4b30"
+  }
+}
