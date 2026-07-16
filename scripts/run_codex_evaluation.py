@@ -40,6 +40,16 @@ class AdapterError(Exception):
 EXTERNAL_FAILURE_EXIT_CODE = 75
 COLLAB_PARENT_THREAD_MISSING = "collab spawn failed: no thread with id:"
 MODEL_AT_CAPACITY = "Selected model is at capacity."
+BOUNDARY_EVIDENCE_SCHEMA_VERSION = "the-caption-prompt.boundary-evidence/v1"
+BOUNDARY_EVIDENCE_BINDING_REVISION = "one-observation-one-predicate/v1"
+BOUNDARY_EVIDENCE_SOURCE_POLICY = "adapter_managed_read_only_registry"
+BOUNDARY_OBSERVATION_SOURCES: dict[str, list[str]] = {
+    "workspace.path": ["pwd", "-P"],
+    "workspace.git.branch": ["git", "branch", "--show-current"],
+    "workspace.git.head_commit": ["git", "rev-parse", "HEAD^{commit}"],
+    "workspace.git.parent_commit": ["git", "rev-parse", "HEAD^1"],
+    "workspace.git.status_short": ["git", "status", "--short"],
+}
 
 
 def detect_external_failure(stderr: bytes, stdout: bytes = b"") -> dict[str, str] | None:
@@ -353,11 +363,155 @@ def prompt_overlay_commit(workspace: Path, targets: list[str]) -> tuple[str, str
     return commit, tree
 
 
-def render_task(case: dict[str, Any]) -> str:
+def observe_boundary_source(command: list[str], workspace: Path) -> str:
+    completed = subprocess.run(command, cwd=workspace, capture_output=True, check=False)
+    if completed.returncode != 0:
+        detail = completed.stderr.decode("utf-8", errors="replace").strip()
+        raise AdapterError(
+            f"boundary observation failed ({completed.returncode}): {' '.join(command)}: {detail}"
+        )
+    return completed.stdout.decode("utf-8", errors="strict").rstrip("\r\n")
+
+
+def evaluate_boundary_observations(
+    workspace: Path,
+    raw_observations: Any,
+    adapter_context: dict[str, str],
+) -> dict[str, Any] | None:
+    if raw_observations is None:
+        return None
+    if not isinstance(raw_observations, list):
+        raise AdapterError("parameters.boundary_observations must be an array")
+    if not raw_observations:
+        raise AdapterError("parameters.boundary_observations must not be empty")
+
+    observations: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for index, raw_observation in enumerate(raw_observations):
+        name = f"boundary_observations[{index}]"
+        observation = require_object(raw_observation, name)
+        observation_id = require_string(observation.get("observation_id"), f"{name}.observation_id")
+        if observation_id in seen_ids:
+            raise AdapterError(f"duplicate boundary observation id: {observation_id}")
+        seen_ids.add(observation_id)
+
+        operation_identity = require_string(
+            observation.get("operation_identity"), f"{name}.operation_identity"
+        )
+        source = require_string(observation.get("source"), f"{name}.source")
+        command = BOUNDARY_OBSERVATION_SOURCES.get(source)
+        if command is None:
+            raise AdapterError(f"unsupported boundary observation source: {source}")
+
+        predicate = require_object(observation.get("predicate"), f"{name}.predicate")
+        operator = require_string(predicate.get("operator"), f"{name}.predicate.operator")
+        if operator != "string_equals":
+            raise AdapterError(f"unsupported boundary predicate operator: {operator}")
+        has_expected = "expected" in predicate
+        has_expected_context = "expected_context" in predicate
+        if has_expected == has_expected_context:
+            raise AdapterError(
+                f"{name}.predicate needs exactly one of expected or expected_context"
+            )
+        if has_expected:
+            expected = predicate["expected"]
+            if not isinstance(expected, str):
+                raise AdapterError(f"{name}.predicate.expected must be a string")
+            expected_binding: dict[str, str] = {"kind": "literal", "value": expected}
+        else:
+            context_key = require_string(
+                predicate["expected_context"], f"{name}.predicate.expected_context"
+            )
+            if context_key not in adapter_context:
+                raise AdapterError(f"unsupported adapter context key: {context_key}")
+            expected = adapter_context[context_key]
+            expected_binding = {"kind": "adapter_context", "key": context_key, "value": expected}
+
+        try:
+            observed = observe_boundary_source(command, workspace)
+        except (AdapterError, OSError, UnicodeError) as exc:
+            result = {
+                "observation_id": observation_id,
+                "operation_identity": operation_identity,
+                "source": source,
+                "predicate": {
+                    "operator": operator,
+                    "expected_binding": expected_binding,
+                },
+                "observed_value": None,
+                "status": "unavailable",
+                "unavailable_reason": str(exc),
+            }
+        else:
+            result = {
+                "observation_id": observation_id,
+                "operation_identity": operation_identity,
+                "source": source,
+                "predicate": {
+                    "operator": operator,
+                    "expected_binding": expected_binding,
+                },
+                "observed_value": observed,
+                "status": "passed" if observed == expected else "failed",
+            }
+        observations.append(result)
+
+    return {
+        "schema_version": BOUNDARY_EVIDENCE_SCHEMA_VERSION,
+        "binding_revision": BOUNDARY_EVIDENCE_BINDING_REVISION,
+        "provenance": {
+            "workspace": adapter_context["workspace"],
+            "prompt_overlay_commit": adapter_context["prompt_overlay_commit"],
+            "prompt_overlay_tree": adapter_context["prompt_overlay_tree"],
+        },
+        "observations": observations,
+    }
+
+
+def validate_boundary_evidence_compatibility(capsule: dict[str, Any], raw_observations: Any) -> None:
+    conditions = require_object(capsule.get("comparison_conditions"), "run.comparison_conditions")
+    executor_parameters = require_object(
+        conditions.get("executor_parameters"), "comparison_conditions.executor_parameters"
+    )
+    declared = executor_parameters.get("boundary_evidence")
+    if raw_observations is None:
+        if declared is not None:
+            raise AdapterError(
+                "comparison conditions declare boundary evidence without boundary observations"
+            )
+        return
+
+    expected = {
+        "binding_revision": BOUNDARY_EVIDENCE_BINDING_REVISION,
+        "schema_version": BOUNDARY_EVIDENCE_SCHEMA_VERSION,
+        "source_policy": BOUNDARY_EVIDENCE_SOURCE_POLICY,
+    }
+    if declared != expected:
+        raise AdapterError("comparison conditions do not bind the typed boundary evidence revision")
+    agent_environment = require_object(
+        conditions.get("agent_environment"), "comparison_conditions.agent_environment"
+    )
+    if agent_environment.get("adapter_schema_version") != "the-caption-prompt.codex-adapter/v4":
+        raise AdapterError("comparison conditions do not bind codex-adapter/v4")
+
+
+def render_task(case: dict[str, Any], boundary_evidence: dict[str, Any] | None = None) -> str:
     payload = require_object(case.get("payload"), "case.payload")
     trial_input = require_object(payload.get("trial_prompt_input"), "case.payload.trial_prompt_input")
     serialized = json.dumps(trial_input, ensure_ascii=False, indent=2, sort_keys=True)
-    return "以下のTaskSpecに従って作業してください。\n\n<task-spec-json>\n" + serialized + "\n</task-spec-json>\n"
+    task = "以下のTaskSpecに従って作業してください。\n\n<task-spec-json>\n" + serialized + "\n</task-spec-json>\n"
+    if boundary_evidence is None:
+        return task
+    evidence = json.dumps(boundary_evidence, ensure_ascii=False, indent=2, sort_keys=True)
+    return (
+        task
+        + "\n以下は実行adapterがread-only sourceから観測し、1 observationと1 predicateを対応付けた証跡です。\n"
+        + "列挙されたoperationの同じpredicateは観測済みとしてstatusを使用し、raw出力を再取得・再解釈しないでください。\n"
+        + "statusがfailedまたはunavailableなら、TaskSpecのterminal条件に従ってください。\n\n"
+        + "<adapter-boundary-evidence-json>\n"
+        + evidence
+        + "\n</adapter-boundary-evidence-json>\n"
+    )
 
 
 def parse_usage(jsonl: bytes) -> tuple[int, dict[str, int]]:
@@ -434,6 +588,7 @@ def execute() -> int:
     capsule = load_object(capsule_path, "run capsule")
     binding = require_object(capsule.get("binding"), "run.binding")
     parameters = require_object(capsule.get("parameters"), "run.parameters")
+    validate_boundary_evidence_compatibility(capsule, parameters.get("boundary_observations"))
     bundle = Path(require_string(parameters.get("prompt_bundle"), "parameters.prompt_bundle")).resolve()
     expected_hash = require_string(parameters.get("bundle_sha256"), "parameters.bundle_sha256")
     expected_dirty = set(require_string_array(parameters.get("expected_initial_dirty_paths"), "expected_initial_dirty_paths"))
@@ -456,11 +611,28 @@ def execute() -> int:
     if changed_paths(workspace) != expected_dirty:
         raise AdapterError("prompt overlay commit did not preserve the seeded dirty state")
 
-    task = render_task(case)
+    boundary_evidence = evaluate_boundary_observations(
+        workspace,
+        parameters.get("boundary_observations"),
+        {
+            "workspace": str(workspace),
+            "prompt_overlay_commit": commit,
+            "prompt_overlay_tree": tree,
+        },
+    )
+    task = render_task(case, boundary_evidence)
     task_sha256 = hashlib.sha256(task.encode("utf-8")).hexdigest()
     adapter_extension = extension_root / "codex-adapter"
     final_response = adapter_extension / "final-response.txt"
     adapter_extension.mkdir(parents=True, exist_ok=True)
+    boundary_evidence_sha256 = None
+    if boundary_evidence is not None:
+        boundary_evidence_bytes = (
+            json.dumps(boundary_evidence, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            + "\n"
+        ).encode("utf-8")
+        boundary_evidence_sha256 = hashlib.sha256(boundary_evidence_bytes).hexdigest()
+        write_json(extension_root / "boundary-evidence" / "evidence.json", boundary_evidence)
     command = [
         "codex",
         "exec",
@@ -557,7 +729,11 @@ def execute() -> int:
     write_json(
         adapter_extension / "execution.json",
         {
-            "adapter_schema_version": "the-caption-prompt.codex-adapter/v3",
+            "adapter_schema_version": "the-caption-prompt.codex-adapter/v4",
+            "boundary_evidence_schema_version": (
+                None if boundary_evidence is None else BOUNDARY_EVIDENCE_SCHEMA_VERSION
+            ),
+            "boundary_evidence_sha256": boundary_evidence_sha256,
             "bundle_sha256": expected_hash,
             "codex_exit_code": completed.returncode,
             "codex_version": codex_version,

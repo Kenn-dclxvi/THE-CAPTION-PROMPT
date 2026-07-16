@@ -6,6 +6,8 @@
 
 v3の現行token仕様は[`token-accounting-all-agents-v1`](token-accounting-all-agents-v1.json)である。`total_tokens`はroot agentと全descendant SA sessionの最終usageを合算する。新しいRun capsuleはこのprofileの`accounting` objectを`comparison_conditions.executor_parameters.token_accounting`へ固定する。root-onlyで実行した既存profileは履歴として保持し、all-agentへの再集計をin-place変更として扱わない。
 
+[`candidate17-operation-qualified-evidence-f10-boundary-v1-global-m5-n5-r1`](candidate17-operation-qualified-evidence-f10-boundary-v1-global-m5-n5-r1.json)はCandidate17のpromptを変更せず、実行adapterのtyped boundary evidenceを独立したcompatibility条件として検証するF10限定profileである。既存のraw shell outputをAgentが対応付けるresultとは互換比較しない。
+
 最新のv3 profileは[`baseline N=5`](baseline-expanded12-global-m24-n5-r1.json)、[`candidate1 N=5`](candidate1-expanded12-global-m24-n5-r1.json)、[`candidate2 N=5`](candidate2-expanded12-global-m24-n5-r1.json)、[`candidate3 N=5`](candidate3-expanded12-global-m24-n5-r1.json)、[`candidate4 N=5`](candidate4-expanded12-global-m24-n5-r1.json)、[`candidate5 N=5`](candidate5-expanded12-global-m24-n5-r1.json)、[`candidate6 N=5`](candidate6-expanded12-global-m24-n5-r1.json)である。各prompt setをexpanded 12 case、`1..5`、`M=24`の同一互換条件へ固定し、単独resultとして登録した。既存`N=1` profileとresultは変更していない。
 
 Candidate9のN=5は、[`F03 / F06先行stage`](candidate9-f03-f06-global-m24-n5-r1.json)と[`remaining 10 case stage`](candidate9-remaining10-global-m24-n5-r1.json)を同じprompt identity、固定環境、`1..5`、`M=24`で実行し、[`expanded 12-case campaign result`](../results/candidate9-expanded12-global-m24-n5_2026-07-16.md)へまとめた。各stageのEvaluation set identityと一次resultは分離したまま保持する。
