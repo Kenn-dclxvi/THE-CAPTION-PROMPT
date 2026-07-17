@@ -202,8 +202,8 @@ quality raterへ渡すのは次だけである。
 
 - `$CYCLE/layer1/set.json`の該当caseにあるmodel-visible情報
 - `$CYCLE/layer2/evidence/<run_id>/`の必要なblind evidence
-- `owner-producer-quality-v2`が要求するall-agent command evidence view
-- `owner-producer-quality-v2`が要求するowner-producer evidence view
+- `owner-producer-quality-v3`が要求するall-agent command evidence view
+- `owner-producer-quality-v3`が要求するowner-producer evidence view
 
 `layer2/bindings/`、Run capsule、oracle、grader、expected result、prompt identityは渡さない。
 

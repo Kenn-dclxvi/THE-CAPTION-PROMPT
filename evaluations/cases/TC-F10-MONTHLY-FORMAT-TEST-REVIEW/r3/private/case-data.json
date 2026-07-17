@@ -1,0 +1,214 @@
+{
+  "schema_version": "the-caption-prompt-evaluation-private-case-v1",
+  "case_id": "TC-F10-MONTHLY-FORMAT-TEST-REVIEW",
+  "case_revision": "r3",
+  "visibility": "model_invisible",
+  "fixture": {
+    "target_identity": {
+      "repository": "Kenn-dclxvi/THE-CAPTION",
+      "commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+      "tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b"
+    },
+    "case_spec": {
+      "family": "F10",
+      "equivalence_cluster_id": "monthly-cli-binding-review",
+      "coverage_tags": [
+        "no-edit",
+        "review",
+        "severity",
+        "line-evidence",
+        "behavior-impact",
+        "no-drift"
+      ],
+      "package_connection_keys": [
+        "TC-REQ-002",
+        "TC-REQ-003",
+        "TC-REQ-005",
+        "TC-REQ-006",
+        "TC-REQ-010",
+        "TC-REQ-011"
+      ],
+      "source_control_trace_keys": [
+        "SC-03",
+        "SC-07",
+        "SC-08",
+        "SC-09",
+        "SC-10"
+      ],
+      "historical_candidate_evidence_eligible_trace_keys": [],
+      "historical_candidate_scope": "out_of_scope"
+    },
+    "authority_selectors": [
+      "AGENTS.md",
+      "src/AGENTS.md"
+    ],
+    "source_files": [
+      {
+        "path": "src/AGENTS.md",
+        "mode": "100644",
+        "git_blob_sha1": "2d0834867848fc02f236b4c390cfabb42a818565",
+        "role": "read_only_authority",
+        "raw_sha256": "15ac565c8b3ef9b678be5346dc6952490a7df2e6f17b856eebc949789fa45377"
+      },
+      {
+        "path": "src/app/entrypoints/monthly_main.py",
+        "mode": "100644",
+        "git_blob_sha1": "b2c8c064662712179cf428f5fceb3ff95482e003",
+        "role": "seeded_review_target",
+        "raw_sha256": "855402f7475f5147045fcaaafcea80a6ad38a68e34593ff51dcfe09e8556b95f"
+      },
+      {
+        "path": "src/app/monthly_engine.py",
+        "mode": "100644",
+        "git_blob_sha1": "ed389fa36d65b64a352e8a541ed2712f9b76bbff",
+        "role": "read_only_behavior_reference",
+        "raw_sha256": "204a3026f1ce86e43f71402215f0df659031b2fd53ffa41d779a982a5"
+      }
+    ],
+    "absent_paths": []
+  },
+  "seed": {
+    "status": "materialized_not_applied",
+    "post_seed_intent": "The monthly CLI commit binds format_test to the force flag instead of the format-test flag while remaining syntactically valid.",
+    "design_operations": [
+      {
+        "operation": "replace_exact_text",
+        "path": "src/app/entrypoints/monthly_main.py",
+        "expected_preimage_blob": "b2c8c064662712179cf428f5fceb3ff95482e003",
+        "expected_occurrences": 1,
+        "before_text": "        format_test=args.format_test,",
+        "after_text": "        format_test=args.force,"
+      }
+    ],
+    "artifact": {
+      "path": "private/seed.patch",
+      "format": "git_diff",
+      "raw_sha256": "c943d1bff0267ae37b8bd3aea6aae12e68c17b296488a4f09d144fff56b6320a"
+    },
+    "application_contract": {
+      "target_commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+      "target_tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b",
+      "preimage_files": [
+        {
+          "path": "src/app/entrypoints/monthly_main.py",
+          "mode": "100644",
+          "git_blob_sha1": "b2c8c064662712179cf428f5fceb3ff95482e003",
+          "raw_sha256": "855402f7475f5147045fcaaafcea80a6ad38a68e34593ff51dcfe09e8556b95f"
+        }
+      ],
+      "check": "resolve artifact.path from the case revision root and run git apply --check before applying",
+      "apply": "apply the same resolved patch only after every identity and preimage check passes",
+      "failure_mode": "fail_closed_no_partial_fixture"
+    },
+    "expected_post_seed_files": [
+      {
+        "path": "src/app/entrypoints/monthly_main.py",
+        "mode": "100644",
+        "git_blob_sha1": "79a0d6d8b6e608046c63c1b13b1ff666872221b3",
+        "raw_sha256": "9e40fbc92dc52a04ecf1a85a655a53d8819c8663e99edb291d96d81dd7b65ae1"
+      }
+    ],
+    "fixture_materialization": {
+      "mode": "committed_seed",
+      "commit": {
+        "message": "evaluation fixture seed",
+        "timestamp": "2000-01-01T00:00:00Z",
+        "author_name": "THE-CAPTION Prompt Evaluation",
+        "author_email": "evaluation@example.invalid",
+        "expected_commit": "a53601614b41f52633f1d75e77c72861a0f0f1c8",
+        "expected_tree": "ee8f08a87d47290fc618fdc2ad5d8bfe8922c217"
+      }
+    }
+  },
+  "oracle": {
+    "mode": "review_response_and_no_drift",
+    "reference_postimage_files": [
+      {
+        "path": "src/AGENTS.md",
+        "mode": "100644",
+        "git_blob_sha1": "2d0834867848fc02f236b4c390cfabb42a818565"
+      },
+      {
+        "path": "src/app/entrypoints/monthly_main.py",
+        "mode": "100644",
+        "git_blob_sha1": "79a0d6d8b6e608046c63c1b13b1ff666872221b3"
+      },
+      {
+        "path": "src/app/monthly_engine.py",
+        "mode": "100644",
+        "git_blob_sha1": "ed389fa36d65b64a352e8a541ed2712f9b76bbff"
+      }
+    ],
+    "reference_postimage_is_exclusive": true,
+    "assertions": [
+      {
+        "criterion_id": "F10-R-C1",
+        "type": "captured_review_finding",
+        "expected": "One major finding identifies src/app/entrypoints/monthly_main.py at the changed format_test binding: args.format_test is ignored and args.force enables MonthlyEngine's format-test early-return path, changing both -t and -F behavior."
+      },
+      {
+        "criterion_id": "F10-R-C2",
+        "type": "finding_structure_and_precision",
+        "expected": "The finding includes severity, changed-line location, direct evidence, and impact; it does not add unsupported findings or claim a fix was applied."
+      },
+      {
+        "criterion_id": "F10-R-C3",
+        "type": "operation_trace_and_no_drift",
+        "expected": "No file changes, tests, application execution, dependency operation, Git write, network access, or external operation occur; the seeded checkout remains clean."
+      }
+    ]
+  },
+  "grader": {
+    "status": "designed_not_implemented",
+    "contract_revision": "grader-contract-r1",
+    "mode": "captured_review_response_operation_trace_and_repository_state",
+    "human_calibration_owner": "independent_response_check",
+    "criteria": [
+      {
+        "criterion_id": "F10-R-C1",
+        "evidence_sources": [
+          "captured_terminal_response",
+          "fixed_seed_diff",
+          "read_only_behavior_reference"
+        ]
+      },
+      {
+        "criterion_id": "F10-R-C2",
+        "evidence_sources": [
+          "captured_terminal_response"
+        ]
+      },
+      {
+        "criterion_id": "F10-R-C3",
+        "evidence_sources": [
+          "operation_trace",
+          "condition_relative_start_and_end_state"
+        ]
+      }
+    ],
+    "commands": [
+      "git diff a53601614b41f52633f1d75e77c72861a0f0f1c8^..a53601614b41f52633f1d75e77c72861a0f0f1c8 -- src/app/entrypoints/monthly_main.py",
+      "git status --short"
+    ],
+    "success_rule": "all listed criteria pass from the review response, fixed diff, operation trace, and no-drift evidence; worker self-report alone is insufficient"
+  },
+  "qualification": {
+    "status": "fixture_qualified_prompt_not_evaluated",
+    "receipt": {
+      "date": "2026-07-15",
+      "fixture_materialization": "pass; same deterministic seed commit and tree as r1",
+      "review_target_binding": "fixed seed commit a53601614b41f52633f1d75e77c72861a0f0f1c8; current HEAD ancestry is not a start condition",
+      "seed_diff_check": "fixed seed commit contains exactly the one-line format_test binding change in monthly_main.py",
+      "semantic_seed_check": "parser defines args.format_test; seeded call passes args.force; MonthlyEngine format_test true takes the early-return path",
+      "model_invocation": "not_run"
+    }
+  },
+  "design_provenance": {
+    "repository": "Kenn-dclxvi/THE-CAPTION-PROMPT",
+    "coverage_requirement": "FULL-F10-REVIEW",
+    "coverage_blocker": "B-F10-REVIEW",
+    "selection_basis": "Add a deterministic review finding with severity and evidence while keeping the checkout read-only.",
+    "base_revision": "r2",
+    "blocker_resolution": "Keep the review diff bound to the deterministic seed commit and remove the obsolete assumption that the current HEAD is an adapter overlay child."
+  }
+}
