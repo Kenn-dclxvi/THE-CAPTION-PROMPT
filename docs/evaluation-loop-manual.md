@@ -202,14 +202,14 @@ quality raterへ渡すのは次だけである。
 
 - `$CYCLE/layer1/set.json`の該当caseにあるmodel-visible情報
 - `$CYCLE/layer2/evidence/<run_id>/`の必要なblind evidence
-- `owner-producer-quality-v3`が要求するall-agent command evidence view
-- `owner-producer-quality-v3`が要求するowner-producer evidence view
+- `owner-producer-quality-v5`が要求するall-agent command evidence view
+- `owner-producer-quality-v5`が要求するowner-producer evidence view
 
 `layer2/bindings/`、Run capsule、oracle、grader、expected result、prompt identityは渡さない。
 
 TaskSpecがcriterion ownerを固定したrunは、採点前に次を実行する。
 
-まず、各runでall-agent usageへbindされたrootとrecursive descendantのsuccessful commandを、workspace pruneより前にmaterializeする。
+まず、各runでall-agent usageへbindされたrootとrecursive descendantのsuccessful commandを、workspace pruneより前にmaterializeする。rootはCodex command eventsを使う。descendantはrollout内のtool callとsuccessful outputを対応付ける。commandを固定配列から組み立てた場合、固定nameと`<name>: exit=0`集約行を対応付けられる場合、`write_stdin`でterminal resultを取得した場合も、対応付けが一意なときだけ対象にする。
 
 ```bash
 python3 scripts/all_agent_command_evidence.py \

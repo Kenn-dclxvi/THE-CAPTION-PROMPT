@@ -8,6 +8,7 @@ from pathlib import Path
 from scripts.evaluation_loop import (
     QUALITY_RATING,
     QUALITY_RATING_V2,
+    QUALITY_RATING_V3,
     EvaluationError,
     layer3_rate,
 )
@@ -20,7 +21,7 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
             Path(__file__).resolve().parents[1]
             / "evaluations"
             / "rating-contracts"
-            / "owner-producer-quality-v3.json"
+            / "owner-producer-quality-v5.json"
         )
         self.assertEqual(
             hashlib.sha256(contract.read_bytes()).hexdigest(),
@@ -37,6 +38,18 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
         self.assertEqual(
             hashlib.sha256(contract.read_bytes()).hexdigest(),
             QUALITY_RATING_V2["contract_sha256"],
+        )
+
+    def test_rating_v3_contract_hash_remains_supported(self) -> None:
+        contract = (
+            Path(__file__).resolve().parents[1]
+            / "evaluations"
+            / "rating-contracts"
+            / "owner-producer-quality-v3.json"
+        )
+        self.assertEqual(
+            hashlib.sha256(contract.read_bytes()).hexdigest(),
+            QUALITY_RATING_V3["contract_sha256"],
         )
 
     def make_cycle(self, root: Path, with_child: bool) -> Path:
@@ -153,7 +166,7 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
                     )
                 )
 
-    def test_rating_v3_requires_bound_command_evidence(self) -> None:
+    def test_rating_v4_requires_bound_command_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             cycle = self.make_cycle(Path(temp), with_child=True)
             evidence = cycle / "layer2" / "evidence" / "run-1"
@@ -197,7 +210,7 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
             rating = json.loads(
                 (cycle / "layer3" / "ratings" / "run-1.json").read_text()
             )
-            self.assertEqual(rating["quality_rating_contract"], "owner-producer-quality-v3")
+            self.assertEqual(rating["quality_rating_contract"], "owner-producer-quality-v5")
             self.assertEqual(rating["command_evidence_status"], "available")
 
 
