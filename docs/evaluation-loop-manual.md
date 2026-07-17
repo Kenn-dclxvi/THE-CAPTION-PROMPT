@@ -202,8 +202,19 @@ quality raterへ渡すのは次だけである。
 
 - `$CYCLE/layer1/set.json`の該当caseにあるmodel-visible情報
 - `$CYCLE/layer2/evidence/<run_id>/`の必要なblind evidence
+- `owner-producer-quality-v1`が要求するowner-producer evidence view
 
 `layer2/bindings/`、Run capsule、oracle、grader、expected result、prompt identityは渡さない。
+
+TaskSpecがcriterion ownerを固定したrunは、採点前に次を実行する。
+
+```bash
+python3 scripts/owner_producer_evidence.py \
+  --cycle "$CYCLE" \
+  --output "$CYCLE/layer3/owner-producer-evidence.json"
+```
+
+commandのexit `0`は全valid runがscore `4`のowner-evidence必要条件を満たすこと、exit `1`は1件以上で欠落または不一致があることを示す。exit `1`でもrunを自動で失格または除外せず、quality raterが成果全体を0〜3で採点する。
 
 ```bash
 python3 "$CLI" rate \

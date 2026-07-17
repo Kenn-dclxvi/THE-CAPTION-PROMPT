@@ -6,6 +6,12 @@ Candidate15の連続試験でscore `4`未満が残ったF04 web audit columnとF
 
 この文書はpartial setのdiagnostic evidenceであり、expanded 12 caseのLayer 4 resultへ登録しない。採用、release、THE-CAPTION本体反映は未判断、未実施である。
 
+## C18 / C19の作成と破棄経緯
+
+C18 / C19は、C15の未達原因に対する「対応策を考えて」「実施して」という指示を作業側が広く解釈し、C17後の診断用派生案として追加した。C18 / C19を個別candidateとして作成する明示的な依頼や、維持・採用する合意はなかった。
+
+両案ともF10 `N=10`でscore `4`: 8、score `1`: 2となり、対象の開始identity誤認は解消しなかった。そのため作成経緯、観測値、効果がなかった判断だけを本履歴recordに保持し、C18 / C19のprompt bundle、現行candidate index、一時raw evidenceを破棄する。Git履歴上の導入commitは改変しない。
+
 ## 共通条件
 
 - target commit / tree: `3ce91a403f9e0c83f29d56bbe9e7b449b713445d` / `88eecfa29f7016b4d77061d3aabe3e7d176fea9b`
@@ -26,8 +32,8 @@ Candidate15の連続試験でscore `4`未満が残ったF04 web audit columnとF
 | Candidate15 | Candidate14 | selected role control input boundary | 2,590 | `1a2ef9…6db8` |
 | Candidate16 | Candidate15 | bind済みevidenceだけでgate statusを変更 | 2,587 | `97086d…1c1162` |
 | Candidate17 | Candidate16 | constraint / terminalもoperation identityごとに限定 | 2,587 | `4c492d…740d4a` |
-| Candidate18 | Candidate17 | operation開始時にevidence対応を固定 | 2,590 | `cb9cf7…b39f4ef` |
-| Candidate19 | Candidate18 | 1 resultを1 predicateだけへbind | 2,585 | `0580e6…342ae7b3` |
+| Candidate18（破棄） | Candidate17 | operation開始時にevidence対応を固定 | 2,590 | `cb9cf7…b39f4ef` |
+| Candidate19（破棄） | Candidate18 | 1 resultを1 predicateだけへbind | 2,585 | `0580e6…342ae7b3` |
 
 新sectionは追加していない。Candidate16は`Compact TaskSpec`、`Ordered gate`、`Operation permission`の既存記述を置換・統合し、Candidate17〜19も同じ既存記述内の修正に限定した。
 
@@ -65,7 +71,7 @@ Candidate17のall-agent `total_tokens`合計はCandidate15比`+1,370,176`、`+2.
 
 - Candidate16: `/Users/kenn/repos/_verification/THE-CAPTION-prompt-ab-measurement/runs/candidate16-gate-evidence-binding-targeted-f04-f10-n5-b18-20260717`
 - Candidate17: `/Users/kenn/repos/_verification/THE-CAPTION-prompt-ab-measurement/runs/candidate17-operation-qualified-evidence-targeted-f04-f10-n5-b18-20260717`
-- Candidate18: `/Users/kenn/repos/_verification/THE-CAPTION-prompt-ab-measurement/runs/candidate18-explicit-evidence-binding-f10-n5-b18-20260717`
-- Candidate19: `/Users/kenn/repos/_verification/THE-CAPTION-prompt-ab-measurement/runs/candidate19-single-predicate-evidence-f10-n5-b18-20260717`
+- Candidate18: raw evidence破棄済み。履歴値は本文に保持。
+- Candidate19: raw evidence破棄済み。履歴値は本文に保持。
 
 raw evidence、session情報、一時workspaceはrepositoryへcommitしない。

@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import statistics
 import subprocess
 import sys
@@ -35,8 +36,15 @@ REQUIRED_COMPARISON_CONDITIONS = (
     "task_spec",
     "permission",
     "executor_parameters",
+    "quality_rating",
     "repetition_condition",
 )
+QUALITY_RATING = {
+    "contract_id": "owner-producer-quality-v1",
+    "contract_sha256": "65021fa3ff60f0daed4e79ecec687a61ae46288d9bf0032582a19751c6da961d",
+    "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+}
+OWNER_PATTERN = re.compile(r"owner\s*=\s*([^\u3002\n;,]+)", re.IGNORECASE)
 EXECUTION_SCHEMA_V3 = "the-caption-prompt.execution/v3"
 RESULT_SCHEMA_V1 = "the-caption-prompt.prompt-set-result/v1"
 RESULT_SCHEMA_V2 = "the-caption-prompt.prompt-set-result/v2"
@@ -292,6 +300,10 @@ def validate_comparison_conditions(value: Any) -> dict[str, Any]:
         raise EvaluationError(
             "comparison_conditions.executor_parameters.token_accounting must use all_agents/v1"
         )
+    if conditions["quality_rating"] != QUALITY_RATING:
+        raise EvaluationError(
+            "comparison_conditions.quality_rating must use owner-producer-quality-v1"
+        )
     return conditions
 
 
@@ -401,6 +413,12 @@ def layer2_run(args: argparse.Namespace) -> dict[str, Any]:
         if exclusion is None:
             raise
         usage = None
+    if exclusion is None and completed.returncode != 0:
+        raise EvaluationError(
+            f"adapter exited without an external-failure exclusion: {completed.returncode}"
+        )
+    if exclusion is None and usage is None:
+        raise EvaluationError("valid run requires all-agent token usage")
     total_tokens = None if usage is None else usage[0]
     token_accounting = None if usage is None else usage[1]
     if usage_report_path.exists():
@@ -460,11 +478,36 @@ def layer3_rate(args: argparse.Namespace) -> dict[str, Any]:
         raise EvaluationError("score must be between 0 and 4")
     if not args.reason.strip():
         raise EvaluationError("reason must be non-empty")
+    case = load_json(cycle / "layer2" / "evidence" / args.run_id / "case.json")
+    payload = case.get("payload")
+    trial_input = payload.get("trial_prompt_input") if isinstance(payload, dict) else None
+    trial_text = "\n".join(
+        value for value in trial_input.values() if isinstance(value, str)
+    ) if isinstance(trial_input, dict) else ""
+    owner_required = OWNER_PATTERN.search(trial_text) is not None
+    owner_evidence_status = "not_applicable"
+    if owner_required:
+        report_path = cycle / "layer3" / "owner-producer-evidence.json"
+        report = load_json(report_path)
+        if report.get("schema_version") != QUALITY_RATING["producer_evidence_schema_version"]:
+            raise EvaluationError("owner-producer evidence uses an unsupported schema_version")
+        matches = [
+            item
+            for item in report.get("runs", [])
+            if isinstance(item, dict) and item.get("run_id") == args.run_id
+        ]
+        if len(matches) != 1:
+            raise EvaluationError("owner-producer evidence has no unique entry for run")
+        owner_evidence_status = matches[0].get("status")
+        if args.score == 4 and not matches[0].get("score_4_owner_evidence_eligible"):
+            raise EvaluationError("score 4 requires an admissible owner-producer result")
     rating = {
         "schema_version": "the-caption-prompt.quality-rating/v1",
         "run_id": args.run_id,
         "score": args.score,
         "reason": args.reason.strip(),
+        "quality_rating_contract": QUALITY_RATING["contract_id"],
+        "owner_producer_evidence_status": owner_evidence_status,
         "rated_at": utc_now(),
     }
     write_json_once(cycle / "layer3" / "ratings" / f"{args.run_id}.json", rating)

@@ -26,9 +26,15 @@ C14直接派生のCandidate15は[`expanded 12-case global M=24 N=5 result`](cand
 
 制御promptなし・repository情報ありとC15は、独立した[`ambiguity boundaries 5-case global M=10 N=3 comparison`](control-free-repository-candidate15-ambiguity-boundaries-global-m10-n3_2026-07-17.md)として各15 runをappend-only resultへ登録した。互換な3 KPI、case別のclarify / execute / stopped境界、semanticな成果同等性を記録し、winner、採用、release判断は出力しない。
 
-C15連続試験のF04 / F10低scoreに対するCandidate16〜19の原則化とpartial-set観測は[`evidence boundary targeted checks`](candidate16-candidate19-evidence-boundary-targeted_2026-07-17.md)へ分離した。expanded 12 case resultへ混ぜず、各candidateの再発、token、未実施境界を記録する。
+C15連続試験のF04 / F10低scoreに対するCandidate16 / 17の原則化、および明示合意なく診断中に追加され後に破棄したC18 / C19の経緯は[`evidence boundary targeted checks`](candidate16-candidate19-evidence-boundary-targeted_2026-07-17.md)へ分離した。expanded 12 case resultへ混ぜず、観測値と破棄理由を履歴として保持する。
 
 Candidate17のpromptを維持し、実行adapterへtyped boundary evidenceを追加したF10 `N=90`は[`Candidate17 typed boundary evidence F10 N=90`](candidate17-typed-boundary-evidence-f10-n90_2026-07-17.md)へ分離した。execution compatibilityが異なるため既存Candidate17 resultへ混ぜず、90 / 90のscore `4`相当、450 / 450のtyped observation pass、開始identity誤認0件を記録する。
+
+Candidate15と同じcompatibilityで実行したCandidate17の[`expanded 12-case global M=24 N=5 result`](candidate17-operation-qualified-evidence-expanded12-global-m24-n5_2026-07-17.md)は60 runをappend-only resultへ登録した。adapterとquality auditもC15連続試験時点の版へ固定し、60 / 60がscore `4`だった。winner、採用、release判断は行っていない。
+
+owner-producer証跡をscore `4`の必要条件にする新rating revisionで新規実行した[`Candidate17 / Candidate20 expanded 12-case N=5 comparison`](candidate17-candidate20-owner-producer-v1-expanded12-global-m24-n5_2026-07-17.md)は、各60 runを同じcompatibility keyへ登録した。C17はscore `4 / 3 = 49 / 11`、C20はscore `4 / 3 / 1 = 49 / 10 / 1`で、F10 monthlyのowner producer resultは両方とも0 / 5だった。旧rating revisionのresultは変更せず、本comparisonへ混ぜていない。
+
+同じCandidate20とrating revisionで継続した[`continuous N=5 B=3 result`](candidate20-owner-producer-v1-continuous-n5-b3_2026-07-17.md)は、登録・compactまで完了した3 result、180 runだけをまとめる。score `4 / 3 / 1 = 148 / 31 / 1`で、score `3`の全31件は成果未達ではなくowner producer result不足だった。F05 clarificationとF10 monthlyが各14 / 15を占め、必要なowner worker起動とresult生成がgate flowへ未接続という課題を記録する。未登録のbatch 4と未実施のbatch 5〜18は集計へ含めない。
 
 最初のv3 standalone resultは[`candidate2 expanded 12-case global M=24 N=1`](candidate2-expanded12-global-m24-n1_2026-07-15.md)である。candidate2だけをimmutableな`prompt_set_identity`へ結び付けて保存し、比較、winner、採用判断は行っていない。
 
