@@ -8,7 +8,12 @@ import unittest
 from pathlib import Path
 
 from scripts.all_agent_usage import TOKEN_ACCOUNTING
-from scripts.evaluation_loop import QUALITY_RATING, identity_sha256, kpi_difference
+from scripts.evaluation_loop import (
+    LEGACY_QUALITY_RATING,
+    QUALITY_RATING,
+    identity_sha256,
+    kpi_difference,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,6 +91,27 @@ class EvaluationLoopTest(unittest.TestCase):
             "repetition_condition": {"iterations": iterations, "order": "case-major"},
         }
 
+    def write_command_evidence(self, cycle: Path, run_id: str) -> None:
+        artifact = (
+            cycle
+            / "layer2"
+            / "extensions"
+            / run_id
+            / "all-agent-command-evidence"
+            / "evidence.json"
+        )
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text(
+            json.dumps(
+                {
+                    "schema_version": QUALITY_RATING["command_evidence_schema_version"],
+                    "run_id": run_id,
+                    "successful_commands": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+
     def test_current_quality_rating_is_required(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -114,6 +140,35 @@ class EvaluationLoopTest(unittest.TestCase):
                 "run", "--cycle", str(cycle), "--capsule", str(capsule)
             )
             self.assertIn("comparison_conditions.quality_rating is required", completed.stderr)
+
+    def test_legacy_quality_rating_remains_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cycle = root / "cycle"
+            manifest = self.make_set(root)
+            self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
+            conditions = self.conditions(1)
+            conditions["quality_rating"] = LEGACY_QUALITY_RATING
+            capsule = root / "legacy-quality-rating.json"
+            capsule.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "the-caption-prompt.execution-capsule/v2",
+                        "binding": {
+                            "prompt_set_identity": {"name": "prompt", "revision": "r1"},
+                            "case_id": "TEST-CASE",
+                            "iteration": 1,
+                        },
+                        "comparison_conditions": conditions,
+                        "adapter": {"argv": [sys.executable, "-c", "pass"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            completed = self.cli_failure(
+                "run", "--cycle", str(cycle), "--capsule", str(capsule)
+            )
+            self.assertNotIn("unsupported contract revision", completed.stderr)
 
     def test_nonzero_adapter_exit_without_exclusion_is_not_valid(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -254,6 +309,7 @@ class EvaluationLoopTest(unittest.TestCase):
             )
             self.assertEqual(binding["prompt_set_identity"], identity)
             self.assertNotIn("condition", binding)
+            self.write_command_evidence(cycle, run_id)
             self.cli(
                 "rate",
                 "--cycle",
@@ -552,6 +608,7 @@ class EvaluationLoopTest(unittest.TestCase):
             self.assertIn("excluded run cannot be quality-rated", rate.stderr)
 
             valid = self.execute(cycle, identity, 1, 120, conditions)
+            self.write_command_evidence(cycle, valid)
             self.cli(
                 "rate",
                 "--cycle",

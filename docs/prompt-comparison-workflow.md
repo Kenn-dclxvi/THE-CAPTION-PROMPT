@@ -58,7 +58,7 @@ Evaluation set sourceは`set_id`と`revision`を持つ。Run capsuleは次を分
 - `task_spec`
 - `permission`
 - `executor_parameters`
-- `quality_rating`。rating contract identityとowner-producer evidence revisionを含む
+- `quality_rating`。rating contract identity、owner-producer evidence revision、必要な場合はall-agent command evidence revisionを含む
 - `repetition_condition`。少なくとも正の整数`iterations`を含む
 
 prompt bundle pathやprompt固有parameterを`comparison_conditions.executor_parameters`へ混ぜない。比較対象間で固定するexecutor条件だけを格納し、prompt固有値は`binding.prompt_set_identity`またはopaqueな`parameters`へ置く。
@@ -78,7 +78,7 @@ quality_score = median(quality_score[1], ..., quality_score[N])
 
 quality raterへ渡すのはmodel-visible caseとblindなexecution evidenceだけである。`layer2/bindings/`、Run capsule、oracle、grader、expected resultをmodel-visible入力へ混ぜない。raterはscoreと短い事実根拠だけを返し、promptの選択や改善提案を行わない。
 
-現行rating contractは[`owner-producer-quality-v1`](../evaluations/rating-contracts/owner-producer-quality-v1.json)とする。TaskSpecがcriterion ownerを固定したrunでは、ownerに対応するproducer resultをblind evidenceとして確認できることをscore `4`の必要条件にする。independent ownerのproducer execution identityがactive executorと同一、欠落、またはownerと不一致な場合、score `4`は記録できない。その場合の0〜3は、機械的に固定せず成果全体からraterが決める。rating contract revisionが異なるresultは互換比較へ混ぜない。
+現行rating contractは[`owner-producer-quality-v2`](../evaluations/rating-contracts/owner-producer-quality-v2.json)とする。TaskSpecがcriterion ownerを固定したrunでは、ownerに対応するproducer resultをblind evidenceとして確認できることをscore `4`の必要条件にする。required validation commandはroot sessionと、そのrunのall-agent usageへbindされたrecursive descendant sessionのtool outputから確認する。単なる同一workspace session、別rootのsession、worker final responseだけはcommand証跡にしない。independent ownerのproducer execution identityがactive executorと同一、欠落、またはownerと不一致な場合、score `4`は記録できない。その場合の0〜3は、機械的に固定せず成果全体からraterが決める。v1 resultは履歴として保持し、rating contract revisionが異なるresultを互換比較へ混ぜない。
 
 ## Append-only result registry
 
