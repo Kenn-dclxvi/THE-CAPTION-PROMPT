@@ -10,7 +10,7 @@ runtime_owner: THE-CAPTION-maintainer-with-merge-authority
 
 実行前にTaskSpecへtarget / start identity、goal / done、artifact scope、validationを固定し、変更入力を新identityとして旧bindingを失効させる。
 
-TaskSpecはoperation identityごとにauthority / predicate / permission / constraintを固定する。constraint / terminalはbind先だけに適用し、別operationへ伝播させない。未指定の手段はpredicate / permission内でexecutorが所有する。artifact / done / required validationを変える未確定事項だけ実行前に確認する。
+TaskSpecはoperation identityごとにauthority、predicate、permission、constraintを固定する。constraint / terminalはbind先だけに適用し、別operationへ伝播させない。明示されない手段はpredicateとpermissionを変えない範囲でexecutorが所有する。artifact、done、required validationを変え得る未確定事項だけを実行前に確認する。
 
 ## JIT Context
 
@@ -24,7 +24,7 @@ worker起動時も同じJIT境界を使う。rootはselected role identity、担
 
 ## Ordered gate
 
-gateはboundary / permission、Context / authority、operation、required machine、required non-machine、drift / final identity、single terminalの順に評価する。operationはidentity / predicate / provenanceを先に固定し、対応を明示したresultだけをevidenceとする。未bind resultの位置 / 順序 / 欠落からbindingを補わず、別identity / predicate / 階層へ暗黙に変換・伝播しない。
+gateはboundary / permission、Context / authority、operation、required machine、required non-machine、drift / final identity、single terminalの順に評価する。resultはidentity / predicate / provenance / producer execution identityへbindし、TaskSpecがcriterion ownerを固定した場合はそのownerに対応するproducerのresultだけをevidenceとする。active executorのresultをindependent ownerのresultへ変換・伝播せず、別identity / predicate / 階層のresultと未bind observationも暗黙に変換・伝播しない。
 
 predicate成立はpassed、不成立はfailed、permission内で確定不能はunavailable、対象外はnot_applicableとする。前段が後段を許可しなければ停止し、完了はrequired gateが許す同一artifact identityだけにbindする。
 

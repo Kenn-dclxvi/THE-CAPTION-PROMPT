@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from scripts.all_agent_usage import TOKEN_ACCOUNTING
-from scripts.evaluation_loop import identity_sha256, kpi_difference
+from scripts.evaluation_loop import QUALITY_RATING, identity_sha256, kpi_difference
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,8 +82,94 @@ class EvaluationLoopTest(unittest.TestCase):
                 "reasoning_effort": "high",
                 "token_accounting": TOKEN_ACCOUNTING,
             },
+            "quality_rating": QUALITY_RATING,
             "repetition_condition": {"iterations": iterations, "order": "case-major"},
         }
+
+    def test_current_quality_rating_is_required(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cycle = root / "cycle"
+            manifest = self.make_set(root)
+            self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
+            conditions = self.conditions(1)
+            conditions.pop("quality_rating")
+            capsule = root / "missing-quality-rating.json"
+            capsule.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "the-caption-prompt.execution-capsule/v2",
+                        "binding": {
+                            "prompt_set_identity": {"name": "prompt", "revision": "r1"},
+                            "case_id": "TEST-CASE",
+                            "iteration": 1,
+                        },
+                        "comparison_conditions": conditions,
+                        "adapter": {"argv": [sys.executable, "-c", "pass"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            completed = self.cli_failure(
+                "run", "--cycle", str(cycle), "--capsule", str(capsule)
+            )
+            self.assertIn("comparison_conditions.quality_rating is required", completed.stderr)
+
+    def test_nonzero_adapter_exit_without_exclusion_is_not_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cycle = root / "cycle"
+            manifest = self.make_set(root)
+            self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
+            capsule = root / "nonzero-exit.json"
+            capsule.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "the-caption-prompt.execution-capsule/v2",
+                        "binding": {
+                            "prompt_set_identity": {"name": "prompt", "revision": "r1"},
+                            "case_id": "TEST-CASE",
+                            "iteration": 1,
+                        },
+                        "comparison_conditions": self.conditions(1),
+                        "adapter": {"argv": [sys.executable, "-c", "raise SystemExit(2)"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            completed = self.cli_failure(
+                "run", "--cycle", str(cycle), "--capsule", str(capsule)
+            )
+            self.assertIn("adapter exited without an external-failure exclusion: 2", completed.stderr)
+            self.assertEqual(list((cycle / "layer2" / "bindings").glob("*.json")), [])
+
+    def test_missing_usage_is_not_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cycle = root / "cycle"
+            manifest = self.make_set(root)
+            self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
+            capsule = root / "missing-usage.json"
+            capsule.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "the-caption-prompt.execution-capsule/v2",
+                        "binding": {
+                            "prompt_set_identity": {"name": "prompt", "revision": "r1"},
+                            "case_id": "TEST-CASE",
+                            "iteration": 1,
+                        },
+                        "comparison_conditions": self.conditions(1),
+                        "adapter": {"argv": [sys.executable, "-c", "pass"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            completed = self.cli_failure(
+                "run", "--cycle", str(cycle), "--capsule", str(capsule)
+            )
+            self.assertIn("valid run requires all-agent token usage", completed.stderr)
+            self.assertEqual(list((cycle / "layer2" / "bindings").glob("*.json")), [])
 
     def execute(
         self,

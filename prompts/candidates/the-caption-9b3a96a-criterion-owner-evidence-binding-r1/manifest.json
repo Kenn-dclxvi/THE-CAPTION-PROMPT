@@ -1,37 +1,36 @@
 {
   "artifact": {
     "artifact_role": "candidate",
-    "baseline_identity": "the-caption-9b3a96a-explicit-evidence-binding-r1",
-    "change_reason": "candidate18のoperation開始時evidence bindingを維持し、1 resultを1 predicateだけへbindする正規化則に置き換える。",
+    "baseline_identity": "the-caption-9b3a96a-operation-qualified-evidence-r1",
+    "change_reason": "Candidate17のevidence bindingを維持し、criterion ownerが固定されたresultのproducer execution identityをevidence成立条件へ加える。",
     "evaluation_status": "not_evaluated",
     "non_goals": [
       "改善の主張",
       "採用判断",
       "release判断",
       "THE-CAPTION本体への反映",
-      "評価基盤、Evaluation set、TaskSpec、required commandの変更",
-      "gate、status、permission、recoveryの追加または緩和",
-      "特定case、path、command、tool outputに固有の例外",
-      "candidate18のroute、worker、criterion / owner、validation authority、control input境界の変更"
+      "Evaluation set、TaskSpec、grader、adapter、permissionの変更",
+      "特定case、path、command、owner名の例外追加",
+      "required non-machine route、criterion、ownerの追加または削除"
     ],
-    "problem": "candidate18はevidence対応をoperation開始前に固定するが、1つのaggregate resultを複数predicateへ分配できる余地が残る。一部observationの欠落があると、各predicateへの分配を取り違え得る。",
-    "scope": "candidate18を直接sourceとする19 pathのfull bundle。AGENTS.mdのOrdered gate既存段落だけを置換し、section数とcandidate15比のtoken数を増やさない。",
+    "problem": "Candidate17はresultをidentity / predicate / provenanceへbindするが、producer execution identityがcriterion ownerと一致することをevidence成立条件にしていないため、active executorのresultがindependent ownerのresultを代用し得る。",
+    "scope": "Candidate17を直接sourceとする19 pathのfull bundle。AGENTS.mdのOrdered gateの既存記述だけを修正する。",
     "state": "draft"
   },
   "bundle_hash_algorithm": "sha256(canonical-json({schema_version,files}))",
-  "bundle_sha256": "0580e6d1c9c0ec33316b8dfeb274ae7323fea0aab66d309bb0d6be4c342ae7b3",
+  "bundle_sha256": "de509e38c894c16b60cb3fc876b5f87e0627551a4c8097f3bc04d1427a16f3a2",
   "content_relation": {
     "changed_targets": [
       "AGENTS.md"
     ],
     "kind": "direct_child_full_bundle",
-    "source_prompt_identity": "the-caption-9b3a96a-explicit-evidence-binding-r1"
+    "source_prompt_identity": "the-caption-9b3a96a-operation-qualified-evidence-r1"
   },
   "files": [
     {
-      "git_blob_sha1": "c5568a2ce776c8ddde18946db606717dfbfa37e7",
+      "git_blob_sha1": "de3f0fcea1927f22eae2925a281286ca9848a05e",
       "mode": "100644",
-      "sha256": "515ed82edf0d028d11d7ec4332a76901596e442b57bf6091f869291a76426681",
+      "sha256": "e47f0fa240bfab3f73c9eec037b688ee46cb30689303bb8528d0359787d1ef8d",
       "target": "AGENTS.md",
       "type": "file"
     },
@@ -162,18 +161,19 @@
       "type": "symlink"
     }
   ],
-  "prompt_identity": "the-caption-9b3a96a-single-predicate-evidence-r1",
+  "prompt_identity": "the-caption-9b3a96a-criterion-owner-evidence-binding-r1",
   "provenance": {
     "construction_repository": "https://github.com/Kenn-dclxvi/THE-CAPTION-PROMPT.git",
     "construction_state": "uncommitted_working_tree",
     "design_inputs": [
-      "prompts/candidates/the-caption-9b3a96a-explicit-evidence-binding-r1/files/AGENTS.md",
-      "docs/candidate5-candidate15-continuous-comparison.md"
+      "prompts/candidates/the-caption-9b3a96a-operation-qualified-evidence-r1/files/AGENTS.md",
+      "evaluations/cases/TC-F10-ENTRYPOINT-INVENTORY-REVIEW/r1/trial-prompt-input.json",
+      "evaluations/cases/TC-F10-MONTHLY-FORMAT-TEST-REVIEW/r2/trial-prompt-input.json"
     ],
     "design_status": "draft",
     "evaluation_status": "not_evaluated",
     "runtime_projection_status": "not_projected",
-    "source_interpretation": "source_prompt_identity identifies candidate18 as the direct prompt parent; source.commit retains the underlying THE-CAPTION repository ref"
+    "source_interpretation": "source_prompt_identity identifies Candidate17 as the direct prompt parent; source.commit retains the underlying THE-CAPTION repository ref"
   },
   "schema_version": "the-caption-prompt.bundle/v1",
   "source": {
