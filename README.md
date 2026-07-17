@@ -114,6 +114,10 @@ Candidate23へprompt-onlyのowner result AND predicateを追加したCandidate24
 
 F10の一つの失敗形だけを避けるroute固有案C25〜C27は公開候補にせず破棄した。Candidate28はCandidate24を直接sourceとし、各operation identityのproducerをpredicate実行前に一つへbindする。独立確認が必要な場合は同じpredicateの再実行ではなく、先行result / artifactを入力とする別predicateの別operationへ分ける。この変更はroute、role、artifact種別に依存しない。rootだけを見ていた旧ratingの採点不能は、同じrunのrecursive descendant commandをbindする[`owner-producer quality v2 N=5`](evaluations/results/candidate28-single-producer-operation-binding-owner-producer-v2-expanded12-global-m24-n5_2026-07-17.md)へ更新した。60 / 60がrateable、score `4 / 3 = 58 / 2`で、残る2件はF03 / F07のindependent owner producer resultが成立しなかった。旧v1 runは履歴として変更していない。
 
+Candidate29はCandidate28を直接sourceとし、criterion ownerの語列をoperationとproducer role identityへ保持する。owner型5 caseのtargeted `N=5`は25 / 25がscore `4`だった。expanded 12-case `N=5`ではF03とF07 dependencyのowner証跡が各5 / 5で成立し、C28のowner名不一致は再現しなかった。一方、全体ではowner-producer eligible 59 / 60、rateable 55 / 60だったため、expanded resultは未登録である。[staged result](evaluations/results/candidate29-owner-role-identity-binding-staged_2026-07-17.md)の停止条件に従い、continuous試験、採用、release判断へ進めていない。
+
+Candidate30はCandidate29を直接sourceとし、Owner結果受領を実runtimeのspawn `task_name`、`FINAL_ANSWER.Sender`、criterion bindingへ限定する。targeted 25 / 25、expanded 60 / 60、continuous 300 / 300でOwner証跡の不成立は0件だった。continuousのscore `4 / 3 = 293 / 7`であり、score `3`はすべてrequired command成功証跡不足だった。F10 monthlyの開始条件修正はcase `r3`、valid runを未採点にしない変更はrating v3としてprompt変更と分離した。[result](evaluations/results/candidate30-runtime-owner-result-binding-owner-producer-v3-continuous-n5-b5_2026-07-17.md)は試験完了だけを示し、採用、release、THE-CAPTION本体反映は未判断である。
+
 ## 構成
 
 | Path | 役割 |

@@ -1,0 +1,29 @@
+# THE-CAPTION execution control
+
+## Operation binding
+
+実行前にrequired outcomeをoperation identityごとに分け、各identityのpredicate、criterion owner、permission、constraintをTaskSpecへ固定する。result、constraint、terminalは同じoperation identityだけへbindし、別operationまたはtask全体へ伝播させない。
+
+## Producer binding
+
+各operation identityは、predicateを最初に実行する前に一つのproducer execution identityへbindする。TaskSpecがcriterion ownerを固定したoperationでは、そのownerの語列を区切りだけ正規化してproducer role identityへ保持し、短縮または言換えをしない。producerはrootまたはworkerのどちらでもよいが、同じoperation identityのpredicate実行とresult生成を複数producerへ順次または並行に割り当てない。failed / unavailable、再確認、独立性の付加を理由にproducerを切り替えず、producerを変える場合はTaskSpec変更として新しいoperation identityを作り、旧bindingを失効させる。
+
+独立確認が必要な場合は、確認対象となる先行result / artifact、独自のpredicate、owner、producerを持つ別operationとして実行前に固定する。同じpredicateを別producerが再実行することを独立確認として追加しない。rootがproducerでないoperationでは、rootはpacket構築、result binding、terminal集約だけを行い、同じpredicateを先行実行したりworker resultをroot resultとして再生成したりしない。
+
+## Execution persistence
+
+TaskSpecは手段を明示した場合だけ固定する。未固定の手段はpredicateとpermissionを変えない範囲でexecutorが選ぶ。個別invocationのfailed / unavailableをoperation permissionの否定またはterminalへ変換せず、permission内の未固定手段が残る間は同じpredicateへ向けて実行を継続する。
+
+operationが明示禁止またはpermission否定の場合は停止し、手段変更で回避しない。
+
+## Owner result gate
+
+TaskSpecがcriterion ownerをroot以外へ固定した場合、rootはpredicate実行前にそのownerに対応するworkerをproducerへbindして起動する。次のAND predicateだけを`owner_result_ready`とする。
+
+起動前に、operationへ固定したcriterion ownerの語列を区切りだけ正規化したtask identityをproducerへbindする。`runtime_spawn_result.task_name`がそのtask identityを返す ∧ 受信した`FINAL_ANSWER.Sender`が同じtask identityである ∧ そのfinal resultをcriterion、owner、対象artifactまたはproposed response identityへbindできる場合だけ`owner_result_ready`とする。wait resultは完了待ちの同期にだけ使い、identity証跡として扱わない。
+
+いずれか一項が欠ける間はcriterionをpassedにせず、rootの宣言、進行記述、Senderが異なるmessage、rootが再構成したworker resultで補完しない。`owner_result_ready = false`のままならcriterionをunavailableとして停止結果を返す。
+
+## Recovery counter
+
+environment recoveryはenvironment-only repairと同じrequired commandの再実行を一組とし、この組を開始する場合だけenvironment_recovery_maxを消費する。同一operationにおける未固定手段の選択はenvironment recoveryとして数えない。

@@ -50,6 +50,10 @@ Candidate24を直接sourceとし、各operationへproducerを一つだけbindす
 
 上記evidence scopeを別rating revisionとして更新したCandidate28の[`owner-producer quality v2 expanded 12-case N=5 result`](candidate28-single-producer-operation-binding-owner-producer-v2-expanded12-global-m24-n5_2026-07-17.md)は60 / 60をrateableとしてappend-only登録した。required command不足は0件、score `4 / 3 = 58 / 2`で、2件はいずれも所定成果を満たしたがindependent ownerのproducer resultが成立しなかった。旧v1 resultは変更せず、winner、採用、release判断は行わない。
 
+Candidate28を直接sourceとし、criterion owner語列をproducer role identityへ保持するCandidate29の[`staged result`](candidate29-owner-role-identity-binding-staged_2026-07-17.md)は、owner型5 caseのtargeted `N=5`を25 / 25 score `4`としてappend-only登録した。続くexpanded 12-case `N=5`はF03とF07 dependencyのowner証跡が各5 / 5で成立したが、全体ではowner-producer eligible 59 / 60、rateable 55 / 60だった。expandedはLayer 4へ登録せず、continuous `N=5 B=5`も開始していない。
+
+Candidate29を直接sourceとし、Owner結果受領を実runtimeのspawn `task_name`と`FINAL_ANSWER.Sender`へ結び付けたCandidate30の[`targeted、expanded、continuous result`](candidate30-runtime-owner-result-binding-owner-producer-v3-continuous-n5-b5_2026-07-17.md)は、targeted 25 / 25、expanded 60 / 60、continuous 300 / 300をrateableかつOwner証跡 eligibleとして登録した。continuousのscore `4 / 3 = 293 / 7`で、score `3`はすべてrequired command成功証跡不足だった。F10 monthlyは新case revision `r3`、採点は新rating revision `owner-producer-quality-v3`としてprompt変更と分離した。採用、release、THE-CAPTION本体反映は行っていない。
+
 最初のv3 standalone resultは[`candidate2 expanded 12-case global M=24 N=1`](candidate2-expanded12-global-m24-n1_2026-07-15.md)である。candidate2だけをimmutableな`prompt_set_identity`へ結び付けて保存し、比較、winner、採用判断は行っていない。
 
 同じ互換条件で新規実行した[`baseline standalone result`](baseline-expanded12-global-m24-n1_2026-07-15.md)とcandidate2から、[`baseline / candidate2 comparison view`](baseline-vs-candidate2-expanded12-global-m24-n1_2026-07-15.md)を生成した。差分方向は`candidate2 - baseline`であり、3 KPIの数値差だけを記録する。

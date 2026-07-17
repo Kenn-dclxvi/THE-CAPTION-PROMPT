@@ -38,6 +38,14 @@ Candidate15のN=5は[`candidate15-selected-role-control-input-expanded12-global-
 
 [`candidate28-single-producer-operation-binding-owner-producer-v2-expanded12-global-m24-n5-r1`](candidate28-single-producer-operation-binding-owner-producer-v2-expanded12-global-m24-n5-r1.json)は、上記v1試験で再現したevidence scope不足を別rating revisionとして修正する。prompt、Evaluation set、fixture、TaskSpec、permission、executor parameter、反復条件は維持し、`quality_rating`だけを`owner-producer-quality-v2`へ替える。v2は同一runのrootから到達できるdescendant command evidenceを採点可能にし、v1 resultを変更しない。[N=5 result](../results/candidate28-single-producer-operation-binding-owner-producer-v2-expanded12-global-m24-n5_2026-07-17.md)は60 / 60をrateableとしてLayer 4へ登録し、score `4 / 3 = 58 / 2`だった。
 
+[`candidate29-owner-role-identity-binding-owner-producer-v2-targeted5-global-m24-n5-r1`](candidate29-owner-role-identity-binding-owner-producer-v2-targeted5-global-m24-n5-r1.json)は、Candidate29のowner語列保持をF03、F04、F05 clarification、F07 dependency、F10 inventoryの5 case、`1..5`、`M=24`、`owner-producer-quality-v2`へ固定する。25 runはscore `4`かつowner-producer eligibleとして別Evaluation set resultへ登録した。
+
+[`candidate29-owner-role-identity-binding-owner-producer-v2-expanded12-global-m24-n5-r1`](candidate29-owner-role-identity-binding-owner-producer-v2-expanded12-global-m24-n5-r1.json)は、Candidate29をexpanded 12 case、`1..5`、`M=24`、`owner-producer-quality-v2`へ固定する。60 runは実行したが、owner-producer eligibleが59 / 60、rateableが55 / 60だったためLayer 4へ登録していない。[staged result](../results/candidate29-owner-role-identity-binding-staged_2026-07-17.md)の停止条件に従い、continuous試験へ進めていない。
+
+[`candidate30-runtime-owner-result-binding-owner-producer-v2-targeted5-global-m24-n5-r1`](candidate30-runtime-owner-result-binding-owner-producer-v2-targeted5-global-m24-n5-r1.json)は、Candidate29 targeted profileからprompt identityだけをCandidate30へ替える。25 / 25 runがscore `4`かつowner-producer eligibleとなり、Layer 4へ登録した。
+
+[`candidate30-runtime-owner-result-binding-owner-producer-v3-expanded12-global-m24-n5-r1`](candidate30-runtime-owner-result-binding-owner-producer-v3-expanded12-global-m24-n5-r1.json)は、Candidate30をexpanded 12 case、`1..5`、`M=24`へ固定する。F10 monthlyは開始条件を修正した`r3`、quality ratingはvalid runを未採点にしない`owner-producer-quality-v3`を使う。expanded 60 runと同条件continuous 300 runはすべてrateableかつowner-producer eligibleとして登録した。[result](../results/candidate30-runtime-owner-result-binding-owner-producer-v3-continuous-n5-b5_2026-07-17.md)はprompt変更、case revision、rating revisionを別artifactとして明示する。
+
 最初のv3 standalone profileは[`candidate2-expanded12-global-m24-n1-r1.json`](candidate2-expanded12-global-m24-n1-r1.json)である。candidate2の12 caseを`N=1`、`M=24`で実行し、[`result`](../results/candidate2-expanded12-global-m24-n1_2026-07-15.md)へ単一prompt setの3 KPIを記録した。
 
 比較用baselineも固定A / B profileへ戻さず、[`baseline-expanded12-global-m24-n1-r1.json`](baseline-expanded12-global-m24-n1-r1.json)として単独実行した。candidate2 profileとの互換条件key一致を確認し、保存済み2 resultから比較viewを生成した。

@@ -11,6 +11,7 @@ from scripts.all_agent_usage import TOKEN_ACCOUNTING
 from scripts.evaluation_loop import (
     LEGACY_QUALITY_RATING,
     QUALITY_RATING,
+    QUALITY_RATING_V2,
     identity_sha256,
     kpi_difference,
 )
@@ -150,6 +151,35 @@ class EvaluationLoopTest(unittest.TestCase):
             conditions = self.conditions(1)
             conditions["quality_rating"] = LEGACY_QUALITY_RATING
             capsule = root / "legacy-quality-rating.json"
+            capsule.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "the-caption-prompt.execution-capsule/v2",
+                        "binding": {
+                            "prompt_set_identity": {"name": "prompt", "revision": "r1"},
+                            "case_id": "TEST-CASE",
+                            "iteration": 1,
+                        },
+                        "comparison_conditions": conditions,
+                        "adapter": {"argv": [sys.executable, "-c", "pass"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            completed = self.cli_failure(
+                "run", "--cycle", str(cycle), "--capsule", str(capsule)
+            )
+            self.assertNotIn("unsupported contract revision", completed.stderr)
+
+    def test_quality_rating_v2_remains_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cycle = root / "cycle"
+            manifest = self.make_set(root)
+            self.cli("freeze-set", "--set", str(manifest), "--cycle", str(cycle))
+            conditions = self.conditions(1)
+            conditions["quality_rating"] = QUALITY_RATING_V2
+            capsule = root / "quality-rating-v2.json"
             capsule.write_text(
                 json.dumps(
                     {

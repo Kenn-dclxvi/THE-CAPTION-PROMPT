@@ -44,13 +44,19 @@ LEGACY_QUALITY_RATING = {
     "contract_sha256": "65021fa3ff60f0daed4e79ecec687a61ae46288d9bf0032582a19751c6da961d",
     "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
 }
-QUALITY_RATING = {
+QUALITY_RATING_V2 = {
     "contract_id": "owner-producer-quality-v2",
     "contract_sha256": "31950fcab89cbc86e1b0d028333463a785c47f58e85402d278f7e5942117cc40",
     "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
     "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v1",
 }
-SUPPORTED_QUALITY_RATINGS = (LEGACY_QUALITY_RATING, QUALITY_RATING)
+QUALITY_RATING = {
+    "contract_id": "owner-producer-quality-v3",
+    "contract_sha256": "7d7a41191fca233eaba7400569e942a8e0c76a5cf773e238da0a1874fc518d5e",
+    "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+    "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v1",
+}
+SUPPORTED_QUALITY_RATINGS = (LEGACY_QUALITY_RATING, QUALITY_RATING_V2, QUALITY_RATING)
 OWNER_PATTERN = re.compile(r"owner\s*=\s*([^\u3002\n;,]+)", re.IGNORECASE)
 EXECUTION_SCHEMA_V3 = "the-caption-prompt.execution/v3"
 RESULT_SCHEMA_V1 = "the-caption-prompt.prompt-set-result/v1"
