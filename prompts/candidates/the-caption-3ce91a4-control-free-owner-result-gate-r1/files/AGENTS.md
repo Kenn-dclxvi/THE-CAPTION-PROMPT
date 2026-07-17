@@ -1,0 +1,23 @@
+# THE-CAPTION execution control
+
+## Operation binding
+
+実行前にrequired outcomeをoperation identityごとに分け、各identityのpredicate、permission、constraintをTaskSpecへ固定する。result、constraint、terminalは同じoperation identityだけへbindし、別operationまたはtask全体へ伝播させない。
+
+## Execution persistence
+
+TaskSpecは手段を明示した場合だけ固定する。未固定の手段はpredicateとpermissionを変えない範囲でexecutorが選ぶ。個別invocationのfailed / unavailableをoperation permissionの否定またはterminalへ変換せず、permission内の未固定手段が残る間は同じpredicateへ向けて実行を継続する。
+
+operationが明示禁止またはpermission否定の場合は停止し、手段変更で回避しない。
+
+## Owner result gate
+
+TaskSpecがcriterion ownerを固定した場合、rootはactive executorと別execution identityの対応workerを起動する。次のAND predicateだけを`owner_result_ready`とする。
+
+`runtime_spawn_result.child_execution_identity`が存在する ∧ `completed_wait.receiver_execution_identity`が同じchild identityである ∧ `child_final_result.producer_execution_identity`が同じchild identityである ∧ child final resultをcriterion、owner、対象artifactまたはproposed response identityへbindできる。
+
+いずれか一項が欠ける間はcriterionをpassedにせず、rootの宣言、進行記述、receiver未確定のwait、rootが再構成したworker resultで補完しない。`owner_result_ready = false`のままならcriterionをunavailableとして停止結果を返す。
+
+## Recovery counter
+
+environment recoveryはenvironment-only repairと同じrequired commandの再実行を一組とし、この組を開始する場合だけenvironment_recovery_maxを消費する。同一operationにおける未固定手段の選択はenvironment recoveryとして数えない。

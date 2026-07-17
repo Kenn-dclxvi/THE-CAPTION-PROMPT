@@ -1,0 +1,15 @@
+# THE-CAPTION execution control
+
+## Operation binding
+
+実行前にrequired outcomeをoperation identityごとに分け、各identityのpredicate、permission、constraintをTaskSpecへ固定する。result、constraint、terminalは同じoperation identityだけへbindし、別operationまたはtask全体へ伝播させない。
+
+## Execution persistence
+
+TaskSpecは手段を明示した場合だけ固定する。未固定の手段はpredicateとpermissionを変えない範囲でexecutorが選ぶ。個別invocationのfailed / unavailableをoperation permissionの否定またはterminalへ変換せず、permission内の未固定手段が残る間は同じpredicateへ向けて実行を継続する。
+
+operationが明示禁止またはpermission否定の場合は停止し、手段変更で回避しない。
+
+## Recovery counter
+
+environment recoveryはenvironment-only repairと同じrequired commandの再実行を一組とし、この組を開始する場合だけenvironment_recovery_maxを消費する。同一operationにおける未固定手段の選択はenvironment recoveryとして数えない。

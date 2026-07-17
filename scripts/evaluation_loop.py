@@ -39,11 +39,18 @@ REQUIRED_COMPARISON_CONDITIONS = (
     "quality_rating",
     "repetition_condition",
 )
-QUALITY_RATING = {
+LEGACY_QUALITY_RATING = {
     "contract_id": "owner-producer-quality-v1",
     "contract_sha256": "65021fa3ff60f0daed4e79ecec687a61ae46288d9bf0032582a19751c6da961d",
     "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
 }
+QUALITY_RATING = {
+    "contract_id": "owner-producer-quality-v2",
+    "contract_sha256": "31950fcab89cbc86e1b0d028333463a785c47f58e85402d278f7e5942117cc40",
+    "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+    "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v1",
+}
+SUPPORTED_QUALITY_RATINGS = (LEGACY_QUALITY_RATING, QUALITY_RATING)
 OWNER_PATTERN = re.compile(r"owner\s*=\s*([^\u3002\n;,]+)", re.IGNORECASE)
 EXECUTION_SCHEMA_V3 = "the-caption-prompt.execution/v3"
 RESULT_SCHEMA_V1 = "the-caption-prompt.prompt-set-result/v1"
@@ -300,9 +307,9 @@ def validate_comparison_conditions(value: Any) -> dict[str, Any]:
         raise EvaluationError(
             "comparison_conditions.executor_parameters.token_accounting must use all_agents/v1"
         )
-    if conditions["quality_rating"] != QUALITY_RATING:
+    if conditions["quality_rating"] not in SUPPORTED_QUALITY_RATINGS:
         raise EvaluationError(
-            "comparison_conditions.quality_rating must use owner-producer-quality-v1"
+            "comparison_conditions.quality_rating uses an unsupported contract revision"
         )
     return conditions
 
@@ -470,6 +477,18 @@ def layer2_run(args: argparse.Namespace) -> dict[str, Any]:
 
 def layer3_rate(args: argparse.Namespace) -> dict[str, Any]:
     cycle = Path(args.cycle).resolve()
+    binding_matches = [
+        item for item in existing_bindings(cycle) if item.get("run_id") == args.run_id
+    ]
+    if len(binding_matches) != 1:
+        raise EvaluationError("no unique execution binding for run")
+    binding = binding_matches[0]
+    comparison_conditions = binding.get("comparison_conditions")
+    if not isinstance(comparison_conditions, dict):
+        raise EvaluationError("execution binding has no comparison_conditions")
+    rating_contract = comparison_conditions.get("quality_rating")
+    if rating_contract not in SUPPORTED_QUALITY_RATINGS:
+        raise EvaluationError("execution binding uses an unsupported quality rating contract")
     execution_path = cycle / "layer2" / "evidence" / args.run_id / "execution.json"
     execution = load_json(execution_path)
     if execution.get("status", "valid") == "excluded":
@@ -489,7 +508,7 @@ def layer3_rate(args: argparse.Namespace) -> dict[str, Any]:
     if owner_required:
         report_path = cycle / "layer3" / "owner-producer-evidence.json"
         report = load_json(report_path)
-        if report.get("schema_version") != QUALITY_RATING["producer_evidence_schema_version"]:
+        if report.get("schema_version") != rating_contract["producer_evidence_schema_version"]:
             raise EvaluationError("owner-producer evidence uses an unsupported schema_version")
         matches = [
             item
@@ -501,13 +520,32 @@ def layer3_rate(args: argparse.Namespace) -> dict[str, Any]:
         owner_evidence_status = matches[0].get("status")
         if args.score == 4 and not matches[0].get("score_4_owner_evidence_eligible"):
             raise EvaluationError("score 4 requires an admissible owner-producer result")
+    command_evidence_status = "not_required"
+    command_schema = rating_contract.get("command_evidence_schema_version")
+    if command_schema is not None:
+        command_report = load_json(
+            cycle
+            / "layer2"
+            / "extensions"
+            / args.run_id
+            / "all-agent-command-evidence"
+            / "evidence.json"
+        )
+        if (
+            command_report.get("schema_version") != command_schema
+            or command_report.get("run_id") != args.run_id
+            or not isinstance(command_report.get("successful_commands"), list)
+        ):
+            raise EvaluationError("all-agent command evidence is invalid")
+        command_evidence_status = "available"
     rating = {
         "schema_version": "the-caption-prompt.quality-rating/v1",
         "run_id": args.run_id,
         "score": args.score,
         "reason": args.reason.strip(),
-        "quality_rating_contract": QUALITY_RATING["contract_id"],
+        "quality_rating_contract": rating_contract["contract_id"],
         "owner_producer_evidence_status": owner_evidence_status,
+        "command_evidence_status": command_evidence_status,
         "rated_at": utc_now(),
     }
     write_json_once(cycle / "layer3" / "ratings" / f"{args.run_id}.json", rating)

@@ -202,11 +202,23 @@ quality raterへ渡すのは次だけである。
 
 - `$CYCLE/layer1/set.json`の該当caseにあるmodel-visible情報
 - `$CYCLE/layer2/evidence/<run_id>/`の必要なblind evidence
-- `owner-producer-quality-v1`が要求するowner-producer evidence view
+- `owner-producer-quality-v2`が要求するall-agent command evidence view
+- `owner-producer-quality-v2`が要求するowner-producer evidence view
 
 `layer2/bindings/`、Run capsule、oracle、grader、expected result、prompt identityは渡さない。
 
 TaskSpecがcriterion ownerを固定したrunは、採点前に次を実行する。
+
+まず、各runでall-agent usageへbindされたrootとrecursive descendantのsuccessful commandを、workspace pruneより前にmaterializeする。
+
+```bash
+python3 scripts/all_agent_command_evidence.py \
+  --usage "$CYCLE/layer2/extensions/<run_id>/all-agent-usage/usage.json" \
+  --root-events "$CYCLE/layer2/extensions/<run_id>/codex-adapter/codex-events.jsonl" \
+  --output "$CYCLE/layer2/extensions/<run_id>/all-agent-command-evidence/evidence.json"
+```
+
+続いてowner-producer evidence viewを生成する。
 
 ```bash
 python3 scripts/owner_producer_evidence.py \
@@ -214,7 +226,7 @@ python3 scripts/owner_producer_evidence.py \
   --output "$CYCLE/layer3/owner-producer-evidence.json"
 ```
 
-commandのexit `0`は全valid runがscore `4`のowner-evidence必要条件を満たすこと、exit `1`は1件以上で欠落または不一致があることを示す。exit `1`でもrunを自動で失格または除外せず、quality raterが成果全体を0〜3で採点する。
+`owner_producer_evidence.py`のexit `0`は全valid runがscore `4`のowner-evidence必要条件を満たすこと、exit `1`は1件以上で欠落または不一致があることを示す。exit `1`でもrunを自動で失格または除外せず、quality raterが成果全体を0〜3で採点する。
 
 ```bash
 python3 "$CLI" rate \
