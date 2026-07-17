@@ -50,13 +50,31 @@ QUALITY_RATING_V2 = {
     "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
     "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v1",
 }
-QUALITY_RATING = {
+QUALITY_RATING_V3 = {
     "contract_id": "owner-producer-quality-v3",
     "contract_sha256": "7d7a41191fca233eaba7400569e942a8e0c76a5cf773e238da0a1874fc518d5e",
     "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
     "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v1",
 }
-SUPPORTED_QUALITY_RATINGS = (LEGACY_QUALITY_RATING, QUALITY_RATING_V2, QUALITY_RATING)
+QUALITY_RATING_V4 = {
+    "contract_id": "owner-producer-quality-v4",
+    "contract_sha256": "996875126f1f30bb146df78a47274ffd08e003ebb6c54c24e8cda98754a9dd53",
+    "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+    "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v2",
+}
+QUALITY_RATING = {
+    "contract_id": "owner-producer-quality-v5",
+    "contract_sha256": "cb718bb6cf9eceeb34fadb2e6c6de0ba7cf32211f2b79139e49153997e7c8df2",
+    "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+    "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v3",
+}
+SUPPORTED_QUALITY_RATINGS = (
+    LEGACY_QUALITY_RATING,
+    QUALITY_RATING_V2,
+    QUALITY_RATING_V3,
+    QUALITY_RATING_V4,
+    QUALITY_RATING,
+)
 OWNER_PATTERN = re.compile(r"owner\s*=\s*([^\u3002\n;,]+)", re.IGNORECASE)
 EXECUTION_SCHEMA_V3 = "the-caption-prompt.execution/v3"
 RESULT_SCHEMA_V1 = "the-caption-prompt.prompt-set-result/v1"
