@@ -52,6 +52,8 @@ Candidate15のN=5は[`candidate15-selected-role-control-input-expanded12-global-
 
 [`candidate31-operation-terminal-closure-owner-producer-v5-expanded12-global-m24-n5-r1`](candidate31-operation-terminal-closure-owner-producer-v5-expanded12-global-m24-n5-r1.json)は、上記の再現済みcollector不具合を修正したcommand evidence v3と`owner-producer-quality-v5`へ固定する。prompt、Evaluation set、fixture、TaskSpec、permission、executor parameter、反復条件は維持した。[rating v5 result](../results/candidate31-operation-terminal-closure-owner-producer-v5-expanded12-global-m24-n5_2026-07-18.md)は別campaignの60 / 60 valid runをLayer 4へ登録し、score `4 / 3 = 60 / 0`、quality audit failure count `0`だった。旧v4 resultは変更せず、互換比較へ混ぜない。
 
+[`candidate17-operation-qualified-evidence-owner-producer-v5-expanded12-global-m24-n5-r1`](candidate17-operation-qualified-evidence-owner-producer-v5-expanded12-global-m24-n5-r1.json)は、Candidate17のpromptを変更せず、Candidate31 rating v5 resultと同じEvaluation set、F10 monthly `r3`、`owner-producer-quality-v5`、command evidence v3、executor、反復条件へ固定する。[rating v5 result](../results/candidate17-operation-qualified-evidence-owner-producer-v5-expanded12-global-m24-n5_2026-07-18.md)は60 / 60 valid runをLayer 4へ登録し、score `4 / 3 / 1 = 49 / 10 / 1`だった。旧Candidate17 resultは変更せず、現行条件のappend-only resultとして保持する。
+
 最初のv3 standalone profileは[`candidate2-expanded12-global-m24-n1-r1.json`](candidate2-expanded12-global-m24-n1-r1.json)である。candidate2の12 caseを`N=1`、`M=24`で実行し、[`result`](../results/candidate2-expanded12-global-m24-n1_2026-07-15.md)へ単一prompt setの3 KPIを記録した。
 
 比較用baselineも固定A / B profileへ戻さず、[`baseline-expanded12-global-m24-n1-r1.json`](baseline-expanded12-global-m24-n1-r1.json)として単独実行した。candidate2 profileとの互換条件key一致を確認し、保存済み2 resultから比較viewを生成した。
