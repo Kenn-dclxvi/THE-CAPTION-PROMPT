@@ -202,14 +202,20 @@ quality raterへ渡すのは次だけである。
 
 - `$CYCLE/layer1/set.json`の該当caseにあるmodel-visible情報
 - `$CYCLE/layer2/evidence/<run_id>/`の必要なblind evidence
-- `owner-producer-quality-v7`が要求するall-agent command evidence view
-- `owner-producer-quality-v7`が要求するowner-producer evidence view
+- `owner-producer-quality-v8`が要求するall-agent command evidence view
+- `owner-producer-quality-v8`が要求するowner-producer evidence view
 
 `layer2/bindings/`、Run capsule、oracle、grader、expected result、prompt identityは渡さない。
 
 TaskSpecがcriterion ownerを固定したrunは、採点前に次を実行する。
 
-まず、各runでall-agent usageへbindされたrootとrecursive descendantのsuccessful commandを、workspace pruneより前にmaterializeする。rootはCodex command eventsを使う。descendantはrollout内のtool callとsuccessful outputを対応付ける。commandを固定配列から組み立てた場合、固定nameと`<name>: exit=0`集約行を対応付けられる場合、`write_stdin`でterminal resultを取得した場合も、対応付けが一意なときだけ対象にする。
+まず、各runでall-agent usageへbindされたrootとrecursive descendantのattempted、successful、failed commandを、workspace pruneより前にmaterializeする。新規runは`command-evidence-protocol/v1`をcomparison conditionへ固定し、required commandを1 commandずつ実行してstructured `exit_code`を保存する。required command callがない場合はtask-level未実行として採点する。callがあり非zero exitをbindできる場合はtask-level command failureとして採点する。callはあるがexitをbindできない場合は`command_evidence_incomplete`としてrunを除外し、同じslotを再試行する。
+
+許可pathの上限はLayer 2 adapterの`unexpected_changed_paths`をSSOTとする。Layer 3は成果に必須のpathが存在することだけを確認し、許可済みtest fileを独自のsource-only一覧で再び禁止しない。
+
+caseが作る試験基盤所有のtemporary outputは、宣言したpathだけをadapterがmodel実行後に削除する。削除失敗はquality scoreへ混ぜず、`adapter_owned_teardown_failed`のexternal failureとして除外する。
+
+command format違反とmodelによるadapter-owned pathのcleanup試行は`evaluation-diagnostics`へrun ID付きで保存する。これらはquality KPIへ入れない。
 
 ```bash
 python3 scripts/all_agent_command_evidence.py \

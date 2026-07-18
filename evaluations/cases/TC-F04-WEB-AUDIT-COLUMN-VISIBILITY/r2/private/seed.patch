@@ -1,0 +1,16 @@
+diff --git a/src/web/market_units_editor/src/App.tsx b/src/web/market_units_editor/src/App.tsx
+index 27e5953da7f6dd68456245feead7a73a5ddca864..fb6d93d6209f5190780719c565ee513a62cc47e2 100644
+--- a/src/web/market_units_editor/src/App.tsx
++++ b/src/web/market_units_editor/src/App.tsx
+@@ -146,10 +146,7 @@ export default function App() {
+     return Array.from(classes);
+   }, [funds]);
+ 
+-  const hasAuditKey = useMemo(
+-    () => funds.some((fund) => fund.audit_match_key.trim() !== ""),
+-    [funds]
+-  );
++  const hasAuditKey = true;
+ 
+   const fetchFunds = async () => {
+     setLoadingFunds(true);

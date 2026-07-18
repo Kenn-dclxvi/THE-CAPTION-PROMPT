@@ -30,6 +30,16 @@
 - v3でroot agentだけを`total_tokens`として保存した`prompt-set-result/v1`も履歴として保持する。all-agentへ再集計した結果は`prompt-set-result/v2`としてappend-onlyで追加し、元resultとの由来とtoken accounting revisionを明示する。
 - `docs/prompt-comparison-workflow.md`、`docs/evaluation-loop-manual.md`、`scripts/evaluation_loop.py`を評価基盤v3の固定点とする。再現できる不具合または明示的な要件変更がない限り変更しない。詳細化や追加分析は、まず配下機能で実現し、基盤のLayer、KPI、出力schemaを拡張しない。
 
+## Prompt control design
+
+- prompt制御の追加、置換、削除では、`docs/prompt-control-design-principles.md`を検討原則の正本とする。
+- 新しいcandidateを作る前に、control-freeなrepository条件で成立する最短正常経路、保存済みtraceで確認した一つの誤経路、既存のTaskSpec・repository authority・repository stateだけでは防げない理由を記録する。
+- 制御は、追加する読解・判断・確認costより多くの探索、context継承、再読、再試行、手戻りを消す場合に追加する。消す具体的な判断点またはcontext伝播を示せないpredicateは追加しない。
+- 一つのlabelには一つの不変条件だけを持たせる。既存labelへの条件追加より、重複predicateの置換、統合、削除を優先する。
+- 正しい成果が既に存在する最短経路を、追加のowner探索、evidence再取得、identity照合で阻害しない。境界制御、terminal state、context流入、方法制約を別の変更軸として扱う。
+- 効果は同一互換条件の成果品質、score分布、all-agent `total_tokens`、case別token、tool call、model step、worker routingで確認する。中央値の低下やprompt byte数の縮小だけを効率化と判断しない。
+- `docs/prompt-control-design-principles.md`のcandidate作成前gateが未定義なら、candidate bundleと評価profileを先に作らない。
+
 ## Change discipline
 
 - 1つの変更では1つの判断またはartifact単位を扱う。

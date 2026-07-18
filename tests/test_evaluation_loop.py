@@ -107,7 +107,10 @@ class EvaluationLoopTest(unittest.TestCase):
                 {
                     "schema_version": QUALITY_RATING["command_evidence_schema_version"],
                     "run_id": run_id,
+                    "attempted_commands": [],
                     "successful_commands": [],
+                    "failed_commands": [],
+                    "protocol_violations": [],
                 }
             ),
             encoding="utf-8",

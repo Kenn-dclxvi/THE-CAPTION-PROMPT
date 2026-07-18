@@ -1,0 +1,97 @@
+{
+  "command_evidence": {
+    "collector_schema_version": "the-caption-prompt.all-agent-command-evidence/v5",
+    "required_binding": [
+      "run_id",
+      "root_thread_id",
+      "thread_id",
+      "parent_thread_id",
+      "rollout_file",
+      "command",
+      "exit_code"
+    ],
+    "observation_arrays": [
+      "attempted_commands",
+      "successful_commands",
+      "failed_commands",
+      "protocol_violations"
+    ],
+    "measurement_failure_policy": "a required command call with neither a machine-bound zero nor nonzero exit code is excluded as command_evidence_incomplete and the same slot is retried; it does not receive a quality score",
+    "quality_failure_policy": "a required command with no observed call or with a machine-bound nonzero exit remains rateable as a task outcome",
+    "session_scope": "the exact root session and recursive descendants selected by all-agent usage v1 for the same run workspace",
+    "source": "root Codex command events and bound descendant nested tool results normalized from structured exit fields, fixed command arrays, explicit command-status output, and completed command continuations",
+    "worker_final_response_alone_is_sufficient": false
+  },
+  "contract_id": "outcome-quality-owner-diagnostic-v9",
+  "producer_evidence": {
+    "collector_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+    "criterion_source": "model-visible trial_prompt_input only",
+    "quality_effect": "diagnostic_only",
+    "required_binding": [
+      "run_id",
+      "criterion_owner",
+      "producer_thread_id",
+      "producer_parent_thread_id",
+      "producer_role_path",
+      "producer_completion",
+      "producer_result"
+    ],
+    "source": "all-agent usage session metadata and the producer rollout final result",
+    "worker_self_report_alone_is_sufficient": false
+  },
+  "quality_score_rule": {
+    "every_valid_run_must_receive_one_score": true,
+    "rating_scale": [0, 1, 2, 3, 4],
+    "score_anchors": {
+      "0": "the outcome is absent, harmful, or outside the authorized operation boundary",
+      "1": "the run preserves a boundary or no-drift condition, but does not produce the primary requested outcome",
+      "2": "the run produces a partial task-aligned outcome, but an explicit primary outcome criterion is unmet or observed evidence contradicts completion",
+      "3": "the primary outcome is supported by the artifact or response, but one or more required outcome or validation evidence items are missing or mismatched and no observed evidence contradicts the primary outcome",
+      "4": "the case outcome satisfies every model-visible outcome and boundary criterion, and every required validation command has successful bound evidence"
+    },
+    "score_4_requires": [
+      "the case outcome satisfies every model-visible outcome and boundary criterion",
+      "every required validation command has a successful result in the bound root or descendant session scope"
+    ],
+    "when_evidence_is_missing_or_mismatched": "task-level outcome, boundary, or validation absence, failure, or mismatch remains rateable; measurement-incomplete command evidence is excluded before rating; owner-producer route evidence is recorded separately and does not change the outcome quality score",
+    "unrateable_or_null_score_is_allowed_for_valid_run": false
+  },
+  "rater_input": {
+    "allowed": [
+      "model-visible case",
+      "blind execution evidence",
+      "all-agent command evidence view",
+      "command protocol audit view"
+    ],
+    "diagnostic_only": [
+      "owner-producer evidence view"
+    ],
+    "forbidden": [
+      "prompt identity",
+      "condition label",
+      "oracle",
+      "grader expected result",
+      "winner or adoption information"
+    ]
+  },
+  "diagnostic_observations": {
+    "affect_quality_score": false,
+    "required": [
+      "owner-producer evidence status",
+      "command protocol violations",
+      "model attempts to remove adapter-owned temporary outputs",
+      "adapter-owned teardown result"
+    ]
+  },
+  "response_evidence": {
+    "matching_rule": "normalize the final response with Unicode NFKC and casefold; every concept group must match at least one listed form",
+    "semantic_marker_groups": {
+      "TC-F05-CLARIFY-UNITS-MODE": {
+        "daily_mode": ["daily"],
+        "live_csv_fallback_policy": ["fallback", "フォールバック"],
+        "strict_mode": ["strict"]
+      }
+    }
+  },
+  "schema_version": "the-caption-prompt.quality-rating-contract/v9"
+}

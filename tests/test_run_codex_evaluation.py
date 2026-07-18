@@ -6,12 +6,18 @@ import unittest
 from pathlib import Path
 
 from scripts.run_codex_evaluation import (
+    ADAPTER_TEARDOWN_PROTOCOL,
     AdapterError,
+    COMMAND_EVIDENCE_PROTOCOL,
+    adapter_teardown_paths_from_protocol,
+    command_protocol_for_case,
+    command_evidence_external_failure,
     detect_external_failure,
     evaluate_boundary_observations,
     observe_boundary_source,
     prompt_fixture_collisions,
     prompt_set_identity_from_binding,
+    remove_adapter_owned_outputs,
     render_task,
     validate_boundary_evidence_compatibility,
 )
@@ -254,6 +260,122 @@ class RunCodexEvaluationTest(unittest.TestCase):
         self.assertIn('<task-spec-json>\n{\n  "task_id": "TC-F10"', task)
         self.assertIn("<adapter-boundary-evidence-json>", task)
         self.assertIn("raw出力を再取得・再解釈しない", task)
+
+    def test_render_task_adds_bound_command_evidence_protocol(self) -> None:
+        case = {"payload": {"trial_prompt_input": {"task_id": "TC-F07"}}}
+
+        task = render_task(
+            case,
+            command_evidence_protocol={
+                **COMMAND_EVIDENCE_PROTOCOL,
+                "required_command_groups": [["bash", "-n", "run.sh"]],
+            },
+        )
+
+        self.assertIn("1 commandずつ個別のexec_command", task)
+        self.assertIn('"exit_code":返却された整数', task)
+        self.assertIn("<command-evidence-protocol-json>", task)
+
+        with self.assertRaisesRegex(AdapterError, "unsupported command evidence protocol"):
+            render_task(case, command_evidence_protocol={"schema_version": "other"})
+
+    def test_selects_required_command_groups_for_current_case(self) -> None:
+        declaration = {
+            **COMMAND_EVIDENCE_PROTOCOL,
+            "required_command_groups_by_case": {
+                "TC-F07": [["bash", "-n", "run.sh"]],
+                "TC-F04": [["npm", "run", "build"]],
+            },
+        }
+
+        task_protocol, groups = command_protocol_for_case(declaration, "TC-F07")
+
+        self.assertEqual(groups, [["bash", "-n", "run.sh"]])
+        assert task_protocol is not None
+        self.assertEqual(task_protocol["required_command_groups"], groups)
+        self.assertNotIn("required_command_groups_by_case", task_protocol)
+
+    def test_only_incomplete_command_evidence_is_an_external_failure(self) -> None:
+        self.assertIsNone(
+            command_evidence_external_failure(
+                [{"status": "not_attempted"}, {"status": "failed"}]
+            )
+        )
+        failure = command_evidence_external_failure(
+            [{"status": "evidence_incomplete"}]
+        )
+        assert failure is not None
+        self.assertEqual(failure["reason_code"], "command_evidence_incomplete")
+
+    def test_removes_only_declared_adapter_owned_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            owned_directory = workspace / "src" / "ui" / "node_modules"
+            owned_directory.mkdir(parents=True)
+            (owned_directory / "package.json").write_text("{}\n", encoding="utf-8")
+            owned_file = workspace / "src" / "ui" / "build.log"
+            owned_file.write_text("generated\n", encoding="utf-8")
+            preserved = workspace / "src" / "ui" / "source.ts"
+            preserved.write_text("source\n", encoding="utf-8")
+
+            removed = remove_adapter_owned_outputs(
+                workspace,
+                ["src/ui/node_modules", "src/ui/build.log", "src/ui/missing"],
+            )
+
+            self.assertEqual(removed, ["src/ui/node_modules", "src/ui/build.log"])
+            self.assertFalse(owned_directory.exists())
+            self.assertFalse(owned_file.exists())
+            self.assertTrue(preserved.exists())
+
+    def test_rejects_unsafe_adapter_teardown_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            for unsafe in (".", "../outside", "/tmp/outside"):
+                with self.subTest(unsafe=unsafe):
+                    with self.assertRaisesRegex(AdapterError, "unsafe adapter teardown path"):
+                        remove_adapter_owned_outputs(workspace, [unsafe])
+
+    def test_rejects_adapter_teardown_through_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary, tempfile.TemporaryDirectory() as outside:
+            workspace = Path(temporary)
+            (workspace / "linked").symlink_to(Path(outside), target_is_directory=True)
+
+            with self.assertRaisesRegex(AdapterError, "traverses symlink"):
+                remove_adapter_owned_outputs(workspace, ["linked/generated"])
+
+    def test_binds_adapter_teardown_paths_from_comparison_condition(self) -> None:
+        declaration = {
+            **ADAPTER_TEARDOWN_PROTOCOL,
+            "paths_by_case": {
+                "TC-F04": ["src/ui/node_modules", "src/ui/dist"],
+            },
+        }
+
+        self.assertEqual(
+            adapter_teardown_paths_from_protocol(
+                {"case_id": "TC-F04"},
+                {},
+                {"adapter_owned_teardown": declaration},
+            ),
+            ["src/ui/node_modules", "src/ui/dist"],
+        )
+        with self.assertRaisesRegex(AdapterError, "do not match"):
+            adapter_teardown_paths_from_protocol(
+                {"case_id": "TC-F04"},
+                {"adapter_teardown_paths": ["other"]},
+                {"adapter_owned_teardown": declaration},
+            )
+
+    def test_uses_empty_teardown_paths_when_protocol_is_absent(self) -> None:
+        self.assertEqual(
+            adapter_teardown_paths_from_protocol(
+                {"case_id": "TC-F05"},
+                {},
+                {},
+            ),
+            [],
+        )
 
     def test_boundary_evidence_requires_explicit_compatibility_revision(self) -> None:
         declaration = {
