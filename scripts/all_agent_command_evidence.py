@@ -15,7 +15,7 @@ class AllAgentCommandEvidenceError(Exception):
     pass
 
 
-SCHEMA_VERSION = "the-caption-prompt.all-agent-command-evidence/v3"
+SCHEMA_VERSION = "the-caption-prompt.all-agent-command-evidence/v4"
 USAGE_SCHEMA_VERSION = "the-caption-prompt.all-agent-usage/v1"
 
 
@@ -117,6 +117,12 @@ def successful_result_objects(value: Any, source: str = "") -> Iterable[dict[str
             if "${r.name}" in source or "${r.label}" in source:
                 for match in re.finditer(
                     r"(?:^|\n)([A-Za-z0-9_.-]+):\s*exit=0(?=\n|$)",
+                    candidate,
+                ):
+                    yield {"name": match.group(1), "exit_code": 0}
+                for match in re.finditer(
+                    r"(?:^|\n)###\s+([A-Za-z0-9_.-]+)\s*\n"
+                    r"exit_code=0(?=\n|$)",
                     candidate,
                 ):
                     yield {"name": match.group(1), "exit_code": 0}

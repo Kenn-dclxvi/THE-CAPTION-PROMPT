@@ -9,6 +9,8 @@ from scripts.evaluation_loop import (
     QUALITY_RATING,
     QUALITY_RATING_V2,
     QUALITY_RATING_V3,
+    QUALITY_RATING_V5,
+    QUALITY_RATING_V6,
     EvaluationError,
     layer3_rate,
 )
@@ -21,11 +23,35 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
             Path(__file__).resolve().parents[1]
             / "evaluations"
             / "rating-contracts"
-            / "owner-producer-quality-v5.json"
+            / "owner-producer-quality-v7.json"
         )
         self.assertEqual(
             hashlib.sha256(contract.read_bytes()).hexdigest(),
             QUALITY_RATING["contract_sha256"],
+        )
+
+    def test_rating_v5_contract_hash_remains_supported(self) -> None:
+        contract = (
+            Path(__file__).resolve().parents[1]
+            / "evaluations"
+            / "rating-contracts"
+            / "owner-producer-quality-v5.json"
+        )
+        self.assertEqual(
+            hashlib.sha256(contract.read_bytes()).hexdigest(),
+            QUALITY_RATING_V5["contract_sha256"],
+        )
+
+    def test_rating_v6_contract_hash_remains_supported(self) -> None:
+        contract = (
+            Path(__file__).resolve().parents[1]
+            / "evaluations"
+            / "rating-contracts"
+            / "owner-producer-quality-v6.json"
+        )
+        self.assertEqual(
+            hashlib.sha256(contract.read_bytes()).hexdigest(),
+            QUALITY_RATING_V6["contract_sha256"],
         )
 
     def test_rating_v2_contract_hash_remains_supported(self) -> None:
@@ -210,7 +236,7 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
             rating = json.loads(
                 (cycle / "layer3" / "ratings" / "run-1.json").read_text()
             )
-            self.assertEqual(rating["quality_rating_contract"], "owner-producer-quality-v5")
+            self.assertEqual(rating["quality_rating_contract"], "owner-producer-quality-v7")
             self.assertEqual(rating["command_evidence_status"], "available")
 
 

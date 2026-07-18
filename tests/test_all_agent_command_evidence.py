@@ -255,6 +255,119 @@ class AllAgentCommandEvidenceTest(unittest.TestCase):
             self.assertIn("git diff --check", commands)
             self.assertNotIn("git diff --name-only", commands)
 
+    def test_binds_markdown_heading_results_from_parallel_exec_wrapper(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            usage, root_events = self.fixture(root)
+            write_jsonl(
+                root / "child.jsonl",
+                [
+                    {
+                        "type": "session_meta",
+                        "payload": {"id": "child", "parent_thread_id": "root"},
+                    },
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call",
+                            "call_id": "markdown-heading-results-call",
+                            "input": (
+                                'const specs = [["static_validation", "python3 validation"], '
+                                '["diff_check", "git diff --check"], '
+                                '["diff_names", "git diff --name-only"]];'
+                                "const results = await Promise.all(specs.map(async "
+                                "([name, cmd]) => { const r = await tools.exec_command({cmd}); "
+                                "return {name, exit_code: r.exit_code, output: r.output}; }));"
+                                "for (const r of results) {"
+                                "text(`### ${r.name}\\nexit_code=${r.exit_code}\\n${r.output}`); }"
+                            ),
+                        },
+                    },
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call_output",
+                            "call_id": "markdown-heading-results-call",
+                            "output": [
+                                {
+                                    "type": "input_text",
+                                    "text": "Script completed\nWall time 0.1 seconds\nOutput:\n",
+                                },
+                                {
+                                    "type": "input_text",
+                                    "text": "### static_validation\nexit_code=0\n",
+                                },
+                                {
+                                    "type": "input_text",
+                                    "text": "### diff_check\nexit_code=0\n",
+                                },
+                                {
+                                    "type": "input_text",
+                                    "text": "### diff_names\nexit_code=1\nrequirements.in\n",
+                                },
+                            ],
+                        },
+                    },
+                ],
+            )
+
+            report = collect(usage, root_events)
+            commands = [item["command"] for item in report["successful_commands"]]
+
+            self.assertIn("python3 validation", commands)
+            self.assertIn("git diff --check", commands)
+            self.assertNotIn("git diff --name-only", commands)
+
+    def test_does_not_treat_process_start_failure_as_success(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            usage, root_events = self.fixture(root)
+            write_jsonl(
+                root / "child.jsonl",
+                [
+                    {
+                        "type": "session_meta",
+                        "payload": {"id": "child", "parent_thread_id": "root"},
+                    },
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call",
+                            "call_id": "process-start-failure",
+                            "input": (
+                                'const r = await tools.exec_command({cmd: "npm run lint"});'
+                                "text(JSON.stringify(r));"
+                            ),
+                        },
+                    },
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call_output",
+                            "call_id": "process-start-failure",
+                            "output": [
+                                {
+                                    "type": "input_text",
+                                    "text": "Script failed\nWall time 0.0 seconds\nOutput:\n",
+                                },
+                                {
+                                    "type": "input_text",
+                                    "text": (
+                                        "Script error:\nexec_command failed for `npm run lint`: "
+                                        "CreateProcess failed"
+                                    ),
+                                },
+                            ],
+                        },
+                    },
+                ],
+            )
+
+            report = collect(usage, root_events)
+            commands = [item["command"] for item in report["successful_commands"]]
+
+            self.assertNotIn("npm run lint", commands)
+
     def test_binds_completed_continuation_to_original_command(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
