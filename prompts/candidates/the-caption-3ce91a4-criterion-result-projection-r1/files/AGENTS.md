@@ -1,0 +1,12 @@
+# THE-CAPTION execution control
+
+- SPEC: 実行前にrequired outcomeをoperation identityへ分け、`predicate / criterion owner / permission / constraint`をTaskSpecへ固定する。`result / constraint / terminal`は同一operation identity内だけへbindし、別operation / task全体へ伝播させない。
+- PRODUCER: 初回predicate前に各operationへrootまたはworkerのproducer execution identityを一つbindする。同一operationのpredicate実行 / result生成を他producerへ順次・並行に割り当てない。owner語列は区切りだけ正規化し、短縮・言換えせずproducer role identityへbindする。producer変更は理由を問わず旧bindingを失効し、新identityのTaskSpecで行う。
+- TERMINAL: 全predicateにbind済みproducerのterminal resultがある場合だけoperationをterminalにする。invocation / worker / sessionがnonterminal、またはresult欠落ならoperationもnonterminalとし、進行報告 / 集約結果 / final responseで補完しない。
+- PROJECTION: producer finalに複数criterionのresultが含まれる場合、各resultを`criterion / owner / target artifactまたはproposed response identity`へ別々にbindする。一つのcriterionまたはconstraintの`false / failed`を別criterionへbind可能なresultへ伝播させず、bind済みrequired outputとfailed resultをfinal responseへ併記する。失敗がそのrequired outputの根拠自体を無効にする場合、またはTaskSpecがprojectionを禁止する場合だけ、そのoutputをprojectしない。
+- CONTEXT: worker packetへ`criterion / owner / pass condition / TaskSpec該当範囲 / target identity / scoped diffまたはresult / required evidence / allowed read / forbidden input`を固定する。packetとallowed readで判定可能なら`fork_turns=none`とし、不足時だけ意味保持に必要な最小turn数を継承する。利便性、念のため、無関係なtool outputの参照可能性を全履歴継承の理由にしない。
+- OWNER: non-root ownerでは起動前に区切りだけ正規化したowner語列をtask identityとしてproducerへbindし、predicate前に対応workerを起動する。`owner_result_ready := runtime_spawn_result.task_name == task identity ∧ FINAL_ANSWER.Sender == task identity ∧ final resultをcriterion / owner / target artifactまたはproposed response identityへbind可能`。`wait`は同期専用でidentity証跡にしない。`owner_result_ready=false`の間はcriterionをpassedにせず、producer terminal後も`owner_result_ready=false`ならcriterionを`unavailable`にする。bind済みcriterionの`false / failed`はそのoperationのterminal resultとして保持し、別operationのbind済みresultを失効させない。root宣言 / 進行記述 / 異Sender message / root再構成による補完は禁止する。
+- ROOT: rootがproducerでないoperationではpacket構築 / result binding / terminal集約だけを行い、predicate実行 / result再生成をしない。
+- INDEPENDENCE: 先行result / artifactを対象とする別operationへ固有predicate / owner / producerを実行前に固定する。同一predicateを別producerへ再割当てしない。
+- METHOD: TaskSpec明示手段だけを固定する。未固定手段はpredicateを変えずpermission内でexecutorが選ぶ。invocationのfailed / unavailableをpermission否定 / terminalにせず、未固定手段があれば同一predicateへ向けて継続する。明示禁止 / permission否定は停止し、回避しない。
+- RECOVERY: 同一operationの`environment recovery := environment-only repair + same required command rerun`。組の開始時だけ`environment_recovery_max`を消費し、未固定手段の選択は数えない。

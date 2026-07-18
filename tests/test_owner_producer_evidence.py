@@ -11,6 +11,8 @@ from scripts.evaluation_loop import (
     QUALITY_RATING_V3,
     QUALITY_RATING_V5,
     QUALITY_RATING_V6,
+    QUALITY_RATING_V7,
+    QUALITY_RATING_V9,
     EvaluationError,
     layer3_rate,
 )
@@ -23,7 +25,7 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
             Path(__file__).resolve().parents[1]
             / "evaluations"
             / "rating-contracts"
-            / "owner-producer-quality-v7.json"
+            / "owner-producer-quality-v8.json"
         )
         self.assertEqual(
             hashlib.sha256(contract.read_bytes()).hexdigest(),
@@ -54,6 +56,30 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
             QUALITY_RATING_V6["contract_sha256"],
         )
 
+    def test_rating_v7_contract_hash_remains_supported(self) -> None:
+        contract = (
+            Path(__file__).resolve().parents[1]
+            / "evaluations"
+            / "rating-contracts"
+            / "owner-producer-quality-v7.json"
+        )
+        self.assertEqual(
+            hashlib.sha256(contract.read_bytes()).hexdigest(),
+            QUALITY_RATING_V7["contract_sha256"],
+        )
+
+    def test_rating_v9_contract_hash_matches_diagnostic_configuration(self) -> None:
+        contract = (
+            Path(__file__).resolve().parents[1]
+            / "evaluations"
+            / "rating-contracts"
+            / "outcome-quality-owner-diagnostic-v9.json"
+        )
+        self.assertEqual(
+            hashlib.sha256(contract.read_bytes()).hexdigest(),
+            QUALITY_RATING_V9["contract_sha256"],
+        )
+
     def test_rating_v2_contract_hash_remains_supported(self) -> None:
         contract = (
             Path(__file__).resolve().parents[1]
@@ -78,7 +104,12 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
             QUALITY_RATING_V3["contract_sha256"],
         )
 
-    def make_cycle(self, root: Path, with_child: bool) -> Path:
+    def make_cycle(
+        self,
+        root: Path,
+        with_child: bool,
+        quality_rating: dict[str, str] = QUALITY_RATING,
+    ) -> Path:
         cycle = root / "cycle"
         run_id = "run-1"
         binding = cycle / "layer2" / "bindings" / "binding.json"
@@ -87,7 +118,7 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
             json.dumps(
                 {
                     "case_id": "TC-F10-TEST",
-                    "comparison_conditions": {"quality_rating": QUALITY_RATING},
+                    "comparison_conditions": {"quality_rating": quality_rating},
                     "iteration": 1,
                     "run_id": run_id,
                     "status": "valid",
@@ -192,6 +223,64 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
                     )
                 )
 
+    def test_rating_v9_records_missing_owner_as_diagnostic_without_lowering_score(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            cycle = self.make_cycle(
+                Path(temp),
+                with_child=False,
+                quality_rating=QUALITY_RATING_V9,
+            )
+            evidence = cycle / "layer2" / "evidence" / "run-1"
+            (evidence / "execution.json").write_text(
+                json.dumps({"status": "valid"}), encoding="utf-8"
+            )
+            report_path = cycle / "layer3" / "owner-producer-evidence.json"
+            report_path.parent.mkdir(parents=True)
+            report_path.write_text(json.dumps(collect(cycle)), encoding="utf-8")
+            command_path = (
+                cycle
+                / "layer2"
+                / "extensions"
+                / "run-1"
+                / "all-agent-command-evidence"
+                / "evidence.json"
+            )
+            command_path.parent.mkdir(parents=True)
+            command_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": QUALITY_RATING_V9[
+                            "command_evidence_schema_version"
+                        ],
+                        "run_id": "run-1",
+                        "attempted_commands": [],
+                        "successful_commands": [],
+                        "failed_commands": [],
+                        "protocol_violations": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            layer3_rate(
+                Namespace(
+                    cycle=str(cycle),
+                    reason="outcome is correct; owner route is diagnostic",
+                    run_id="run-1",
+                    score=4,
+                )
+            )
+
+            rating = json.loads(
+                (cycle / "layer3" / "ratings" / "run-1.json").read_text()
+            )
+            self.assertEqual(rating["score"], 4)
+            self.assertEqual(rating["owner_producer_evidence_status"], "failed")
+            self.assertEqual(
+                rating["quality_rating_contract"],
+                "outcome-quality-owner-diagnostic-v9",
+            )
+
     def test_rating_v4_requires_bound_command_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             cycle = self.make_cycle(Path(temp), with_child=True)
@@ -226,7 +315,10 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
                     {
                         "schema_version": QUALITY_RATING["command_evidence_schema_version"],
                         "run_id": "run-1",
+                        "attempted_commands": [],
                         "successful_commands": [],
+                        "failed_commands": [],
+                        "protocol_violations": [],
                     }
                 ),
                 encoding="utf-8",
@@ -236,7 +328,7 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
             rating = json.loads(
                 (cycle / "layer3" / "ratings" / "run-1.json").read_text()
             )
-            self.assertEqual(rating["quality_rating_contract"], "owner-producer-quality-v7")
+            self.assertEqual(rating["quality_rating_contract"], "owner-producer-quality-v8")
             self.assertEqual(rating["command_evidence_status"], "available")
 
 

@@ -1,0 +1,11 @@
+# THE-CAPTION execution control
+
+- SPEC: 実行前にrequired outcomeを、evidenceまたはinvalidation条件が異なる最小のresult unitへ分け、各unitへ`predicate / criterion owner / permission / constraint`を固定する。`result / constraint / terminal`はbind先unitだけへ作用させ、別unit / task全体へ伝播させない。
+- PRODUCER: 初回predicate前に各operationへcriterion ownerと同一role identityのproducer execution identityを一つbindする。同一operationのpredicate実行 / result生成を他producerへ順次・並行に割り当てない。owner語列は区切りだけ正規化し、短縮・言換えせずproducer role identityへbindする。producer変更は理由を問わず旧bindingを失効し、新identityのTaskSpecで行う。
+- TERMINAL: 全predicateにbind済みproducerのterminal resultがある場合だけoperationをterminalにする。invocation / worker / sessionがnonterminal、またはresult欠落ならoperationもnonterminalとし、進行報告 / 集約結果 / final responseで補完しない。
+- CONTEXT: worker packetへresult unit別の`criterion / pass condition / invalidation condition / target identity / direct evidence / allowed read / forbidden input`を固定する。producerはdirect evidenceがunit値を確定する場合だけpassedにする。packetとallowed readで判定可能なら`fork_turns=none`、不足時も意味保持に必要な最小turnだけを継承し、利便性や無関係なtool outputを全履歴継承の理由にしない。
+- OWNER: non-root ownerでは起動前に区切りだけ正規化したowner語列をtask identityとしてproducerへbindし、predicate前に対応workerを起動する。`owner_result_ready := runtime_spawn_result.task_name == task identity ∧ FINAL_ANSWER.Sender == task identity ∧ final resultをcriterion / owner / target artifactまたはproposed response identityへbind可能`。`wait`は同期専用でidentity証跡にしない。`owner_result_ready=false`の間はcriterionをpassedにせず、producer terminal後も`owner_result_ready=false`ならcriterionを`unavailable`にする。bind済みunitの`false / failed`はterminal resultとして保持し、別unitのbind済みresultを失効または省略させない。root宣言 / 進行記述 / 異Sender message / root再構成による補完は禁止する。
+- ROOT: rootがproducerでないoperationではpacket構築 / result binding / terminal集約だけを行い、predicate実行 / result再生成をしない。
+- INDEPENDENCE: 先行result / artifactを対象とする別operationへ固有predicate / owner / producerを実行前に固定する。同一predicateを別producerへ再割当てしない。
+- METHOD: TaskSpec明示手段だけを固定する。未固定手段はpredicateを変えずpermission内でexecutorが選ぶ。invocationのfailed / unavailableをpermission否定 / terminalにせず、未固定手段があれば同一predicateへ向けて継続する。明示禁止 / permission否定は停止し、回避しない。
+- RECOVERY: 同一operationの`environment recovery := environment-only repair + same required command rerun`。組の開始時だけ`environment_recovery_max`を消費し、未固定手段の選択は数えない。

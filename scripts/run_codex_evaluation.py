@@ -17,6 +17,13 @@ from typing import Any
 
 try:
     from export_prompt_bundle import BundleError, verify_bundle
+    from all_agent_command_evidence import (
+        AllAgentCommandEvidenceError,
+        adapter_owned_cleanup_attempts,
+        collect as collect_command_evidence,
+        command_requirement_statuses,
+        model_reported_adapter_owned_cleanup_attempts,
+    )
     from all_agent_usage import (
         AllAgentUsageError,
         TOKEN_ACCOUNTING,
@@ -25,6 +32,13 @@ try:
     )
 except ModuleNotFoundError:  # Imported as scripts.run_codex_evaluation in tests.
     from scripts.export_prompt_bundle import BundleError, verify_bundle
+    from scripts.all_agent_command_evidence import (
+        AllAgentCommandEvidenceError,
+        adapter_owned_cleanup_attempts,
+        collect as collect_command_evidence,
+        command_requirement_statuses,
+        model_reported_adapter_owned_cleanup_attempts,
+    )
     from scripts.all_agent_usage import (
         AllAgentUsageError,
         TOKEN_ACCOUNTING,
@@ -43,6 +57,14 @@ MODEL_AT_CAPACITY = "Selected model is at capacity."
 BOUNDARY_EVIDENCE_SCHEMA_VERSION = "the-caption-prompt.boundary-evidence/v1"
 BOUNDARY_EVIDENCE_BINDING_REVISION = "one-observation-one-predicate/v1"
 BOUNDARY_EVIDENCE_SOURCE_POLICY = "adapter_managed_read_only_registry"
+COMMAND_EVIDENCE_PROTOCOL = {
+    "schema_version": "the-caption-prompt.command-evidence-protocol/v1",
+    "mode": "separate_required_commands_with_structured_exit",
+}
+ADAPTER_TEARDOWN_PROTOCOL = {
+    "schema_version": "the-caption-prompt.adapter-owned-teardown/v1",
+    "failure_policy": "exclude_as_external_failure",
+}
 BOUNDARY_OBSERVATION_SOURCES: dict[str, list[str]] = {
     "workspace.path": ["pwd", "-P"],
     "workspace.git.branch": ["git", "branch", "--show-current"],
@@ -110,6 +132,51 @@ def require_string_array(value: Any, name: str) -> list[str]:
     if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
         raise AdapterError(f"{name} must be a string array")
     return value
+
+
+def command_protocol_for_case(
+    declaration: Any, case_id: str
+) -> tuple[dict[str, Any] | None, list[list[str]]]:
+    if declaration is None:
+        return None, []
+    declaration = require_object(declaration, "executor_parameters.command_evidence_protocol")
+    if any(declaration.get(key) != expected for key, expected in COMMAND_EVIDENCE_PROTOCOL.items()):
+        raise AdapterError("unsupported command evidence protocol")
+    groups_by_case = require_object(
+        declaration.get("required_command_groups_by_case"),
+        "command_evidence_protocol.required_command_groups_by_case",
+    )
+    raw_groups = groups_by_case.get(case_id, [])
+    if not isinstance(raw_groups, list):
+        raise AdapterError("required command groups must be an array")
+    groups: list[list[str]] = []
+    for index, raw_group in enumerate(raw_groups):
+        groups.append(
+            require_string_array(
+                raw_group,
+                f"required_command_groups_by_case.{case_id}[{index}]",
+            )
+        )
+    return {
+        **COMMAND_EVIDENCE_PROTOCOL,
+        "required_command_groups": groups,
+    }, groups
+
+
+def command_evidence_external_failure(
+    requirement_statuses: list[dict[str, Any]],
+) -> dict[str, str] | None:
+    if not any(
+        item.get("status") == "evidence_incomplete" for item in requirement_statuses
+    ):
+        return None
+    return {
+        "schema_version": "the-caption-prompt.run-status/v1",
+        "status": "excluded",
+        "category": "external_failure",
+        "reason_code": "command_evidence_incomplete",
+        "detector": "command-evidence-protocol/v1",
+    }
 
 
 def run(command: list[str], cwd: Path, env: dict[str, str] | None = None, binary: bool = False) -> str | bytes:
@@ -330,6 +397,67 @@ def prepare_runtime_links(workspace: Path, raw_links: Any) -> list[dict[str, str
     return prepared
 
 
+def remove_adapter_owned_outputs(workspace: Path, raw_paths: Any) -> list[str]:
+    """Remove only outputs explicitly assigned to the evaluation adapter."""
+    if raw_paths is None:
+        return []
+    paths = require_string_array(raw_paths, "parameters.adapter_teardown_paths")
+    removed: list[str] = []
+    for raw_path in paths:
+        relative = PurePosixPath(raw_path)
+        if (
+            relative.is_absolute()
+            or raw_path != relative.as_posix()
+            or relative == PurePosixPath(".")
+            or ".." in relative.parts
+        ):
+            raise AdapterError(f"unsafe adapter teardown path: {raw_path}")
+        destination = workspace.joinpath(*relative.parts)
+        ancestor = destination.parent
+        while ancestor != workspace:
+            if ancestor.is_symlink():
+                raise AdapterError(f"adapter teardown path traverses symlink: {raw_path}")
+            if not ancestor.is_relative_to(workspace):
+                raise AdapterError(f"adapter teardown path escapes workspace: {raw_path}")
+            ancestor = ancestor.parent
+        if not destination.exists() and not destination.is_symlink():
+            continue
+        if destination.is_dir() and not destination.is_symlink():
+            shutil.rmtree(destination)
+        else:
+            destination.unlink()
+        removed.append(raw_path)
+    return removed
+
+
+def adapter_teardown_paths_from_protocol(
+    binding: dict[str, Any], parameters: dict[str, Any], executor_parameters: dict[str, Any]
+) -> list[str]:
+    declaration = executor_parameters.get("adapter_owned_teardown")
+    direct_paths = parameters.get("adapter_teardown_paths")
+    if declaration is None:
+        return require_string_array(
+            [] if direct_paths is None else direct_paths,
+            "parameters.adapter_teardown_paths",
+        )
+    declaration = require_object(declaration, "executor_parameters.adapter_owned_teardown")
+    if (
+        declaration.get("schema_version") != ADAPTER_TEARDOWN_PROTOCOL["schema_version"]
+        or declaration.get("failure_policy") != ADAPTER_TEARDOWN_PROTOCOL["failure_policy"]
+    ):
+        raise AdapterError("unsupported adapter-owned teardown protocol")
+    paths_by_case = require_object(
+        declaration.get("paths_by_case"), "adapter_owned_teardown.paths_by_case"
+    )
+    case_id = require_string(binding.get("case_id"), "binding.case_id")
+    declared_paths = require_string_array(
+        paths_by_case.get(case_id, []), f"adapter_owned_teardown.paths_by_case.{case_id}"
+    )
+    if direct_paths is not None and direct_paths != declared_paths:
+        raise AdapterError("run teardown paths do not match the comparison condition")
+    return declared_paths
+
+
 def prompt_overlay_commit(workspace: Path, targets: list[str]) -> tuple[str, str]:
     run(["git", "add", "--", *targets], workspace)
     env = os.environ.copy()
@@ -495,23 +623,43 @@ def validate_boundary_evidence_compatibility(capsule: dict[str, Any], raw_observ
         raise AdapterError("comparison conditions do not bind codex-adapter/v4")
 
 
-def render_task(case: dict[str, Any], boundary_evidence: dict[str, Any] | None = None) -> str:
+def render_task(
+    case: dict[str, Any],
+    boundary_evidence: dict[str, Any] | None = None,
+    command_evidence_protocol: dict[str, Any] | None = None,
+) -> str:
     payload = require_object(case.get("payload"), "case.payload")
     trial_input = require_object(payload.get("trial_prompt_input"), "case.payload.trial_prompt_input")
     serialized = json.dumps(trial_input, ensure_ascii=False, indent=2, sort_keys=True)
     task = "以下のTaskSpecに従って作業してください。\n\n<task-spec-json>\n" + serialized + "\n</task-spec-json>\n"
-    if boundary_evidence is None:
-        return task
-    evidence = json.dumps(boundary_evidence, ensure_ascii=False, indent=2, sort_keys=True)
-    return (
-        task
-        + "\n以下は実行adapterがread-only sourceから観測し、1 observationと1 predicateを対応付けた証跡です。\n"
-        + "列挙されたoperationの同じpredicateは観測済みとしてstatusを使用し、raw出力を再取得・再解釈しないでください。\n"
-        + "statusがfailedまたはunavailableなら、TaskSpecのterminal条件に従ってください。\n\n"
-        + "<adapter-boundary-evidence-json>\n"
-        + evidence
-        + "\n</adapter-boundary-evidence-json>\n"
-    )
+    if command_evidence_protocol is not None:
+        if any(
+            command_evidence_protocol.get(key) != expected
+            for key, expected in COMMAND_EVIDENCE_PROTOCOL.items()
+        ) or not isinstance(command_evidence_protocol.get("required_command_groups"), list):
+            raise AdapterError("unsupported command evidence protocol")
+        task += (
+            "\n以下は全candidate共通の評価用command証跡protocolです。\n"
+            "TaskSpecのrequired validation commandは1 commandずつ個別のexec_commandで実行し、"
+            "compound commandへまとめないでください。\n"
+            "descendant workerがcustom exec wrapperを使う場合は、各結果を"
+            "{\"command\":実行した完全なcommand文字列,\"exit_code\":返却された整数}のJSONとして出力してください。\n"
+            "worker packetにも同じprotocolを含め、exit_code=0のtool resultがないcommandをPASSと報告しないでください。\n"
+            "<command-evidence-protocol-json>\n"
+            + json.dumps(command_evidence_protocol, ensure_ascii=False, sort_keys=True)
+            + "\n</command-evidence-protocol-json>\n"
+        )
+    if boundary_evidence is not None:
+        evidence = json.dumps(boundary_evidence, ensure_ascii=False, indent=2, sort_keys=True)
+        task += (
+            "\n以下は実行adapterがread-only sourceから観測し、1 observationと1 predicateを対応付けた証跡です。\n"
+            "列挙されたoperationの同じpredicateは観測済みとしてstatusを使用し、raw出力を再取得・再解釈しないでください。\n"
+            "statusがfailedまたはunavailableなら、TaskSpecのterminal条件に従ってください。\n\n"
+            "<adapter-boundary-evidence-json>\n"
+            + evidence
+            + "\n</adapter-boundary-evidence-json>\n"
+        )
+    return task
 
 
 def parse_usage(jsonl: bytes) -> tuple[int, dict[str, int]]:
@@ -620,7 +768,18 @@ def execute() -> int:
             "prompt_overlay_tree": tree,
         },
     )
-    task = render_task(case, boundary_evidence)
+    conditions = require_object(capsule.get("comparison_conditions"), "run.comparison_conditions")
+    executor_parameters = require_object(
+        conditions.get("executor_parameters"), "comparison_conditions.executor_parameters"
+    )
+    declared_command_protocol, required_command_groups = command_protocol_for_case(
+        executor_parameters.get("command_evidence_protocol"),
+        require_string(binding.get("case_id"), "binding.case_id"),
+    )
+    adapter_teardown_paths = adapter_teardown_paths_from_protocol(
+        binding, parameters, executor_parameters
+    )
+    task = render_task(case, boundary_evidence, declared_command_protocol)
     task_sha256 = hashlib.sha256(task.encode("utf-8")).hexdigest()
     adapter_extension = extension_root / "codex-adapter"
     final_response = adapter_extension / "final-response.txt"
@@ -673,6 +832,10 @@ def execute() -> int:
     external_failure = detect_external_failure(completed.stderr, completed.stdout)
     root_total_tokens = None
     all_agent_usage = None
+    command_evidence = None
+    command_protocol_audit = None
+    cleanup_attempts: list[dict[str, Any]] = []
+    reported_cleanup_attempts: list[dict[str, Any]] = []
     if external_failure is not None:
         write_json(status_path, external_failure)
         total_tokens = None
@@ -722,6 +885,116 @@ def execute() -> int:
                     "total_tokens": total_tokens,
                 },
             )
+            if declared_command_protocol is not None:
+                try:
+                    command_evidence = collect_command_evidence(
+                        extension_root / "all-agent-usage" / "usage.json",
+                        adapter_extension / "codex-events.jsonl",
+                    )
+                except AllAgentCommandEvidenceError as exc:
+                    external_failure = {
+                        "schema_version": "the-caption-prompt.run-status/v1",
+                        "status": "excluded",
+                        "category": "external_failure",
+                        "reason_code": "command_evidence_collection_failed",
+                        "detector": "all-agent-command-evidence/v5",
+                    }
+                    write_json(
+                        adapter_extension / "command-evidence-error.json",
+                        {
+                            "schema_version": "the-caption-prompt.command-evidence-error/v1",
+                            "reason": str(exc),
+                        },
+                    )
+                    write_json(status_path, external_failure)
+                else:
+                    write_json(
+                        extension_root / "all-agent-command-evidence" / "evidence.json",
+                        command_evidence,
+                    )
+                    requirement_statuses = command_requirement_statuses(
+                        command_evidence, required_command_groups
+                    )
+                    cleanup_attempts = adapter_owned_cleanup_attempts(
+                        command_evidence, adapter_teardown_paths
+                    )
+                    reported_cleanup_attempts = (
+                        model_reported_adapter_owned_cleanup_attempts(
+                            adapter_extension / "codex-events.jsonl",
+                            adapter_teardown_paths,
+                        )
+                    )
+                    command_protocol_audit = {
+                        "schema_version": "the-caption-prompt.command-protocol-audit/v1",
+                        "run_id": extension_root.name,
+                        "requirements": requirement_statuses,
+                        "summary": {
+                            status: sum(
+                                item["status"] == status for item in requirement_statuses
+                            )
+                            for status in (
+                                "successful",
+                                "failed",
+                                "not_attempted",
+                                "evidence_incomplete",
+                            )
+                        },
+                    }
+                    write_json(
+                        extension_root / "command-protocol-audit" / "audit.json",
+                        command_protocol_audit,
+                    )
+                    write_json(
+                        extension_root / "evaluation-diagnostics" / "diagnostics.json",
+                        {
+                            "schema_version": "the-caption-prompt.evaluation-diagnostics/v1",
+                            "run_id": extension_root.name,
+                            "command_protocol_violation_count": command_evidence[
+                                "protocol_violation_count"
+                            ],
+                            "command_protocol_violations": command_evidence[
+                                "protocol_violations"
+                            ],
+                            "model_attempted_adapter_owned_cleanup_count": len(
+                                cleanup_attempts
+                            ),
+                            "model_attempted_adapter_owned_cleanup": cleanup_attempts,
+                            "model_reported_adapter_owned_cleanup_attempt_count": len(
+                                reported_cleanup_attempts
+                            ),
+                            "model_reported_adapter_owned_cleanup_attempt": (
+                                reported_cleanup_attempts
+                            ),
+                        },
+                    )
+                    protocol_failure = command_evidence_external_failure(
+                        requirement_statuses
+                    )
+                    if protocol_failure is not None:
+                        external_failure = protocol_failure
+                        write_json(status_path, external_failure)
+    adapter_teardown_paths_removed: list[str] = []
+    try:
+        adapter_teardown_paths_removed = remove_adapter_owned_outputs(
+            workspace, adapter_teardown_paths
+        )
+    except OSError as exc:
+        if external_failure is None:
+            external_failure = {
+                "schema_version": "the-caption-prompt.run-status/v1",
+                "status": "excluded",
+                "category": "external_failure",
+                "reason_code": "adapter_owned_teardown_failed",
+                "detector": "codex-adapter-teardown/v1",
+            }
+            write_json(status_path, external_failure)
+        write_json(
+            adapter_extension / "adapter-teardown-error.json",
+            {
+                "schema_version": "the-caption-prompt.adapter-teardown-error/v1",
+                "reason": str(exc),
+            },
+        )
     final_paths = changed_paths(workspace)
     unexpected_paths = sorted(final_paths - allowed_result_paths)
     codex_version = run(["codex", "--version"], workspace)
@@ -745,9 +1018,20 @@ def execute() -> int:
             "raw_usage": raw_usage,
             "root_total_tokens": root_total_tokens,
             "all_agent_total_tokens": None if all_agent_usage is None else all_agent_usage["all_agent_total_tokens"],
+            "command_evidence_schema_version": (
+                None if command_evidence is None else command_evidence["schema_version"]
+            ),
+            "command_protocol_audit_schema_version": (
+                None if command_protocol_audit is None else command_protocol_audit["schema_version"]
+            ),
             "token_accounting": TOKEN_ACCOUNTING,
             "reasoning_effort": reasoning_effort,
             "runtime_links": runtime_links,
+            "adapter_teardown_paths_removed": adapter_teardown_paths_removed,
+            "model_attempted_adapter_owned_cleanup_count": len(cleanup_attempts),
+            "model_reported_adapter_owned_cleanup_attempt_count": len(
+                reported_cleanup_attempts
+            ),
             "session_mode": "persisted",
             "task_sha256": task_sha256,
             "unexpected_changed_paths": unexpected_paths,

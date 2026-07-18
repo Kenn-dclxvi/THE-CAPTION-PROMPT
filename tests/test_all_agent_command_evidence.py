@@ -7,7 +7,10 @@ from pathlib import Path
 
 from scripts.all_agent_command_evidence import (
     AllAgentCommandEvidenceError,
+    adapter_owned_cleanup_attempts,
     collect,
+    command_requirement_statuses,
+    model_reported_adapter_owned_cleanup_attempts,
 )
 
 
@@ -643,6 +646,260 @@ class AllAgentCommandEvidenceTest(unittest.TestCase):
             report = collect(usage, root_events)
             commands = [item["command"] for item in report["successful_commands"]]
             self.assertIn('python3 -c "assert True"', commands)
+
+    def test_collects_quoted_cmd_key_and_exit_status_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            usage, root_events = self.fixture(root)
+            write_jsonl(
+                root / "child.jsonl",
+                [
+                    {"type": "session_meta", "payload": {"id": "child", "parent_thread_id": "root"}},
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call",
+                            "call_id": "quoted-cmd",
+                            "input": (
+                                'const r = await tools.exec_command({"cmd":"bash -n run.sh"});'
+                                'text(JSON.stringify({cmd:"bash -n run.sh",exit_status:r.exit_code}));'
+                            ),
+                        },
+                    },
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call_output",
+                            "call_id": "quoted-cmd",
+                            "output": json.dumps(
+                                {"cmd": "bash -n run.sh", "exit_status": 0}
+                            ),
+                        },
+                    },
+                ],
+            )
+
+            report = collect(usage, root_events)
+            commands = [item["command"] for item in report["successful_commands"]]
+            self.assertIn("bash -n run.sh", commands)
+
+    def test_binds_contiguous_offset_indexes_by_output_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            usage, root_events = self.fixture(root)
+            write_jsonl(
+                root / "child.jsonl",
+                [
+                    {"type": "session_meta", "payload": {"id": "child", "parent_thread_id": "root"}},
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call",
+                            "call_id": "offset-indexes",
+                            "input": (
+                                "const results = await Promise.all(["
+                                'tools.exec_command({cmd:"git diff --check"}),'
+                                'tools.exec_command({cmd:"git diff --name-only"})]);'
+                            ),
+                        },
+                    },
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call_output",
+                            "call_id": "offset-indexes",
+                            "output": [
+                                {"type": "input_text", "text": json.dumps({"index": 2, "exit_code": 0})},
+                                {"type": "input_text", "text": json.dumps({"index": 3, "exit_code": 0})},
+                            ],
+                        },
+                    },
+                ],
+            )
+
+            report = collect(usage, root_events)
+            commands = [item["command"] for item in report["successful_commands"]]
+            self.assertIn("git diff --check", commands)
+            self.assertIn("git diff --name-only", commands)
+
+    def test_binds_explicit_compound_status_to_each_subcommand(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            usage, root_events = self.fixture(root)
+            write_jsonl(
+                root / "child.jsonl",
+                [
+                    {"type": "session_meta", "payload": {"id": "child", "parent_thread_id": "root"}},
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call",
+                            "call_id": "compound-status",
+                            "input": (
+                                'const r = await tools.exec_command({cmd:"git diff --check\\n'
+                                'printf \'DIFF_CHECK_STATUS=%s\\n\' \'$?\'\\n'
+                                'git diff --name-only\\nprintf \'NAME_ONLY_STATUS=%s\\n\' \'$?\'"});'
+                                "text(r.output);"
+                            ),
+                        },
+                    },
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call_output",
+                            "call_id": "compound-status",
+                            "output": "DIFF_CHECK_STATUS=0\nNAME_ONLY_STATUS=0\n",
+                        },
+                    },
+                ],
+            )
+
+            report = collect(usage, root_events)
+            commands = [item["command"] for item in report["successful_commands"]]
+            self.assertIn("git diff --check", commands)
+            self.assertIn("git diff --name-only", commands)
+
+    def test_does_not_bind_compound_nonzero_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            usage, root_events = self.fixture(root)
+            write_jsonl(
+                root / "child.jsonl",
+                [
+                    {"type": "session_meta", "payload": {"id": "child", "parent_thread_id": "root"}},
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call",
+                            "call_id": "compound-failure",
+                            "input": (
+                                'const r = await tools.exec_command({cmd:"git diff --check\\n'
+                                'printf \'DIFF_CHECK_STATUS=%s\\n\' \'$?\'"});text(r.output);'
+                            ),
+                        },
+                    },
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call_output",
+                            "call_id": "compound-failure",
+                            "output": "DIFF_CHECK_STATUS=1\n",
+                        },
+                    },
+                ],
+            )
+
+            report = collect(usage, root_events)
+            commands = [item["command"] for item in report["successful_commands"]]
+            self.assertNotIn("git diff --check", commands)
+
+    def test_separates_failed_command_from_incomplete_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            usage, root_events = self.fixture(root)
+
+            report = collect(usage, root_events)
+
+            self.assertIn(
+                "pytest tests",
+                [item["command"] for item in report["failed_commands"]],
+            )
+            statuses = command_requirement_statuses(
+                report,
+                [
+                    ["git", "diff", "--check"],
+                    ["pytest", "tests"],
+                    ["bash", "missing.sh"],
+                ],
+            )
+            self.assertEqual(
+                [item["status"] for item in statuses],
+                ["successful", "failed", "not_attempted"],
+            )
+
+    def test_marks_attempt_without_exit_code_as_evidence_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            usage, root_events = self.fixture(root)
+            write_jsonl(
+                root / "child.jsonl",
+                [
+                    {"type": "session_meta", "payload": {"id": "child", "parent_thread_id": "root"}},
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call",
+                            "call_id": "incomplete",
+                            "input": 'const r = await tools.exec_command({cmd:"git diff --name-only"});',
+                        },
+                    },
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "custom_tool_call_output",
+                            "call_id": "incomplete",
+                            "output": {"command": "git diff --name-only", "output": "file.py\n"},
+                        },
+                    },
+                ],
+            )
+
+            report = collect(usage, root_events)
+            statuses = command_requirement_statuses(
+                report, [["git", "diff", "--name-only"]]
+            )
+
+            self.assertEqual(statuses[0]["status"], "evidence_incomplete")
+            self.assertEqual(report["protocol_violation_count"], 1)
+
+    def test_records_adapter_owned_cleanup_attempt_without_affecting_command_status(self) -> None:
+        report = {
+            "attempted_commands": [
+                {
+                    "thread_id": "worker",
+                    "command": "rm -rf src/web/ui/node_modules src/web/ui/dist",
+                }
+            ]
+        }
+
+        attempts = adapter_owned_cleanup_attempts(
+            report,
+            ["src/web/ui/node_modules", "src/web/ui/dist"],
+        )
+
+        self.assertEqual(len(attempts), 1)
+        self.assertEqual(
+            attempts[0]["matching_adapter_owned_paths"],
+            ["src/web/ui/node_modules", "src/web/ui/dist"],
+        )
+
+    def test_records_model_reported_cleanup_rejected_before_tool_start(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            events = Path(tmp) / "events.jsonl"
+            write_jsonl(
+                events,
+                [
+                    {
+                        "type": "item.completed",
+                        "item": {
+                            "type": "agent_message",
+                            "text": "node_modulesとdistの削除commandが実行前に拒否されました。",
+                        },
+                    }
+                ],
+            )
+
+            reports = model_reported_adapter_owned_cleanup_attempts(
+                events,
+                ["src/web/ui/node_modules", "src/web/ui/dist"],
+            )
+
+            self.assertEqual(len(reports), 1)
+            self.assertEqual(
+                reports[0]["matching_adapter_owned_paths"],
+                ["src/web/ui/node_modules", "src/web/ui/dist"],
+            )
+            self.assertNotIn("text", reports[0])
 
 
 if __name__ == "__main__":

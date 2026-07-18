@@ -74,11 +74,24 @@ QUALITY_RATING_V6 = {
     "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
     "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v3",
 }
-QUALITY_RATING = {
+QUALITY_RATING_V7 = {
     "contract_id": "owner-producer-quality-v7",
     "contract_sha256": "5df75d3214f9dacd49198e261f2f0abb97f1de60f7560e4b4e40baff50bdac9a",
     "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
     "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v4",
+}
+QUALITY_RATING_V9 = {
+    "contract_id": "outcome-quality-owner-diagnostic-v9",
+    "contract_sha256": "56bca86d5a5297fc5a2cd5e243c7098237d143e95bec3383d23f3ed3fe058e8e",
+    "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+    "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v5",
+    "owner_producer_evidence_policy": "diagnostic_only",
+}
+QUALITY_RATING = {
+    "contract_id": "owner-producer-quality-v8",
+    "contract_sha256": "22794275b34458898a26e94276126834db0bbc19dfa915e9187d02955419e1c2",
+    "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+    "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v5",
 }
 SUPPORTED_QUALITY_RATINGS = (
     LEGACY_QUALITY_RATING,
@@ -87,7 +100,9 @@ SUPPORTED_QUALITY_RATINGS = (
     QUALITY_RATING_V4,
     QUALITY_RATING_V5,
     QUALITY_RATING_V6,
+    QUALITY_RATING_V7,
     QUALITY_RATING,
+    QUALITY_RATING_V9,
 )
 OWNER_PATTERN = re.compile(r"owner\s*=\s*([^\u3002\n;,]+)", re.IGNORECASE)
 EXECUTION_SCHEMA_V3 = "the-caption-prompt.execution/v3"
@@ -556,7 +571,15 @@ def layer3_rate(args: argparse.Namespace) -> dict[str, Any]:
         if len(matches) != 1:
             raise EvaluationError("owner-producer evidence has no unique entry for run")
         owner_evidence_status = matches[0].get("status")
-        if args.score == 4 and not matches[0].get("score_4_owner_evidence_eligible"):
+        owner_is_quality_gate = (
+            rating_contract.get("owner_producer_evidence_policy", "score_4_gate")
+            == "score_4_gate"
+        )
+        if (
+            args.score == 4
+            and owner_is_quality_gate
+            and not matches[0].get("score_4_owner_evidence_eligible")
+        ):
             raise EvaluationError("score 4 requires an admissible owner-producer result")
     command_evidence_status = "not_required"
     command_schema = rating_contract.get("command_evidence_schema_version")
@@ -575,6 +598,15 @@ def layer3_rate(args: argparse.Namespace) -> dict[str, Any]:
             or not isinstance(command_report.get("successful_commands"), list)
         ):
             raise EvaluationError("all-agent command evidence is invalid")
+        if command_schema == "the-caption-prompt.all-agent-command-evidence/v5" and not all(
+            isinstance(command_report.get(key), list)
+            for key in (
+                "attempted_commands",
+                "failed_commands",
+                "protocol_violations",
+            )
+        ):
+            raise EvaluationError("all-agent command evidence v5 lacks diagnostic arrays")
         command_evidence_status = "available"
     rating = {
         "schema_version": "the-caption-prompt.quality-rating/v1",
