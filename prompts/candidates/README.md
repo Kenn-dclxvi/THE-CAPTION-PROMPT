@@ -36,6 +36,7 @@
 | `the-caption-3ce91a4-compact-execution-control-r1`（Candidate32） | `the-caption-3ce91a4-operation-terminal-closure-r1` | C31の制御predicateを維持対象とし、root `AGENTS.md`の見出し・説明・重複表現を8つの制御規則へ縮約する1 target改訂 | [`observed_n5`](../../evaluations/results/candidate32-compact-execution-control-owner-producer-v5-expanded12-global-m24-n5_2026-07-18.md) |
 | `the-caption-3ce91a4-worker-context-sufficiency-r1`（Candidate33） | `the-caption-3ce91a4-compact-execution-control-r1` | C32の制御predicateを維持し、worker packetが十分な場合は`fork_turns=none`、不足時も必要最小turnだけを継承する1 target改訂 | [`observed_n5`](../../evaluations/results/candidate33-worker-context-sufficiency-owner-producer-v5-expanded12-global-m24-n5_2026-07-18.md) |
 | `the-caption-3ce91a4-owner-result-state-separation-r1`（Candidate34） | `the-caption-3ce91a4-worker-context-sufficiency-r1` | C33のcontext境界を維持し、owner result未取得とbind済みcriterionのfalse / failedを区別して別operationへの失効伝播を止める1 target改訂 | [`observed_v7_expanded_n5`](../../evaluations/results/candidate31-candidate34-owner-producer-v7-expanded12-global-m24-n5_2026-07-18.md) / [`release_prepared_pending`](../releases/the-caption-3ce91a4-owner-result-state-separation-release-r1/README.md) |
+| `the-caption-3ce91a4-root-control-only-r1`（Candidate35） | `the-caption-3ce91a4-owner-result-state-separation-r1` | C34のroot execution controlとpath-scoped repository authorityを維持し、legacy role / process 7 targetだけを0-byte stubへ置換する構造改訂 | `not_evaluated` |
 
 candidate bundleのmanifestは構築時provenanceとしてimmutableに保持する。評価状態の更新はmanifestをin-place変更せず、このindexと独立したevaluation resultで表す。
 
