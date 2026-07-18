@@ -118,6 +118,46 @@ Candidate29はCandidate28を直接sourceとし、criterion ownerの語列をoper
 
 Candidate30はCandidate29を直接sourceとし、Owner結果受領を実runtimeのspawn `task_name`、`FINAL_ANSWER.Sender`、criterion bindingへ限定する。targeted 25 / 25、expanded 60 / 60、continuous 300 / 300でOwner証跡の不成立は0件だった。continuousのscore `4 / 3 = 293 / 7`であり、score `3`はすべてrequired command成功証跡不足だった。F10 monthlyの開始条件修正はcase `r3`、valid runを未採点にしない変更はrating v3としてprompt変更と分離した。[result](evaluations/results/candidate30-runtime-owner-result-binding-owner-producer-v3-continuous-n5-b5_2026-07-17.md)は試験完了だけを示し、採用、release、THE-CAPTION本体反映は未判断である。
 
+## Candidate17からCandidate34までの要約
+
+Candidate17以降は、operation単位のevidence境界を起点に、owner resultの実行identity、child lifecycle、単一producer、terminal closureを順に接続した。その後、制御意味を維持したprompt縮約、worker context継承の最小化、owner result状態の分離を行った。
+
+Candidate17からCandidate34までは単一の親子系譜ではない。owner evidenceを既存compact promptへ接続した系列は`C17 → C20 → C21 → C22`である。root制御なしの対照から必要な制御だけを積み上げた系列は`ControlFreeRepository → C23 → C24 → C28 → C29 → C30 → C31 → C32 → C33 → C34`である。C22とC24は同じ試験で比較したが親子ではない。C18 / C19とC25〜C27は診断中の不採用案であり、現行candidate chainへ含めない。
+
+| prompt set | 直接source | 追加または変更した制御境界 | 主な保存evidence |
+| --- | --- | --- | --- |
+| Candidate17 | Candidate16 | `constraint / terminal`をoperation identity内へ限定 | 旧rating expanded 60 / 60 score `4`。owner-producer rating v5ではscore `4 / 3 / 1 = 49 / 10 / 1` |
+| Candidate20 | Candidate17 | criterion ownerとproducer execution identityが一致するresultだけをevidence化 | continuous B=3のscore `3` 31件から、owner worker起動とresult生成の未接続を特定 |
+| Candidate21 | Candidate20 | owner固定criterionをrequired worker起動とcompleted resultへ接続 | 4-case targetedでowner-producer eligible 19 / 20 |
+| Candidate22 | Candidate21 | producer成立をruntime child identity、wait、child final resultへ限定 | targeted 20 / 20 eligible。expanded score `4 / 3 = 58 / 2` |
+| Candidate23 | ControlFreeRepository | operation-scoped constraint / terminal、手段選択、recovery counterだけを復元 | expanded 60 / 60 score `4` |
+| Candidate24 | Candidate23 | owner resultをchild identity、completed wait、final result、criterion bindingのAND predicateへ固定 | expanded 60 / 60 score `4`。continuous B=5はscore `4 / 3 / 1 = 294 / 2 / 4` |
+| Candidate28 | Candidate24 | operationごとにproducerを一つだけbindし、独立確認を別operation化 | rating v2 expanded score `4 / 3 = 58 / 2` |
+| Candidate29 | Candidate28 | criterion owner語列を短縮・言換えずproducer role identityへ保持 | owner型targeted 25 / 25 score `4`。expandedは停止条件により未登録 |
+| Candidate30 | Candidate29 | Owner result受領をspawn `task_name`、`FINAL_ANSWER.Sender`、criterion bindingへ接続 | targeted 25 / 25、expanded 60 / 60、continuous 300 / 300でOwner証跡成立 |
+| Candidate31 | Candidate30 | 全predicateのbind済みproducer terminal resultが揃うまでoperationをnonterminalに保持 | rating v5 expanded 60 / 60 score `4` |
+| Candidate32 | Candidate31 | rootの見出し、説明、重複表現を8つの制御規則へ縮約 | root promptは32.6%縮約したが、C31比token中央値は`+6.45%`。score `4 / 2 / 1 = 58 / 1 / 1` |
+| Candidate33 | Candidate32 | worker packetが十分なら`fork_turns=none`、不足時も必要最小turnだけ継承 | C32比token中央値`-24.63%`、quality中央値`-6.250`。score `4 / 3 / 1 = 56 / 1 / 3` |
+| Candidate34 | Candidate33 | owner result未取得とbind済みcriterionの`false / failed`を分離し、別operationへの失効伝播を禁止 | targeted 10 / 10 score `4`。現行rating v7 expanded 60 / 60 score `4` |
+
+Candidate32ではprompt表面の縮約だけではtoken削減を確認できなかった。Candidate33ではworker継承contextを削減し、C32比でall-agent token中央値が`-959,484`となったが、quality中央値も`-6.250`となった。Candidate34はC33で欠けたF05 out-of-scopeとF10 inventoryの必須responseをtargetedとexpandedの合計20 / 20で成立させ、owner result未取得とcriterionの`false / failed`を別状態へ戻した。
+
+Candidate34のv5 expandedで残ったF05 clarifyのscore `1` 2件は、日本語の「フォールバック」を英字`fallback`と同義に扱わないrating偽陰性だった。rating v6でsemantic markerを修正した。v6で残ったCandidate34 F07 dependencyのscore `3` 1件は、markdown-heading形式の成功commandをcollectorがbindできない別の偽陰性だった。command evidence v4とrating v7でこの形式を修正し、保存済みv5 / v6 resultは再採点せず履歴として保持した。
+
+現行のC31 / C34比較は、同じrating v7、expanded 12 case、`N=5`、global queue `M=24`で新規実行したresultである。
+
+| KPI中央値 | Candidate31 | Candidate34 | Candidate34 - Candidate31 |
+| --- | ---: | ---: | ---: |
+| `quality_score` | 100.000 | 100.000 | 0.000 |
+| all-agent `total_tokens` | 3,916,601 | 3,290,615 | -625,986（-15.98%） |
+| `elapsed_seconds` | 1,485.419 | 1,467.115 | -18.304（-1.23%） |
+
+両setとも60 / 60がscore `4`で、retryとexcluded attemptは0件だった。Candidate34のtoken合計は5 / 5反復、12 case中10 caseでCandidate31より小さかった。elapsedは反復別でCandidate34が小さい回が1 / 5のため、安定した短縮とは判断しない。
+
+C31とC34の19 target中18 targetは同一で、prompt差分はroot `AGENTS.md`だけである。C34はC31の主要制御境界をlabel化し、root promptを`3,785 bytes`から`3,235 bytes`へ`550 bytes`（`14.53%`）縮約したうえで、worker context最小化とowner result状態分離を追加した。静的なprompt縮約だけで実行時token差の因果を証明しない。
+
+現在、Candidate34のrelease bundleは`prepared_for_decision`、approvalは`pending`、runtime projectionは`not_authorized`である。C34 continuous B18は未実施である。詳細は[`Candidate31 / Candidate34 rating v7 N=5 comparison`](evaluations/results/candidate31-candidate34-owner-producer-v7-expanded12-global-m24-n5_2026-07-18.md)と[`Candidate34 release preparation`](prompts/releases/the-caption-3ce91a4-owner-result-state-separation-release-r1/README.md)を正本とする。
+
 ## 構成
 
 | Path | 役割 |
