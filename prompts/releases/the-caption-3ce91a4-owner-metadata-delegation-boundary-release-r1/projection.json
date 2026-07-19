@@ -1,0 +1,44 @@
+{
+  "schema_version": "the-caption-prompt.projection/v1",
+  "release_identity": "the-caption-3ce91a4-owner-metadata-delegation-boundary-release-r1",
+  "bundle_sha256": "048f6693ae588feb0cd27f13f08637adb6b0cc376d94a4a4d4072662b1b747d7",
+  "target_repository": "https://github.com/Kenn-dclxvi/THE-CAPTION.git",
+  "projection": {
+    "baseline_commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+    "rollback_identity": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+    "pull_request": "https://github.com/Kenn-dclxvi/THE-CAPTION/pull/334",
+    "merge_commit": "8409eb9899b92a76870b066d88406754f4365b52",
+    "merged_at": "2026-07-19T10:20:03Z",
+    "runtime_activation": {
+      "mechanism": "merge_to_main",
+      "status": "active"
+    }
+  },
+  "scope": {
+    "manifest_target_count": 19,
+    "effective_path_count": 8,
+    "effective_paths": [
+      "AGENTS.md",
+      "docs/glossary.md",
+      "docs/orchestration-process.md",
+      "docs/prompt-guide.md",
+      "prompts/audit.md",
+      "prompts/implement.md",
+      "prompts/plan.md",
+      "prompts/review.md"
+    ]
+  },
+  "validation": {
+    "command": "bash ./scripts/dev/verify_change_set.sh",
+    "result": "passed",
+    "summary": "364 passed in 2.48s",
+    "post_merge_manifest_match": "19/19",
+    "post_merge_out_of_scope_paths": 0
+  },
+  "gates": {
+    "audit_stop_findings": 0,
+    "review_major_findings": 0,
+    "review_non_blocking_improvements": 1,
+    "automatic_revision_count": 0
+  }
+}
