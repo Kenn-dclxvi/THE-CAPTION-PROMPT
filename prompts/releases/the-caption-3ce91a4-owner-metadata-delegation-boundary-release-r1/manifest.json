@@ -1,6 +1,6 @@
 {
   "artifact": {
-    "approval_status": "pending",
+    "approval_status": "approved",
     "artifact_role": "release",
     "candidate_identity": "the-caption-3ce91a4-owner-metadata-delegation-boundary-r1",
     "evaluation_evidence": {
@@ -30,8 +30,6 @@
     },
     "evaluation_status": "observed_outcome_quality_owner_diagnostic_v9_continuous_n5_b18",
     "non_goals": [
-      "THE-CAPTION本体への反映、runtime有効化",
-      "push、PR、merge",
       "Candidate41 prompt内容の変更",
       "既存resultの再採点",
       "F10 location mismatchを隠すこと",
@@ -39,7 +37,17 @@
     ],
     "prompt_set_name": "owner_metadata_delegation_boundary_release",
     "release_identity": "the-caption-3ce91a4-owner-metadata-delegation-boundary-release-r1",
-    "release_status": "prepared_for_decision",
+    "release_status": "projected",
+    "projection_evidence": {
+      "baseline_commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+      "effective_path_count": 8,
+      "manifest_target_count": 19,
+      "merge_commit": "8409eb9899b92a76870b066d88406754f4365b52",
+      "projection_record": "projection.json",
+      "pull_request": "https://github.com/Kenn-dclxvi/THE-CAPTION/pull/334",
+      "rollback_identity": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+      "validation": "bash ./scripts/dev/verify_change_set.sh: 364 passed in 2.48s"
+    },
     "scope": "評価済みCandidate41の19 path full bundleを内容変更なしで唯一のrelease候補として固定する。",
     "unresolved_risks": [
       "continuous B18のF10 monthly reviewでlocation mismatchを2件観測した。",
@@ -212,7 +220,7 @@
     ],
     "design_status": "release_candidate",
     "evaluation_status": "evaluated_outcome_quality_owner_diagnostic_v9_continuous_n5_b18",
-    "runtime_projection_status": "not_projected",
+    "runtime_projection_status": "projected",
     "source_interpretation": "source_prompt_identity identifies Candidate35 as this candidate's direct prompt parent. This candidate changes only the interpretation boundary between criterion owner metadata and explicit producer delegation; it does not inherit Candidate38 or Candidate40 result-unit controls."
   },
   "schema_version": "the-caption-prompt.bundle/v1",
