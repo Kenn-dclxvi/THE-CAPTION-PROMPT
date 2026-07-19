@@ -1,6 +1,6 @@
 {
   "artifact": {
-    "approval_status": "pending",
+    "approval_status": "cancelled",
     "artifact_role": "release",
     "candidate_identity": "the-caption-3ce91a4-owner-result-state-separation-r1",
     "evaluation_evidence": {
@@ -20,8 +20,9 @@
     ],
     "prompt_set_name": "owner_result_state_separation_release",
     "release_identity": "the-caption-3ce91a4-owner-result-state-separation-release-r1",
-    "release_status": "prepared_for_decision",
+    "release_status": "cancelled",
     "scope": "評価済みCandidate34の19 path full bundleを内容変更なしで承認判断可能なrelease単位へ固定する。",
+    "status_reason": "2026-07-19にCandidate41を唯一のrelease候補としたため、一旦キャンセルした。不採用またはartifact削除ではない。",
     "unresolved_risks": [
       "Candidate33比ではall-agent total_tokens中央値が263503増え、root token合計が1302819増えた。",
       "観測範囲はexpanded 12 caseの各N=5であり、範囲外へ一般化しない。",
