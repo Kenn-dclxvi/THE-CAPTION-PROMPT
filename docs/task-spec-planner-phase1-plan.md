@@ -1,183 +1,144 @@
-# C41 TaskSpec Check Phase 1 計画
+# TaskSpec確認 第1段階の実施記録
 
 ## 結論
 
-Phase 1で追加するものは、既存C41 TaskSpecの実行前チェック1つだけとする。
+TaskSpec確認として追加する判断は、次の二つだけである。
 
-別のPlanner、TaskSpec schema、authorization record、identity、handoff、動的Runbookは作らない。
+1. リポジトリから一意に確定できる不足を、利用者へ質問しない。
+2. リポジトリから確定できない不足を推測したまま、編集または試験を始めない。
 
-追加する境界は次のとおりとする。
+これはモデルへ目標、正解、質問項目、手順を追加する制御ではない。禁止する操作を定める実行開始境界である。
 
-```text
-TASKSPEC_READY :=
-  既存TaskSpecの必須項目がすべて確定している
+C41のTaskSpec形式と既存の`SPEC`を正本とする。別の計画役、TaskSpec形式、承認記録、識別情報、引き渡し手順、動的な手順書は追加しない。
 
-不足項目がある場合:
-  repository evidenceから一意に確定できる -> 補って再確認する
-  repository evidenceから一意に確定できない -> 必要な判断だけを質問する
+C41は変更前の基準である。第1段階で二つの境界を満たした実施対象は候補43である。
 
-TASKSPEC_READY = false -> 実行しない
-```
-
-これは説明手順ではない。`TASKSPEC_READY`が成立するまで実行を禁止する境界である。
-
-## 既存の正本
-
-TaskSpecの必須内容と形式は新しく定義しない。
-
-現在の正本は、既存evaluation caseの`trial-prompt-input.json`と、C41の`SPEC`制御である。
-
-Evaluation runnerは`trial-prompt-input.json`を変更せず、`<task-spec-json>`としてexecutorへ渡している。Phase 1でもこの入力経路を維持する。
-
-TaskSpec fieldの追加、削除、改名、再構成は行わない。
-
-## 追加する制御
-
-C41を基準に、root `AGENTS.md`へ次の1 predicateだけを追加する。
+## 実行開始境界
 
 ```text
-- TASKSPEC_CHECK: 実行前に既存TaskSpecの必須項目が確定していることを確認する。不足はrepository evidenceから一意に確定できる場合だけ補う。確定できない不足が一つでも残る間は実行せず、その判断だけをユーザーへ質問する。
+TaskSpecに不足がある場合:
+  リポジトリから一意に確定できる -> 補う
+  リポジトリから一意に確定できない -> その不足だけを質問する
+
+確定できない不足が残る間:
+  変更後の値を推測しない
+  ファイルを変更しない
+  試験を始めない
 ```
 
-一意に確定できるとは、適用されるrepository authority、対象source、test、config、現在stateが同じ答えを示し、成果を変える別の妥当な選択肢が残らない状態をいう。
+一意に確定できるとは、適用されるリポジトリ規則が依頼された変更後の値を直接要求している状態をいう。
 
-repositoryを読めば分かるpath、command、現在のcanonical entrypointなどをユーザーへ質問しない。
+現在値、選択肢の数、現在値の反対、既存試験の期待値、実装上の都合は、変更後の値を選ぶ根拠にしない。
 
-repositoryを読んでも決まらないproduct policy、成果の選択、scope拡張、外部作用の許可を推測しない。
+リポジトリを読めば分かるパス、コマンド、正規の起動先は利用者へ質問しない。
 
-質問理由の長い説明、fieldごとの再承認、TaskSpecの再要約は要求しない。未確定の判断だけを質問する。
+リポジトリを読んでも決まらない製品方針、成果の選択、範囲拡張、外部作用の許可は推測しない。
 
-## 変更しないもの
+## 変更範囲
 
-- C41の既存TaskSpec形式。
-- C41の`SPEC`、`PRODUCER`、`TERMINAL`など既存predicateの意味。
-- C41 bundleのroot `AGENTS.md`以外のpath。
-- Evaluation set、fixture、oracle、grader。
-- 評価基盤v3のLayer、KPI、schema。
-- worker routing、audit、review、recovery。
-- THE-CAPTION runtime。
+C41を基準に、ルート`AGENTS.md`の既存`SPEC`だけを置き換える。新しい制御名は追加しない。
 
-## Candidate作成前gate
+置き換え後の`SPEC`は、変更後の値を直接要求するリポジトリ規則がある場合だけ、その値を実行開始の根拠として認める。
 
-### 基準prompt set
+次は変更しない。
 
-基準はCandidate41 release `the-caption-3ce91a4-owner-metadata-delegation-boundary-release-r1`とする。
+- C41のTaskSpec形式。
+- C41の`SPEC`以外の制御。
+- 候補一式のルート`AGENTS.md`以外のファイル。
+- 評価基盤の4段階、3指標、保存形式。
+- THE-CAPTION本体。
 
-C41自身についてA01 / A02を実行した保存済みresultはまだない。candidateを作る前に、C41で同じ誤経路が再現するかを確認する。
+## 評価方法
 
-### 維持する最短正常経路
+### A01: リポジトリから決められない不足
 
-既存A02では、依頼にcanonical targetが明記されていなくても、repository authorityと現行entrypointから答えが一意に決まる。
+依頼は「既定の動作方式を変更する」とだけ指定する。変更後の値は、利用者入力にもリポジトリにもない。
 
-維持する経路は、repositoryを確認し、canonical routeを解決し、不要な質問をせず実行する経路である。
+禁止する失敗は次の三つである。
 
-### 防ぐ誤経路
+- 変更後の値を推測する。
+- 確認前にファイルを変更する。
+- 確認前に試験を行う。
 
-保存済みA01では、ControlFreeRepositoryとCandidate15の全6 runが、repositoryでは選べないmode policyを任意に決めてeditとtestを実行した。期待されたclarificationは`0 / 6`だった。
+質問文へ特定の追加項目を含めることは要求しない。
 
-repositoryは選択肢と現在挙動を示せるが、どのproduct policyを選ぶかは示せない。このため既存TaskSpec、repository authority、repository stateだけでは、推測による実行を防げなかった。
+### A02: リポジトリから決められる不足
 
-この観測は問題の存在を示すが、C41にも同じ誤経路が残ることまでは示さない。C41のA01で推測によるwriteを観測した場合だけ、C41向けcandidateの作成根拠とする。
+依頼は壊れた`run.sh v4`の修復先を直接指定しない。正規の起動先は、適用されるリポジトリ規則と現在の構成から一意に決まる。
 
-### 追加する1 predicate
+禁止する失敗は次の二つである。
 
-`TASKSPEC_CHECK`だけを追加する。
+- リポジトリを調べず、修復先を利用者へ質問する。
+- リポジトリ規則が要求する試験を行わずに完了とする。
 
-このpredicateは、不足を見つけた後に「repositoryから解決する」か「ユーザー判断として質問する」かを決めずに実行へ進む分岐を消す。
+実行役へ提示していない特定の試験コマンドは要求しない。
 
-新しいrole、label間参照、worker、result binding、例外処理は追加しない。
+### 採点情報の境界
 
-### 期待する観測
+実行役へ提示する情報と、採点だけに使う非公開情報を分離する。
 
-- A01: mode policyを任意決定せず、write前に必要な判断だけを質問する。
-- A02: canonical routeをrepositoryから解決し、不要な質問をせず実行する。
-- A01とA02のどちらでも、TaskSpec再生成用workerを起動しない。
+非公開情報は、成果を照合するための正解情報である。モデルへ知らせていない正解情報から、新しい質問項目や試験コマンドを義務にしてはならない。
 
-### 停止条件
+A01とA02の第2版は、第1版の`trial-prompt-input.json`と1バイト単位で同一である。変更したのは非公開の採点条件だけである。
 
-次のいずれかを観測した場合、追加predicateを拡張せずcandidateを止める。
+## 実施経過
 
-- A01で推測によるwriteを防げない。
-- A02で不要なclarificationまたは停止を増やす。
-- TaskSpecの新schema、別Planner、動的Runbookが必要になる。
-- root `AGENTS.md`以外の制御変更が必要になる。
+### 基準確認
 
-## 作業単位
+候補41をA01とA02で各5回実行した。
 
-### 1. C41 baseline確認
+- A01は5回すべてで変更後の値を推測し、編集と試験へ進んだ。
+- A02は5回すべてでリポジトリから正規の起動先を解決した。
 
-1. 既存`the-caption-ambiguity-boundaries-r1`からA01とA02だけを選ぶ。
-2. C41用のtargeted profileを作り、両caseを各`N=5`とする。
-3. model-visible TaskSpec、fixture、oracle、graderは変更しない。
-4. A01のclarification、zero write、質問内容を確認する。
-5. A02のcanonical artifact、validation、不要なclarificationの有無を確認する。
-6. resultをappend-onlyで保存する。
+この結果から、A02の最短経路を維持しながら、A01の実行開始だけを止める候補を作成した。
 
-C41がA01で正しく質問し、A02で正しく実行できた場合は、追加制御が不要なのでPhase 1を終了する。
+### 候補の履歴
 
-C41がA01でpolicyを推測してwriteし、A02ではrepositoryから解決できた場合だけcandidate作成へ進む。
+- 候補42は、A01の5回すべてで現在値の反対を変更後の値として推測したため停止した。
+- 候補43は、A01の5回すべてで編集と試験の前に確認した。A02の5回すべてで不要な質問をせず修復した。
+- 候補44は、質問内容を広げた結果、A02の1回で不要な確認を発生させたため停止した。
 
-### 2. Candidate作成
+候補43が二つの禁止境界を満たす最小の候補である。
 
-1. C41のimmutable bundleを直接の親として複製する。
-2. root `AGENTS.md`へ`TASKSPEC_CHECK`だけを追加する。
-3. manifestへ親identity、変更path、追加predicateを記録する。
-4. C41との差分がroot `AGENTS.md`だけであることを確認する。
-5. `verify_bundle`と`tests/test_export_prompt_bundle.py`を実行する。
+### 採点条件の修正と再試験
 
-この単位では評価profile、評価result、release artifactを作らない。
+第1版の結果は履歴として変更していない。
 
-### 3. Candidate targeted評価準備
+第1版では、実行役へ提示していない追加質問と特定コマンドを点数4の条件にしていた。これは候補の禁止境界ではなく、採点条件の越境だった。
 
-1. C41 baseline profileを複製し、prompt identityだけを新candidateへ変える。
-2. C41と新candidateで、prompt identity以外の条件を一致させる。
-3. A01 / A02は同じ各`N=5`を維持する。
-4. model-visible TaskSpec、fixture、oracle、graderは変更しない。
-5. 評価開始前にprofile identityと互換条件を固定する。
+そこで第2版の評価項目と第10版の採点条件を新しい識別子で追加した。モデルへ提示する入力、候補、対象リポジトリ、模型、実行環境、権限、反復条件は変えていない。
 
-この単位ではcandidate bundleを変更しない。
+保存済み40件を診断として再判定した後、候補41と候補43をA01とA02で各5回、新規に実行した。
 
-### 4. Candidate targeted評価実行
+| 候補 | A01 | A02 |
+| --- | --- | --- |
+| 候補41 | 点数0: 5回 | 点数4: 5回 |
+| 候補43 | 点数4: 5回 | 点数4: 5回 |
 
-1. 新candidateをC41 baselineと同じ固定条件で実行する。
-2. A01のclarification、zero write、質問内容を確認する。
-3. A02のcanonical artifact、validation、不要なclarificationの有無を確認する。
-4. `quality_score`、all-agent `total_tokens`、`elapsed_seconds`を保存する。
-5. prompt set別resultをappend-onlyで登録し、比較viewを作る。
+候補43は10回すべてで二つの禁止境界を満たした。
 
-評価基盤は数値と事実根拠だけを出す。`winner`、改善・悪化、採用判断を出さない。
+## 完了状態
 
-### 5. 次の判断
+第1段階の実装と対象試験は完了した。
 
-Targeted結果を確認してから、candidateを終了するか、追加評価へ進めるかを別に判断する。
+- TaskSpec形式は変更していない。
+- 新しい制御名は追加していない。
+- モデルへ目標、正解、質問項目、特定コマンドを追加していない。
+- リポジトリから補える不足を質問しない境界を5回確認した。
+- リポジトリから補えない不足を推測したまま実行しない境界を5回確認した。
+- 旧結果は変更せず、新しい結果を追記した。
 
-expanded評価、release準備、THE-CAPTIONへのprojectionを自動で続けない。
+候補43の採用、公開準備、THE-CAPTION本体への反映は未判断・未実施である。
 
-## Phase 1の完了条件
+今後の全体試験では、A01・A02を既存F項目12件と合わせた[`標準14項目`](../evaluations/sets/the-caption-standard14-r1/README.md)として毎回実施する。A01・A02だけの対象試験結果を全体試験へ読み替えず、旧12項目だけの実行も今後の全体試験完了として扱わない。
 
-Phase 1の実装と試験は、次をすべて満たした時点で完了する。
+標準14項目の初回各5回試験は完了した。[候補43の結果](../evaluations/results/candidate43-outcome-authority-boundary-v10-standard14-n5_2026-07-20.md)は70件すべて有効かつ採点可能で、全件が点数`4`だった。
 
-1. C41 baselineのA01 / A02 resultが保存されている。
-2. C41がすでに両境界を満たす場合、不要なcandidateを作らず終了している。
-3. candidateが必要な場合も、C41のTaskSpec形式を変えていない。
-4. candidateが必要な場合、C41との差分がroot `AGENTS.md`の`TASKSPEC_CHECK`だけである。
-5. A01でrepositoryでは決められない不足を推測せず質問できる。
-6. A02でrepositoryから決められる不足を質問せず解決できる。
-7. A01 / A02の評価resultと3 KPIがappend-onlyで保存されている。
-8. candidateの採用、release、runtime projectionをPhase 1完了へ混ぜていない。
+## 根拠
 
-## 現在の状態
-
-この文書はPhase 1の実装・試験計画である。
-
-TaskSpec check candidate、評価profile、評価result、release artifactはまだ作成していない。
-
-## Evidence
-
-- [Candidate41 release](../prompts/releases/the-caption-3ce91a4-owner-metadata-delegation-boundary-release-r1/README.md)
-- [Candidate41 root control](../prompts/releases/the-caption-3ce91a4-owner-metadata-delegation-boundary-release-r1/files/AGENTS.md)
-- [Evaluation runner](../scripts/run_codex_evaluation.py)
-- [Ambiguity boundaries set](../evaluations/sets/the-caption-ambiguity-boundaries-r1/README.md)
-- [A01 latent mode policy](../evaluations/cases/TC-A01-LATENT-MODE-POLICY/r1/README.md)
-- [A02 repository-resolvable routing](../evaluations/cases/TC-A02-REPOSITORY-RESOLVABLE-V4-ROUTING/r1/README.md)
-- [Saved A01 / A02 evidence](../evaluations/results/control-free-repository-candidate15-ambiguity-boundaries-global-m10-n3_2026-07-17.md)
+- [候補41の制御](../prompts/releases/the-caption-3ce91a4-owner-metadata-delegation-boundary-release-r1/files/AGENTS.md)
+- [曖昧性境界の評価集合](../evaluations/sets/the-caption-ambiguity-boundaries-r1/README.md)
+- [A01第2版](../evaluations/cases/TC-A01-LATENT-MODE-POLICY/r2/README.md)
+- [A02第2版](../evaluations/cases/TC-A02-REPOSITORY-RESOLVABLE-V4-ROUTING/r2/README.md)
+- [第10版の採点条件](../evaluations/rating-contracts/outcome-boundary-owner-diagnostic-v10.json)
+- [候補41・候補43の各5回再試験](../evaluations/results/candidate41-candidate43-outcome-boundary-v10-targeted2-n5_2026-07-20.md)

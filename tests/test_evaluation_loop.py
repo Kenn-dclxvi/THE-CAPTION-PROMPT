@@ -12,8 +12,10 @@ from scripts.evaluation_loop import (
     LEGACY_QUALITY_RATING,
     QUALITY_RATING,
     QUALITY_RATING_V2,
+    QUALITY_RATING_V10,
     identity_sha256,
     kpi_difference,
+    validate_comparison_conditions,
 )
 
 
@@ -22,6 +24,14 @@ CLI = ROOT / "scripts" / "evaluation_loop.py"
 
 
 class EvaluationLoopTest(unittest.TestCase):
+    def test_boundary_quality_rating_v10_is_supported(self) -> None:
+        conditions = self.conditions(1)
+        conditions["quality_rating"] = QUALITY_RATING_V10
+        self.assertEqual(
+            validate_comparison_conditions(conditions)["quality_rating"],
+            QUALITY_RATING_V10,
+        )
+
     def test_kpi_difference_names_no_winner(self) -> None:
         self.assertEqual(
             kpi_difference(

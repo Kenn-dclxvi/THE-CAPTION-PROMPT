@@ -26,6 +26,14 @@ C14直接派生のCandidate15は[`expanded 12-case global M=24 N=5 result`](cand
 
 制御promptなし・repository情報ありとC15は、独立した[`ambiguity boundaries 5-case global M=10 N=3 comparison`](control-free-repository-candidate15-ambiguity-boundaries-global-m10-n3_2026-07-17.md)として各15 runをappend-only resultへ登録した。互換な3 KPI、case別のclarify / execute / stopped境界、semanticな成果同等性を記録し、winner、採用、release判断は出力しない。
 
+候補41は同じ曖昧性評価集合からA01とA02だけを選び、[`各5回の結果`](candidate41-owner-metadata-delegation-boundary-ambiguity-targeted2-n5_2026-07-20.md)として10件を追記専用で登録した。A01は5回すべてで方針を推測して編集と試験へ進み点数`0`だった。A02は5回すべてで正規の起動先へ修復したが、非公開条件の`main_verify.sh`を実行せず点数`3`だった。この結果は候補作成前の記録である。旧3回試験との互換比較、優劣、採用、公開判断は行わない。
+
+候補42の[`各5回の結果`](candidate42-spec-readiness-boundary-ambiguity-targeted2-n5_2026-07-20.md)は、A01の5回すべてで現在値と選択肢から`strict`を推測し、編集と試験へ進んだことを記録した。候補43の[`各5回の結果`](candidate43-outcome-authority-boundary-ambiguity-targeted2-n5_2026-07-20.md)は、A01の5回すべてで変更せず確認し、A02の5回すべてで正規の起動先を解決した。ただし旧採点条件が非公開で定めた動作方式と代替取得方針を同時に質問できたのは1回だった。候補44の[`各5回の結果`](candidate44-complete-spec-readiness-boundary-ambiguity-targeted2-n5_2026-07-20.md)は、A01で旧採点条件どおりの質問が2回に留まり、A02の1回で不要な確認を発生させたため停止した。4結果は同じ互換条件へ登録し、優劣、採用、公開判断は行っていない。
+
+実行役に提示していない質問項目と試験コマンドを必須にしない第10版で、候補41と候補43を新規実行した[`A01 / A02各5回の結果`](candidate41-candidate43-outcome-boundary-v10-targeted2-n5_2026-07-20.md)は、両候補の20件すべてを有効かつ採点可能として登録した。候補41はA01の5件が点数`0`、A02の5件が点数`4`だった。候補43は10件すべて点数`4`だった。第2版の提示入力は第1版と同一であり、質問項目、正解値、特定コマンドを追加していない。採用、公開、本体反映は未判断である。
+
+候補43を既存F項目12件とA01・A02で構成する標準14項目へ展開した[`各5回の結果`](candidate43-outcome-authority-boundary-v10-standard14-n5_2026-07-20.md)は、70 / 70件を有効かつ採点可能な追記専用の結果として登録した。点数は全件`4`、品質点中央値は`100.000`、全実行使用量中央値は`3,647,298`、所要時間中央値は`1,353.458`秒だった。旧12項目の結果とは評価集合が異なるため互換比較へ混ぜず、採用、公開、本体反映は未判断である。
+
 C15連続試験のF04 / F10低scoreに対するCandidate16 / 17の原則化、および明示合意なく診断中に追加され後に破棄したC18 / C19の経緯は[`evidence boundary targeted checks`](candidate16-candidate19-evidence-boundary-targeted_2026-07-17.md)へ分離した。expanded 12 case resultへ混ぜず、観測値と破棄理由を履歴として保持する。
 
 Candidate17のpromptを維持し、実行adapterへtyped boundary evidenceを追加したF10 `N=90`は[`Candidate17 typed boundary evidence F10 N=90`](candidate17-typed-boundary-evidence-f10-n90_2026-07-17.md)へ分離した。execution compatibilityが異なるため既存Candidate17 resultへ混ぜず、90 / 90のscore `4`相当、450 / 450のtyped observation pass、開始identity誤認0件を記録する。

@@ -6,6 +6,16 @@
 
 基盤にはprompt作成、quality rater用prompt、優劣判定、採用、release判断、THE-CAPTION本体反映を含めない。
 
+### 今後の標準全体試験
+
+今後のTHE-CAPTION向け全体試験は、[`the-caption-standard14-r1`](../evaluations/sets/the-caption-standard14-r1/README.md)の14項目で実施する。
+
+標準14項目は、従来のF項目12件とA01・A02で構成する。各項目を5回実行する場合は70件を一つの結果として登録する。
+
+一部項目だけの原因確認は対象試験として分離する。A01・A02を除いた旧12項目の実行を、今後の全体試験完了として扱わない。
+
+旧12項目の評価集合と結果は履歴として保持する。標準14項目の結果と互換比較へ混ぜない。
+
 ## 2. 4 Layerとsubcommand
 
 | Layer | subcommand | 役割 |
