@@ -179,7 +179,125 @@ TaskSpecのrisk owner語列をruntime worker identityへ変換し、正しいpro
 
 ユーザー合意は2026-07-19に受領した。Candidate41として`OWNER_ROLE` predicateを実装し、F05 / F10 v9 targeted N=5を実行した。結果は10 / 10 score `4`で、定義した停止条件は発火しなかった。
 
-candidate作成前gate、targeted試験gate、expanded 12-case N=5試験gateは`passed`とする。targeted結果は[`Candidate41 targeted N=5`](../evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-targeted2-n5_2026-07-19.md)、expanded結果は[`Candidate41 expanded 12-case N=5`](../evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-expanded12-n5_2026-07-19.md)へ分離した。expandedは60 / 60 score `4`、全run root-onlyだった。release、採用、本体反映は未判断のまま保持する。
+candidate作成前gate、targeted試験gate、expanded 12-case N=5試験gateは`passed`とする。targeted結果は[`Candidate41 targeted N=5`](../evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-targeted2-n5_2026-07-19.md)、expanded結果は[`Candidate41 expanded 12-case N=5`](../evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-expanded12-n5_2026-07-19.md)へ分離した。expandedは60 / 60 score `4`、全run root-onlyだった。その後のrelease候補指定は独立したrelease artifactへ記録し、採用と本体反映は未判断のまま保持する。
+
+## Candidate41 B18後の再検討
+
+### 結論
+
+Candidate41 B18で観測したF10 location mismatch 2件は未解決riskとして対策対象に残す。ただし、この観測から新しいroot prompt境界は導かない。
+
+line番号付きsourceによるexact location確認は、F10の1行ずれを直接対象にしたCandidate37 `LOCATION`規則として既に試行されている。これをCandidate41へ足すことは、owner metadataとdelegationを分離するC41の変更軸へ、case固有のreview方法を混ぜることになる。
+
+Candidate37の`LOCATION`、`EVIDENCE_PRECISION`、`RESULT_SOURCE`はいずれもF10の試験構造から逆算した案である。名前を一般化しても、repository-wideな誤分岐を消す境界にはならないため変更候補から外す。
+
+### 責務配置
+
+| 情報 | このrepositoryでの配置 | 今回の扱い |
+| --- | --- | --- |
+| repository-wideな実行境界 | prompt bundleのroot `AGENTS.md` | C41の`OWNER_ROLE`を維持し、location mismatchを理由とする規則を追加しない |
+| path固有のauthority | bundle内の`src/AGENTS.md`など | ControlFreeRepositoryからC41まで同一であり、今回の変更対象にしない |
+| task固有のrequired output | `evaluations/cases/.../trial-prompt-input.json` | F10 r3は既に`path:line`を要求している |
+| model-invisibleな期待値と採点条件 | case private dataとrating contract | changed-line locationの不一致をscore `3`として記録する |
+| 観測された低頻度事象 | `evaluations/results/` | C41 B18の2 / 90をcase別riskとして保持する |
+| prompt変更判断 | 本design review | repository-wideな原因が未確認なのでcandidate作成gateを開かない |
+
+### 事実
+
+- C41 B18のscore `3`は2件とも、finding内容、severity、直接根拠、impactは正しく、locationだけが実変更行`monthly_main.py:25`に対して`:24`だった。
+- 同じv9互換条件のControlFreeRepository N=5でも、F10 monthly reviewのlocation mismatchが1件あった。
+- Candidate41のdirect sourceはCandidate35であり、変更targetはroot `AGENTS.md`だけである。
+- Candidate37はCandidate36をdirect sourceとし、F10のlocation mismatchを理由に`LOCATION`をrootへ追加した別枝である。
+- Candidate37 expanded N=5は60 / 60 score `4`だったが、Candidate41 B18とはrating revisionが異なり、B18も実施していない。
+- C41 B18のscore `3` 2件は、どちらも`monthly_engine.py`、`monthly_main.py`、固定diffの順で読み、固定diffの確認後にfinding内容を確定した。中間messageにはlocationがなく、追加readなしでterminal responseへ`:24`を付けた。
+- C41 B18のF10 90 runには、line番号付きsourceまたは`git grep -n`を使わず`:25`を返したscore `4` runも複数ある。番号付き表示の不使用だけではfailureを説明できない。
+- 保存したcommand sequenceの分類では、behavior reference、target source、diffの順で読む経路は上記2件だけであり、2件ともscore `3`だった。他の88件はscore `4`だった。この相関だけからread順序を決定的原因とは断定しない。
+- C35 B18で`:26`を返したworkerも、固定diff、target source、behavior referenceを一つのcompound outputとして番号なしで受け取り、terminal responseで初めてlocationを付けた。
+
+### 推論
+
+location mismatchはC41のowner / delegation境界に固有のfailureではない。TaskSpecに既に存在する`path:line`要件を、line番号付きsourceという方法指定に変換してrootへ再掲しても、repository-wideな判断分岐は減らない。
+
+Candidate37の結果は、その方法指定がN=5で成果を壊さなかったことを示す。一方で、低頻度誤りを消したこと、追加readや確認costを上回る正味効果があること、他のreview taskへ一般化できることは示していない。
+
+保存traceで共通する実行形は、個別line番号を持たないsource / diff textからterminal responseのlocationを生成したことである。再構成結果がC35では`:26`、C41では`:24`になった。
+
+番号なしでも正解したrunがあるため、line番号の欠落はfailureの十分条件ではない。read順序もC41の2件とは相関したが、C35の`:26`は別順序で発生している。したがって、保存traceから特定のread順序、owner経路、C41 labelを決定的原因にはできない。
+
+現時点で確認できるのは、exact coordinateを非構造化textから生成する経路に確率的な誤差が残ることまでである。これは実行evidenceの表現またはmodelの事実抽出精度の問題候補だが、repository-wideなprompt制御の誤分岐とは確認できない。
+
+### 対策の責務
+
+- Evaluation: score `3`を有効な観測として保持し、中央値やscore `4`多数で隠さない。
+- Prompt design: repository-wideな原因が確認できないため、location mismatchからcandidateを作らない。
+- Release: C41にはF10 exact locationの低頻度riskが残ると記録し、risk受容なしに採用またはrelease済みとしない。
+- Execution interface: exact coordinateの決定的保証が必要なら、実運用と評価で共通する構造化evidenceを入力として提供する別要件を検討する。評価adapterだけへline情報を足して本caseを通す変更はしない。
+
+### 判断
+
+- C41へCandidate37の`LOCATION`を統合しない。
+- `EVIDENCE_PRECISION`案は撤回する。
+- `RESULT_SOURCE`案も試験依存のため撤回する。
+- location mismatchから新しいprompt変更predicateを導かない。
+- C41 B18 resultへcase別の残存review精度riskとして保持する。
+- candidate bundle、profile、追加評価runを作成しない。
+
+## 追加135件診断による判断更新
+
+### 結論
+
+上記の「location mismatchから新しい変更predicateを導かない」という判断は、原因段階を観測できなかった時点の判断として保持する。追加診断によりterminal前のnumeric bindingで誤りが生じたことは確認したが、症状を照合するだけの指示は低確率で発生する理由を説明しない。
+
+一度提案した`REVIEW_LOCATION_TEXT_LINE_CONSISTENCY`はcandidate候補から撤回する。新しい分析対象はprompt boundaryではなく、同じevidenceが持つ複数coordinate frameの取り違えである。
+
+### 事実
+
+- 同一のmodel-visible checkpointで既存30件に105件を追加し、累計135 validを得た。
+- 累計分布は`valid_exact=134`、`valid_mismatch=1`だった。
+- 追加105件はcheckpointとterminalのlocationが105 / 105で同じだった。
+- 唯一のmismatchは、checkpointで正しい完全なline text `format_test=args.force,`を記録しながら、numeric lineを`24`とした。固定revisionでそのline textが存在する行は`25`だった。
+- terminal responseはcheckpointの`:24`を変更せず返した。
+- mismatch前に、変更行25を示すunified diffはmodel-visibleだった。
+- 同じ変更行は、new-file 1-based座標では`25`、source sequenceのzero-based indexでは`24`、削除行を含むdiff表示順では`26`になる。
+- 既知のC41 mismatch 3件は`:24`、Candidate35の別mismatch 1件は`:26`だった。
+- C41 B18 90件とcheckpoint 135件をcoordinate provenanceだけで記述的に並べると、terminal前に明示的direct coordinateがあった90件は90 / 90 exactだった。implicit reconstruction側は132 / 135 exact、3 mismatchだった。
+- 詳細は[`Review location誤差の原因診断計画`](review-location-cause-diagnostic-plan.md)と外部diagnostic rootの`summary.json`へ保存した。
+
+### 原因仮説
+
+最も一般的な説明は`coordinate-frame leakage`である。modelは通常、implicitな位置表現をrequested one-based `path:line`へ正規化する。低確率で、sourceのzero-based indexまたはdiff表示順など、別frameの未正規化値がterminal valueへ漏れると推測する。
+
+これは既知4件を`:24 / :26`の両方向を含めて説明する。一方、model内部のselected frameまたはtoken probabilityは保存eventから見えないため、まだ推論である。
+
+checkpoint mismatchだけはroot authority outputがdiffより後に完了した唯一のrunだった。これはsalience増幅要因候補である。ただし、元B18の2 mismatchはdiffが最後であり、共通原因ではない。
+
+### control graph上の扱い
+
+- `SPEC`、`CONTEXT`、`OWNER`、`ROOT`へlocation条件を追加しない。
+- C41の`OWNER_ROLE`へ統合しない。
+- Candidate37の`LOCATION`を再採用しない。
+- output照合postconditionも、原因仮説の反証前にはcandidate化しない。
+- 次の対象は、unnumbered sourceとraw diffを渡す`multi-frame`条件と、atomic one-based recordだけを渡す`single-frame`条件の外部mechanism diagnosticである。
+
+### Gate状態
+
+この時点では低確率原因の仮説を定義したが、反証可能なmechanism diagnosticは未実行だった。candidate作成gateは`closed`のままとし、candidate bundle、profile、Layer 3、Layer 4 resultを作成しなかった。
+
+## Coordinate representation診断後の更新
+
+multi-frameとsingle-frameを各135件、24並列で実施した。multi-frameはunnumbered sourceとraw unified diff、single-frameはatomic one-based recordをmodel-visible evidenceとした。semantic code内容、review要求、model、reasoning effortは固定した。
+
+両条件とも135 / 135が正しい`:25`を返し、`:24 / :26`は発生しなかった。tool use、retry、schema failureも0だった。
+
+この結果により、複数coordinate frameが同じevidenceに存在することだけをroot causeとする仮説は支持されなかった。したがって、evidenceをsingle-frameへ変える制御またはinterface変更も、現時点では変更predicateへしない。
+
+実Agentの135 checkpoint traceでは、checkpoint前のagent messageへnumeric coordinateを保持したrunが0件だった。134件は完全なchanged line textも保持せず、semantic findingだけを確定した後、別turnでcoordinateを再構成した。縮小mechanism diagnosticは同じturnでevidenceからcoordinateを直接出力していた。
+
+次の原因候補は、coordinate representation単独ではなく、`semantic compression後のdelayed coordinate reconstruction × competing coordinate frames`の相互作用である。これはboundary labelではない。Agent stateをまたぐevidence identity保持の問題候補である。
+
+次の一変数診断は、同じevidence representationについて、turn 1でcoordinateなしのsemantic findingへ圧縮し、turn 2でevidenceを再掲せずcoordinateを返すdelayed条件である。実施前gateは未承認とする。
+
+candidate作成gateは引き続き`closed`である。C35 / C38 / C40 / C41の既存labelへ条件を追加しない。
 
 ## 参照
 
@@ -191,3 +309,5 @@ candidate作成前gate、targeted試験gate、expanded 12-case N=5試験gateは`
 - [Candidate35 / Candidate38 v9 targeted N=5](../evaluations/results/candidate35-candidate38-outcome-quality-owner-diagnostic-v9-targeted2-n5_2026-07-19.md)
 - [Candidate35 / Candidate38 token trace analysis](../evaluations/results/candidate35-candidate38-v9-targeted2-n5-token-trace-analysis_2026-07-19.md)
 - [Candidate40 targeted N=5](../evaluations/results/candidate40-operation-result-projection-boundary-v9-targeted2-n5_2026-07-19.md)
+- [Candidate37 exact evidence location expanded N=5](../evaluations/results/candidate37-exact-evidence-location-owner-producer-v8-expanded12-n5_2026-07-18.md)
+- [Candidate41 continuous B18](../evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-continuous-n5-b18_2026-07-19.md)
