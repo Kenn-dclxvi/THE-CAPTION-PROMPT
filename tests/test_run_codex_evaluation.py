@@ -295,6 +295,30 @@ class RunCodexEvaluationTest(unittest.TestCase):
         self.assertEqual(task_protocol["required_command_groups"], groups)
         self.assertNotIn("required_command_groups_by_case", task_protocol)
 
+    def test_omits_command_protocol_from_declared_cases(self) -> None:
+        declaration = {
+            **COMMAND_EVIDENCE_PROTOCOL,
+            "omit_for_cases": ["TC-A01", "TC-A02"],
+            "required_command_groups_by_case": {
+                "TC-F07": [["bash", "-n", "run.sh"]],
+            },
+        }
+
+        task_protocol, groups = command_protocol_for_case(declaration, "TC-A01")
+
+        self.assertIsNone(task_protocol)
+        self.assertEqual(groups, [])
+
+    def test_rejects_duplicate_command_protocol_omissions(self) -> None:
+        declaration = {
+            **COMMAND_EVIDENCE_PROTOCOL,
+            "omit_for_cases": ["TC-A01", "TC-A01"],
+            "required_command_groups_by_case": {},
+        }
+
+        with self.assertRaisesRegex(AdapterError, "must not contain duplicates"):
+            command_protocol_for_case(declaration, "TC-A01")
+
     def test_only_incomplete_command_evidence_is_an_external_failure(self) -> None:
         self.assertIsNone(
             command_evidence_external_failure(

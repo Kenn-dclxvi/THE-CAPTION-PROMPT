@@ -87,6 +87,13 @@ QUALITY_RATING_V9 = {
     "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v5",
     "owner_producer_evidence_policy": "diagnostic_only",
 }
+QUALITY_RATING_V10 = {
+    "contract_id": "outcome-boundary-owner-diagnostic-v10",
+    "contract_sha256": "987a10b29862b4b75daa73a696ec922cddbce6f84e6cb0459349383f1767c1b4",
+    "producer_evidence_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+    "command_evidence_schema_version": "the-caption-prompt.all-agent-command-evidence/v5",
+    "owner_producer_evidence_policy": "diagnostic_only",
+}
 QUALITY_RATING = {
     "contract_id": "owner-producer-quality-v8",
     "contract_sha256": "22794275b34458898a26e94276126834db0bbc19dfa915e9187d02955419e1c2",
@@ -103,6 +110,7 @@ SUPPORTED_QUALITY_RATINGS = (
     QUALITY_RATING_V7,
     QUALITY_RATING,
     QUALITY_RATING_V9,
+    QUALITY_RATING_V10,
 )
 OWNER_PATTERN = re.compile(r"owner\s*=\s*([^\u3002\n;,]+)", re.IGNORECASE)
 EXECUTION_SCHEMA_V3 = "the-caption-prompt.execution/v3"

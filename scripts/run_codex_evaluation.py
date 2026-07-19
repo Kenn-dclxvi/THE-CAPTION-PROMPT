@@ -142,6 +142,14 @@ def command_protocol_for_case(
     declaration = require_object(declaration, "executor_parameters.command_evidence_protocol")
     if any(declaration.get(key) != expected for key, expected in COMMAND_EVIDENCE_PROTOCOL.items()):
         raise AdapterError("unsupported command evidence protocol")
+    omitted_case_ids = require_string_array(
+        declaration.get("omit_for_cases", []),
+        "command_evidence_protocol.omit_for_cases",
+    )
+    if len(omitted_case_ids) != len(set(omitted_case_ids)):
+        raise AdapterError("command_evidence_protocol.omit_for_cases must not contain duplicates")
+    if case_id in omitted_case_ids:
+        return None, []
     groups_by_case = require_object(
         declaration.get("required_command_groups_by_case"),
         "command_evidence_protocol.required_command_groups_by_case",

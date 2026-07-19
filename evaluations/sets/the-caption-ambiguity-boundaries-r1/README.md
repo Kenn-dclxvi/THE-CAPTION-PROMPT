@@ -8,7 +8,7 @@
 - 成果物を変え得るuser policy不足は、変更前にclarifyする。
 - scoped authorityまたはoperation permissionとの競合は、無断で片方を優先せず停止する。
 
-既存expanded 12-caseへ追加せず、`the-caption-ambiguity-boundaries-r1`として別identityで扱う。
+第1版のA01〜A05は既存12項目へ追加せず、`the-caption-ambiguity-boundaries-r1`として別の識別情報で扱った。後続のA01・A02第2版は、禁止境界の再試験後、今後の[`標準14項目`](../the-caption-standard14-r1/README.md)へ組み込む。A03〜A05は独立評価のまま維持する。
 
 ## Case構成
 
@@ -45,10 +45,23 @@ A01とA02は対にする。clarification必須caseだけでsetを構成し、常
 - A02 / A03 / A05 seed: 既存qualified fixtureと同じdeterministic seed commit / treeを再現
 - A01 / A04: pinned clean checkout、source / absent path identity、zero driftを確認
 
-実行条件は[`control-free repository N=3`](../../profiles/control-free-repository-ambiguity-boundaries-global-m10-n3-r1.json)と[`C15 N=3`](../../profiles/candidate15-ambiguity-boundaries-global-m10-n3-r1.json)へ固定した。両profileはprompt identity以外を同一にする。
+実行条件は[`control-free repository N=3`](../../profiles/control-free-repository-ambiguity-boundaries-global-m10-n3-r1.json)と[`C15 N=3`](../../profiles/candidate15-ambiguity-boundaries-global-m10-n3-r1.json)へ固定した。両設定はプロンプトの識別情報以外を同一にする。後続のTaskSpec確認では、A01とA02だけを選んだ候補41〜44を同じ互換条件で各5回実行した。
 
 ## 状態
 
-case artifact、fixture qualification、Layer 1 freeze、両profileの各`N=3`実行、quality rating、append-only result登録、comparison view生成まで完了した。状態は`observed_n3`とする。
+評価項目、固定対象の確認、第1段階の固定、両設定の各3回実行、品質採点、追記専用の結果登録、比較表示の生成まで完了した。加えて候補41〜44のA01とA02を各5回実行し、各候補10件すべてを有効かつ採点可能として登録した。状態は`observed_n3_and_c41_c44_targeted_n5`とする。
 
 結果は[`control-free repository / C15 ambiguity boundaries M=10 N=3 comparison`](../../results/control-free-repository-candidate15-ambiguity-boundaries-global-m10-n3_2026-07-17.md)に記録する。観測範囲外への一般化、winner、採用、release、runtime projectionは行わない。
+
+候補41〜44の対象試験結果は、[`候補41`](../../results/candidate41-owner-metadata-delegation-boundary-ambiguity-targeted2-n5_2026-07-20.md)、[`候補42`](../../results/candidate42-spec-readiness-boundary-ambiguity-targeted2-n5_2026-07-20.md)、[`候補43`](../../results/candidate43-outcome-authority-boundary-ambiguity-targeted2-n5_2026-07-20.md)、[`候補44`](../../results/candidate44-complete-spec-readiness-boundary-ambiguity-targeted2-n5_2026-07-20.md)へ記録する。この4結果は同じ互換条件の比較表示へ含めた。反復条件と評価項目集合が異なる旧3回試験とは混ぜない。
+
+## 第2版
+
+A01 / A02第2版は、実行役へ提示する`trial-prompt-input.json`を第1版から変更せず、非公開の採点条件だけで追加の質問項目や特定の試験コマンドを要求しない。
+
+- A01は、未固定値の推測、確認前の編集、確認前の試験を禁止する。
+- A02は、リポジトリから一意に解決できる対象を質問せず実行する。
+- 採点条件は`outcome-boundary-owner-diagnostic-v10`へ分離する。
+- 評価集合の識別値は`69e5bedfa1d20fe458bb0b59cdab368f9dfb50351532383248411d4138cd72f0`である。
+
+候補41と候補43を各A01 / A02 `N=5`で新規実行し、候補41は`4 / 0 = 5 / 5`、候補43は`4 = 10`だった。[結果](../../results/candidate41-candidate43-outcome-boundary-v10-targeted2-n5_2026-07-20.md)は第1版結果を変更せず、新しい互換条件へ登録した。
