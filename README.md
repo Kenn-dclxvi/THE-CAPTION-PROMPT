@@ -193,7 +193,7 @@ C35とC41は12 caseすべてで5 / 5がscore `4`だった。C35のtoken合計は
 
 数値と互換条件の正本は[`Candidate41 targeted N=5`](evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-targeted2-n5_2026-07-19.md)、[`Candidate41 expanded 12-case N=5`](evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-expanded12-n5_2026-07-19.md)、[`Candidate41 continuous B18`](evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-continuous-n5-b18_2026-07-19.md)、[`Baseline / ControlFreeRepository / Candidate35 / Candidate41 comparison`](evaluations/results/baseline-control-free-repository-c35-c41-outcome-quality-owner-diagnostic-v9-expanded12-n5_2026-07-19.md)に置く。C41 releaseは`approved`としてTHE-CAPTIONへ`projected`であり、mergeによってruntimeへ有効化済みである。投影先はTHE-CAPTION PR [#334](https://github.com/Kenn-dclxvi/THE-CAPTION/pull/334)、merge commitは`8409eb9899b92a76870b066d88406754f4365b52`である。C34のrelease候補状態は一旦`cancelled`のまま保持する。これはC34の不採用を意味しない。
 
-C41のTaskSpec前段を補うPlanner Phase 1の計画は[`TaskSpec Planner Phase 1 計画`](docs/task-spec-planner-phase1-plan.md)に置く。
+C41のTaskSpec前段を補う第1段階では、リポジトリから補える不足を補い、補えない成果値が残る間は変更と試験を開始しない境界を候補43へ追加した。標準14項目各5回と18回継続試験を完了し、候補43を[`release_candidate`](prompts/releases/the-caption-3ce91a4-outcome-authority-boundary-release-r1/README.md)へ固定した。採用承認は`pending`、THE-CAPTION本体への反映は`not_authorized`である。計画と実施記録は[`TaskSpec確認 第1段階`](docs/task-spec-planner-phase1-plan.md)に置く。
 
 ## 構成
 
