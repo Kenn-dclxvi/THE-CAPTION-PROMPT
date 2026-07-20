@@ -1,6 +1,6 @@
 {
   "artifact": {
-    "approval_status": "pending",
+    "approval_status": "approved",
     "artifact_role": "release",
     "candidate_identity": "the-caption-3ce91a4-outcome-authority-boundary-r1",
     "evaluation_evidence": {
@@ -37,9 +37,19 @@
       "THE-CAPTION本体へのwrite、push、PR、merge、runtime有効化"
     ],
     "prompt_set_name": "outcome_authority_boundary_release",
+    "projection_evidence": {
+      "baseline_commit": "8409eb9899b92a76870b066d88406754f4365b52",
+      "effective_path_count": 1,
+      "manifest_target_count": 19,
+      "merge_commit": "f729810ba8693acff963ef8e1cc2f2a175197072",
+      "projection_record": "projection.json",
+      "pull_request": "https://github.com/Kenn-dclxvi/THE-CAPTION/pull/335",
+      "rollback_identity": "8409eb9899b92a76870b066d88406754f4365b52",
+      "validation": "bash ./scripts/dev/verify_change_set.sh: 364 passed in 1.85s"
+    },
     "release_identity": "the-caption-3ce91a4-outcome-authority-boundary-release-r1",
-    "release_status": "release_candidate",
-    "scope": "評価済みCandidate43の19 path full bundleを内容変更なしで現行release候補へ固定する。",
+    "release_status": "projected",
+    "scope": "評価済みCandidate43の19 path full bundleを内容変更なしで固定し、THE-CAPTIONへ投影する。",
     "unresolved_risks": [
       "continuous B18のF10 monthly reviewで主要findingは正しいがlocationが実変更行と一致しないscore 3を4 / 90件観測した。",
       "continuous B18のA01で質問停止した実応答を採点処理が認識しない偽陰性を1件観測した。公式resultは変更していない。",
@@ -213,7 +223,7 @@
     ],
     "design_status": "release_candidate",
     "evaluation_status": "evaluated_outcome_boundary_owner_diagnostic_v10_continuous_n5_b18",
-    "runtime_projection_status": "not_projected",
+    "runtime_projection_status": "projected",
     "source_interpretation": "This release is a content-identical snapshot of Candidate43. Candidate43 changes only the existing SPEC predicate relative to Candidate42; the release adds no prompt change."
   },
   "schema_version": "the-caption-prompt.bundle/v1",

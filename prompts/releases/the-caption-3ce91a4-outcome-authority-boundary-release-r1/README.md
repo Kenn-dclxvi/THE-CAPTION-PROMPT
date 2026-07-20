@@ -1,12 +1,14 @@
-# 候補43 リリース準備
+# 候補43 リリースと投影
 
 ## 結論
 
-候補43の19対象完全一式を、内容変更なしで現行リリース候補へ固定した。
+候補43の19対象完全一式を、内容変更なしでTHE-CAPTIONへ投影した。
 
-リリース状態は`release_candidate`、承認状態は`pending`、THE-CAPTION本体への反映は`not_authorized`である。
+リリース状態は`projected`、承認状態は`approved`である。
 
-候補41は現在本体へ反映されているリリースとして履歴と稼働状態を維持する。候補43の指定は、候補41の投影履歴を取り消さない。
+候補41は直前の投影履歴と巻き戻し先として維持する。不採用またはartifact削除にはしていない。
+
+投影結果は[`projection.json`](projection.json)へ記録した。
 
 ## 識別情報
 
@@ -50,26 +52,29 @@
 ## 承認状態
 
 - リリース準備: `complete`
-- リリース状態: `release_candidate`
-- 採用承認: `pending`
-- 本体反映: `not_authorized`
-- THE-CAPTIONへの書き込み、push、PR、merge: `not_started`
+- リリース状態: `projected`
+- 採用承認: `approved`
+- 本体反映: `projected`。`main`へのマージで有効化済み
+- THE-CAPTIONへの書き込み、push、PR、merge: `completed`
 
-## 本体反映との境界
+## 投影結果
 
-現在THE-CAPTIONへ投影済みなのは候補41である。候補43を本体へ反映するには、別作業で次を固定する。
-
-1. 反映先THE-CAPTIONの現在commit。
-2. 候補43リリースの内容識別値。
-3. 候補41からの実変更対象。現時点のスナップショット比較では`AGENTS.md`一つである。
-4. 必須試験と確認手順。
-5. 巻き戻し先。現行の候補41投影commitを候補とする。
-6. 書き込み、push、PR、merge、本体有効化の明示承認。
-
-本リリース候補の作成だけでは、これらを承認しない。
+- 投影前commit / 巻き戻し先: `8409eb9899b92a76870b066d88406754f4365b52`
+- 投影したmanifest対象: `19 / 19`
+- 実変更対象: `AGENTS.md`一つ
+- 検証: `bash ./scripts/dev/verify_change_set.sh`、`364 passed in 1.85s`
+- 統合後manifest一致: `19 / 19`
+- 対象外変更: 0件
+- 監査停止指摘: 0件
+- 重大な確認指摘: 0件
+- THE-CAPTION PR: [#335](https://github.com/Kenn-dclxvi/THE-CAPTION/pull/335)
+- 統合commit: `f729810ba8693acff963ef8e1cc2f2a175197072`
+- 投影記録: [`projection.json`](projection.json)
 
 ## 根拠
 
+- [投影記録](projection.json)
+- [THE-CAPTION PR #335](https://github.com/Kenn-dclxvi/THE-CAPTION/pull/335)
 - [候補43 18回継続試験](../../../evaluations/results/candidate43-outcome-authority-boundary-v10-standard14-continuous-n5-b18_2026-07-20.md)
 - [候補41・候補43 標準14項目各5回](../../../evaluations/results/candidate41-candidate43-outcome-boundary-v10-standard14-n5_2026-07-20.md)
 - [候補43 標準14項目各5回](../../../evaluations/results/candidate43-outcome-authority-boundary-v10-standard14-n5_2026-07-20.md)
