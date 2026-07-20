@@ -1,0 +1,225 @@
+{
+  "artifact": {
+    "approval_status": "pending",
+    "artifact_role": "release",
+    "candidate_identity": "the-caption-3ce91a4-outcome-authority-boundary-r1",
+    "evaluation_evidence": {
+      "continuous_b18_result_ids": [
+        "12535027deb24061925599d8996fa0ef",
+        "cb5226ee770b4aadafe20f5564a68f37",
+        "9f01c447aa9442119de4b70e08de7616",
+        "16d4cb91deab4b7a9a22b1d05957dac2",
+        "8be3f9d3e0d04c5d89c8f1f2342587d0",
+        "1fcbee7648ff4b74bcdcc638db2b506b",
+        "48c712f24f92424099de0cba2c26ac98",
+        "27e8c6087dac4bb0a52bfc1e5b43dc49",
+        "018ea2c1bbe94518bad01035afeda10c",
+        "caf33048b0fa434dbf97f0c08d6cc92e",
+        "62ec8650eea246f4a37b246f38cc6409",
+        "a78ae0213e644f0a9adef47bc9246ee2",
+        "c9d411d4cd8c467da1d4344dd81c6a7b",
+        "3c32732b46a7407382e458dff401dd5d",
+        "8a922242f38745738ca79dc155eef516",
+        "64de5cd160f84fc1ba25635dde2a2b97",
+        "19d12859a77142028bd7423818fddcb7",
+        "fe1a4ea7f5b44588afe9de456222a0a7"
+      ],
+      "current_quality_rating": "outcome-boundary-owner-diagnostic-v10",
+      "standard14_result_id": "b62428c2361b435fbd0fc7c8979868e7",
+      "targeted_result_id": "2e0216803ef74d0ca4a536998d8ad88b"
+    },
+    "evaluation_status": "observed_outcome_boundary_owner_diagnostic_v10_continuous_n5_b18",
+    "non_goals": [
+      "Candidate43 prompt内容の変更",
+      "既存resultの再採点",
+      "F10 location mismatchまたはA01採点偽陰性を隠すこと",
+      "release候補指定を本体反映承認として扱うこと",
+      "THE-CAPTION本体へのwrite、push、PR、merge、runtime有効化"
+    ],
+    "prompt_set_name": "outcome_authority_boundary_release",
+    "release_identity": "the-caption-3ce91a4-outcome-authority-boundary-release-r1",
+    "release_status": "release_candidate",
+    "scope": "評価済みCandidate43の19 path full bundleを内容変更なしで現行release候補へ固定する。",
+    "unresolved_risks": [
+      "continuous B18のF10 monthly reviewで主要findingは正しいがlocationが実変更行と一致しないscore 3を4 / 90件観測した。",
+      "continuous B18のA01で質問停止した実応答を採点処理が認識しない偽陰性を1件観測した。公式resultは変更していない。",
+      "1,259 / 1,260 runはroot-onlyだったが、F04の1 runで担当情報を独立実行指定と解釈して1 childを起動した。",
+      "標準14項目N5の使用量分析ではF08だけにSPECを広く解釈した追加探索の関与可能性が残る。",
+      "B18の観測を評価範囲外へ一般化しない。"
+    ]
+  },
+  "bundle_hash_algorithm": "sha256(canonical-json({schema_version,files}))",
+  "bundle_sha256": "b6455c1774c32e0bc9cb5bfe2257d35911b6797ecd5b2f3b77bbf41e4bcca531",
+  "content_relation": {
+    "changed_targets": [],
+    "kind": "release_snapshot_of_candidate",
+    "source_prompt_identity": "the-caption-3ce91a4-outcome-authority-boundary-r1"
+  },
+  "files": [
+    {
+      "git_blob_sha1": "60eba640fcc8b7a98b67d21cb608819cf0238a59",
+      "mode": "100644",
+      "sha256": "c715dbb94b6ddc6a6461d28d5fd4fbe1ee1a2b21741bdb282297fabd17bcd192",
+      "target": "AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "dc7446eae35eda9f0be9e162f9e81fb2dedcd97b",
+      "mode": "100644",
+      "sha256": "5b11d8b79b2ed9718d0a213ab5dbe5ea45a16ad03f1bfe93c625038d0041f8c8",
+      "target": "docs/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "docs/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "docs/glossary.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "4a85298ded65e9db8bb7c8428f47cf370bdb3297",
+      "mode": "100644",
+      "sha256": "bfd13c7c8e2dd11e3dc1777bf78d9c530d8d5c39fc81a25f13b30fdacb6aad4f",
+      "target": "docs/how-to/index.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "docs/orchestration-process.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "docs/prompt-guide.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "b81e630c09d5d06a87b31e19efc4d2163971dd9b",
+      "mode": "100644",
+      "sha256": "12155b2c64e3259e1774d2761ca87162df66b2d548dc3d040fe3ac0beb672ecb",
+      "target": "docs/reference/project-contexts/the-caption.txt",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "prompts/audit.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "prompts/implement.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "prompts/plan.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "prompts/review.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "fa7943fe3d687bc81cb7b1a46fe20ed95c3643c6",
+      "mode": "100644",
+      "sha256": "9ef019f1fda229b56c0c1f0180f8117b91071d83aaaf165608bd59f2d069f897",
+      "target": "scripts/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "scripts/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "2d0834867848fc02f236b4c390cfabb42a818565",
+      "mode": "100644",
+      "sha256": "15ac565c8b3ef9b678be5346dc6952490a7df2e6f17b856eebc949789fa45377",
+      "target": "src/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "src/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "062c1ded63a981f88aaf0c22c4d15089ef8d0417",
+      "mode": "100644",
+      "sha256": "d6eb6100a9125256136c3cf928b55aaa2cd7f0dc28f8208defbf654dad8e7bcd",
+      "target": "tests/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "tests/CLAUDE.md",
+      "type": "symlink"
+    }
+  ],
+  "manifest_relation": {
+    "added_targets": [
+      "docs/how-to/index.md",
+      "docs/reference/project-contexts/the-caption.txt"
+    ],
+    "kind": "expanded_path_set",
+    "source_prompt_identity": "the-caption-3ce91a4-current-r1"
+  },
+  "prompt_identity": "the-caption-3ce91a4-outcome-authority-boundary-release-r1",
+  "provenance": {
+    "candidate_source_commit": "8702e1a031633943e0de09eced4954240202f720",
+    "construction_repository": "https://github.com/Kenn-dclxvi/THE-CAPTION-PROMPT.git",
+    "construction_state": "working_tree_release_snapshot_of_committed_candidate",
+    "design_inputs": [
+      "prompts/candidates/the-caption-3ce91a4-outcome-authority-boundary-r1/manifest.json",
+      "docs/task-spec-planner-phase1-plan.md",
+      "evaluations/results/candidate41-candidate43-outcome-boundary-v10-targeted2-n5_2026-07-20.md",
+      "evaluations/results/candidate41-candidate43-outcome-boundary-v10-standard14-n5_2026-07-20.md",
+      "evaluations/results/candidate41-candidate43-v10-standard14-n5-token-increase-analysis_2026-07-20.md",
+      "evaluations/results/candidate43-outcome-authority-boundary-v10-standard14-continuous-n5-b18_2026-07-20.md"
+    ],
+    "design_status": "release_candidate",
+    "evaluation_status": "evaluated_outcome_boundary_owner_diagnostic_v10_continuous_n5_b18",
+    "runtime_projection_status": "not_projected",
+    "source_interpretation": "This release is a content-identical snapshot of Candidate43. Candidate43 changes only the existing SPEC predicate relative to Candidate42; the release adds no prompt change."
+  },
+  "schema_version": "the-caption-prompt.bundle/v1",
+  "source": {
+    "commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+    "repository": "https://github.com/Kenn-dclxvi/THE-CAPTION.git",
+    "tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b"
+  }
+}
