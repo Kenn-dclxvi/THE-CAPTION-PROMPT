@@ -40,3 +40,7 @@
 最初の実行設定は[`candidate43-outcome-authority-boundary-v10-standard14-global-m24-n5-r1.json`](../../profiles/candidate43-outcome-authority-boundary-v10-standard14-global-m24-n5-r1.json)である。
 
 この実行設定は候補43、各項目5回、同時実行上限24へ固定する。[初回結果](../../results/candidate43-outcome-authority-boundary-v10-standard14-n5_2026-07-20.md)は70件すべて有効かつ採点可能で、全件が点数`4`だった。別候補を評価する場合は候補の識別情報だけを替え、評価集合、採点条件、実行環境、権限、反復条件を維持する。
+
+候補41は候補の識別情報だけを替えた[`同条件の実行設定`](../../profiles/candidate41-owner-metadata-delegation-boundary-v10-standard14-global-m24-n5-r1.json)で各5回実行した。[候補41・候補43の結果](../../results/candidate41-candidate43-outcome-boundary-v10-standard14-n5_2026-07-20.md)は両候補とも70 / 70件を登録した。
+
+候補43は同じ実行設定を18回継続し、[`1,260件の実施記録`](../../results/candidate43-outcome-authority-boundary-v10-standard14-continuous-n5-b18_2026-07-20.md)を登録した。これは評価集合や採点条件を変更せず、各14項目掛ける5回の独立結果を18件保存した継続試験である。

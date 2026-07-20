@@ -11,6 +11,7 @@ from scripts.standard14_quality_audit import a_rating, f_rating
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "evaluations/profiles/candidate43-outcome-authority-boundary-v10-standard14-global-m24-n5-r1.json"
+C41_PROFILE = ROOT / "evaluations/profiles/candidate41-owner-metadata-delegation-boundary-v10-standard14-global-m24-n5-r1.json"
 F12_PROFILE = ROOT / "evaluations/profiles/candidate41-owner-metadata-delegation-boundary-outcome-quality-owner-diagnostic-v9-expanded12-f04r2-global-m24-n5-r1.json"
 A01 = "TC-A01-LATENT-MODE-POLICY"
 A02 = "TC-A02-REPOSITORY-RESOLVABLE-V4-ROUTING"
@@ -70,6 +71,20 @@ class Standard14ProfileTest(unittest.TestCase):
         self.assertEqual(
             verify_bundle(bundle)["bundle_sha256"],
             profile["prompt_set_identity"]["bundle_sha256"],
+        )
+
+    def test_c41_and_c43_standard14_differ_only_by_prompt_identity(self) -> None:
+        c41 = self.load(C41_PROFILE)
+        c43 = self.load(PROFILE)
+
+        self.assertEqual(c41["cases"], c43["cases"])
+        self.assertEqual(c41["comparison_conditions"], c43["comparison_conditions"])
+        self.assertEqual(c41["evaluation_set"], c43["evaluation_set"])
+        self.assertEqual(c41["execution"], c43["execution"])
+        bundle = ROOT / "prompts/releases/the-caption-3ce91a4-owner-metadata-delegation-boundary-release-r1"
+        self.assertEqual(
+            verify_bundle(bundle)["bundle_sha256"],
+            c41["prompt_set_identity"]["bundle_sha256"],
         )
 
     def test_a01_rating_rewards_only_the_clarification_boundary(self) -> None:
