@@ -193,7 +193,26 @@ C35とC41は12 caseすべてで5 / 5がscore `4`だった。C35のtoken合計は
 
 数値と互換条件の正本は[`Candidate41 targeted N=5`](evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-targeted2-n5_2026-07-19.md)、[`Candidate41 expanded 12-case N=5`](evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-expanded12-n5_2026-07-19.md)、[`Candidate41 continuous B18`](evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-continuous-n5-b18_2026-07-19.md)、[`Baseline / ControlFreeRepository / Candidate35 / Candidate41 comparison`](evaluations/results/baseline-control-free-repository-c35-c41-outcome-quality-owner-diagnostic-v9-expanded12-n5_2026-07-19.md)に置く。C41 releaseはTHE-CAPTION PR [#334](https://github.com/Kenn-dclxvi/THE-CAPTION/pull/334)で投影され、merge commit `8409eb9899b92a76870b066d88406754f4365b52`を候補43の巻き戻し先として保持する。C34のrelease候補状態は一旦`cancelled`のまま保持する。これはC34の不採用を意味しない。
 
-C41のTaskSpec前段を補う第1段階では、リポジトリから補える不足を補い、補えない成果値が残る間は変更と試験を開始しない境界を候補43へ追加した。標準14項目各5回と18回継続試験を完了し、候補43を[`approved`としてTHE-CAPTIONへ`projected`](prompts/releases/the-caption-3ce91a4-outcome-authority-boundary-release-r1/README.md)した。投影先はTHE-CAPTION PR [#335](https://github.com/Kenn-dclxvi/THE-CAPTION/pull/335)、merge commitは`f729810ba8693acff963ef8e1cc2f2a175197072`である。計画と実施記録は[`TaskSpec確認 第1段階`](docs/task-spec-planner-phase1-plan.md)に置く。
+## Candidate42からCandidate43までの要約
+
+C41のTaskSpec前段を補う第1段階として、リポジトリから補える不足と、ユーザー確認なしには確定できない変更後の成果値を分離した。直接の系譜は`C41 → C42 → C43`である。両candidateともC41の19 targetを維持し、変更したのはroot `AGENTS.md`の既存`SPEC`だけである。
+
+| prompt set | 直接source | 追加または変更した制御境界 | 主な保存evidence |
+| --- | --- | --- | --- |
+| Candidate42 | Candidate41 | required outcome、permission、constraintが未固定の間はwrite、test、dependency変更を開始しない`spec_ready`境界を追加 | A01は5 / 5が未固定値を推測してscore `0`。A02は成果を満たしたが旧v9の非公開command要件により5 / 5 score `3`。試験後に停止 |
+| Candidate43 | Candidate42 | 変更後の値を直接要求する適用repository規則だけを成果値確定の根拠として認め、それ以外の未固定値は編集・試験前に確認 | v10 A01 / A02は10 / 10 score `4`。標準14項目は70 / 70 score `4`。B18完了後に`approved / projected` |
+
+C42は`spec_ready`を追加したが、A01の5 runすべてで「現在値が`daily`なら変更後は別選択肢の`strict`」と推測して編集と試験へ進んだ。開始可否だけを定めても、値を確定するevidenceの適格性を限定しなければ誤った開始を防げないことを確認し、追加試験へ進めず停止した。A02のscore `3`は、実行役へ提示していない`bash scripts/dev/main_verify.sh`を旧v9 ratingだけが必須にした評価境界の問題である。保存済みresultは変更せず、v10の診断replayではA02を5 / 5 score `4`、A01を5 / 5 score `0`として分離した。
+
+C43は新しいlabelを増やさず、C42の`SPEC`を一つのoutcome authority条件へ置換した。リポジトリから一意に解決できるA02の起動先は質問せず確定する一方、リポジトリが変更後値を直接要求しないA01は推測せず確認して停止する。実行役へ提示する入力を変えないv10 targetedでは、C41がA01の5 / 5でscore `0`、A02の5 / 5でscore `4`だったのに対し、C43は10 / 10がscore `4`だった。
+
+同じv10、標準14項目、各`N=5`の互換条件では、C41のscore分布が`4 / 3 / 0 = 64 / 1 / 5`、C43が`4 = 70`だった。C43は14項目すべてを5 / 5で満たした。C41 / C43の70 run使用量合計は`17,824,901 / 17,732,662`で、差はC41からC43を引いて`+92,239`だった。中央値ではC41が`3,486,800`、C43が`3,647,298`であり、合計と中央値の方向が異なるため、token値だけを採用理由にしていない。
+
+C43の同条件18回継続試験は、標準14項目 × 5反復 × 18 resultの1,260 / 1,260 runをvalid、rateableとして登録・圧縮した。公式score分布は`4 / 3 / 1 = 1,255 / 4 / 1`である。score `3`の4件はF10 monthly reviewの正しい主要findingに対するlocationずれだった。score `1`のA01 1件は、変更と試験を開始せず確認して停止した実responseをratingが質問表現として認識しなかった偽陰性である。1,259 / 1,260 runはroot-onlyで、F04の1件だけが担当情報を独立実行指定と解釈してchildを1件起動した。
+
+C43 releaseは`approved`、release statusとruntime projectionは`projected`である。19 / 19 targetをTHE-CAPTIONへ投影し、C41との差分はroot `AGENTS.md`だけだった。THE-CAPTION PR [#335](https://github.com/Kenn-dclxvi/THE-CAPTION/pull/335)をmerge commit `f729810ba8693acff963ef8e1cc2f2a175197072`として統合し、`bash ./scripts/dev/verify_change_set.sh`は364 testを通過した。投影前のC41 commit `8409eb9899b92a76870b066d88406754f4365b52`は巻き戻し先として保持する。
+
+正本は[`Candidate42 A01 / A02 N=5`](evaluations/results/candidate42-spec-readiness-boundary-ambiguity-targeted2-n5_2026-07-20.md)、[`Candidate41 / Candidate43 v10 targeted`](evaluations/results/candidate41-candidate43-outcome-boundary-v10-targeted2-n5_2026-07-20.md)、[`Candidate41 / Candidate43 standard 14 N=5`](evaluations/results/candidate41-candidate43-outcome-boundary-v10-standard14-n5_2026-07-20.md)、[`Candidate43 continuous B18`](evaluations/results/candidate43-outcome-authority-boundary-v10-standard14-continuous-n5-b18_2026-07-20.md)、[`Candidate43 release / projection`](prompts/releases/the-caption-3ce91a4-outcome-authority-boundary-release-r1/README.md)に置く。F10 locationずれ、A01 rating偽陰性、F04の1 child route、F08追加探索の関与可能性、N=5 / B18範囲外への一般化不能は未解決事項として保持する。計画と実施記録は[`TaskSpec確認 第1段階`](docs/task-spec-planner-phase1-plan.md)に置く。
 
 ## 構成
 
