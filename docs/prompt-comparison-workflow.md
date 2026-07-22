@@ -65,6 +65,8 @@ prompt bundle pathやprompt固有parameterを`comparison_conditions.executor_par
 
 `comparison_conditions.executor_parameters.token_accounting`には、`scope: all_agents`、`revision: v1`、`source: codex_rollout_final_usage_by_workspace`を固定する。異なるscopeまたはrevisionを持つresultは互換比較しない。
 
+Agentがmodelへ提示するskill、app、plugin catalogが変わり得る実行では、その有効・無効policyとmodel-visible catalog identityを`comparison_conditions.agent_environment`へ固定する。adapterはroot rolloutの`skills_instructions / apps_instructions / plugins_instructions` blockからidentityを計算する。expected identityと異なるrunは外部計測失敗として除外し、同じslotを再実行する。profile上のruntime identityだけで実効catalog一致を推定しない。
+
 Layer 1は`.git`内部を除くfixtureのpath、type、mode、contentまたはsymlink targetからcase別fixture identityを計算する。resultの互換条件にはEvaluation setの`set_id`、`revision`、content identity、case別fixture identity、Run capsuleの全`comparison_conditions`、case集合、iteration集合を含める。
 
 ## `quality_score`

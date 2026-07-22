@@ -1,0 +1,334 @@
+{
+  "schema_version": "the-caption-prompt-evaluation-private-case-v1",
+  "case_id": "TC-A06-BROAD-CONFORMANCE-AUDIT-CONTEXT-BOUNDARY",
+  "case_revision": "r1",
+  "visibility": "model_invisible",
+  "fixture": {
+    "target_identity": {
+      "repository": "Kenn-dclxvi/THE-CAPTION",
+      "commit": "eebc1c6c106f504978482238fd760fb73f5fff36",
+      "tree": "6366adbb7eaf9db55763e39797b5e070905ede16"
+    },
+    "case_spec": {
+      "family": "A06",
+      "equivalence_cluster_id": "broad-conformance-audit-context-boundary",
+      "coverage_tags": [
+        "read-only-review",
+        "broad-scope",
+        "authority-resolution",
+        "worker-context",
+        "result-revalidation",
+        "false-positive-rejection",
+        "no-drift"
+      ]
+    },
+    "authority_selectors": [
+      "AGENTS.md",
+      "src/AGENTS.md",
+      "docs/adr/decisions_index.md",
+      "docs/reference/index.md"
+    ],
+    "source_files": [
+      {
+        "path": "AGENTS.md",
+        "mode": "100644",
+        "git_blob_sha1": "60eba640fcc8b7a98b67d21cb608819cf0238a59",
+        "role": "execution_authority",
+        "raw_sha256": "c715dbb94b6ddc6a6461d28d5fd4fbe1ee1a2b21741bdb282297fabd17bcd192"
+      },
+      {
+        "path": "src/AGENTS.md",
+        "mode": "100644",
+        "git_blob_sha1": "2d0834867848fc02f236b4c390cfabb42a818565",
+        "role": "scoped_execution_authority",
+        "raw_sha256": "15ac565c8b3ef9b678be5346dc6952490a7df2e6f17b856eebc949789fa45377"
+      },
+      {
+        "path": "docs/reference/logic.md",
+        "mode": "100644",
+        "git_blob_sha1": "b8e8f770c0e12c9d1095cd71c938d5abe6d426f3",
+        "role": "product_authority",
+        "raw_sha256": "879dc2c47669e00cb1f0c153cecd45480671b2d49866ff27de0ec832153d8a95"
+      },
+      {
+        "path": "docs/reference/system.md",
+        "mode": "100644",
+        "git_blob_sha1": "53aa6d8a9b403e141af3b9df4c48d40cdd5fa22c",
+        "role": "product_authority",
+        "raw_sha256": "9810cf07a43bbab08b86f55ffad41207a1894c061fe60c53f3ebf933dd08ae44"
+      },
+      {
+        "path": "docs/reference/prompts.md",
+        "mode": "100644",
+        "git_blob_sha1": "42dc45c916a8466bdc77f7a725249d58563f5b90",
+        "role": "product_authority_and_false_positive_reference",
+        "raw_sha256": "6e1401c40b93978034dd8b1a92537841434626b42978efc89cf4a2905461e922"
+      },
+      {
+        "path": "src/domain/universal_ingester.py",
+        "mode": "100644",
+        "git_blob_sha1": "69905806656505add790f4fc7c7c89353cc49126",
+        "role": "known_finding_reference",
+        "raw_sha256": "76020899fa51d4645ff57ce8448aed6364272f2f66c1b94f948693020fce009d"
+      },
+      {
+        "path": "src/domain/guard_rail.py",
+        "mode": "100644",
+        "git_blob_sha1": "572267fbf450674236386a795891d47982c56ad1",
+        "role": "known_finding_reference",
+        "raw_sha256": "daeecf175341a84478b4507bff9d7ab2d9cbc4d5e400cc657e5a081cf41b30ba"
+      },
+      {
+        "path": "src/app/v4_engine.py",
+        "mode": "100644",
+        "git_blob_sha1": "2d434888e1cb659dacab2a8e2722b9c9b741ee50",
+        "role": "known_finding_reference",
+        "raw_sha256": "14b9b2de597e74ddc5683d30e8107568f3283907226dea95ea609bf273a3a314"
+      },
+      {
+        "path": "src/domain/monthly_curator.py",
+        "mode": "100644",
+        "git_blob_sha1": "f260e2be735662eb68d4cf714111e1d5381272b1",
+        "role": "known_finding_and_false_positive_reference",
+        "raw_sha256": "c8841bc6eed2aa09ebb57bfddb9cf27427b9f38f36d74436a6198b5a4132d192"
+      },
+      {
+        "path": "src/infra/llm_transporter.py",
+        "mode": "100644",
+        "git_blob_sha1": "2b1889664a66c5381ff1a8b344f054f2653ef11e",
+        "role": "false_positive_reference",
+        "raw_sha256": "42f528ce99c7d84199aea5ba15345bf879eec76d39267aee27b749c422615a3a"
+      },
+      {
+        "path": "src/web/market_units_editor/server.ts",
+        "mode": "100644",
+        "git_blob_sha1": "7b8a0c3a78fdc7b4152f5f9d213716e885a7c30a",
+        "role": "known_finding_reference",
+        "raw_sha256": "d1402839944878d7888101a74122a8926ac4dd8a64367de17aa25f99f3865e33"
+      },
+      {
+        "path": "requirements.in",
+        "mode": "100644",
+        "git_blob_sha1": "04422581b2bcbccd99eac12bf6a5419e2bea9a62",
+        "role": "known_finding_reference",
+        "raw_sha256": "96ef0b1e808c00037c19b65bfabdd8352b1e54ad37465e709c2de01a3c53ac7a"
+      }
+    ]
+  },
+  "seed": {
+    "status": "clean_checkout",
+    "post_seed_intent": "No repository mutation is applied; the case evaluates a broad read-only conformance response against the observed audit start identity.",
+    "design_operations": [],
+    "fixture_materialization": {
+      "mode": "clean_checkout"
+    }
+  },
+  "oracle": {
+    "mode": "holistic_conformance_response_with_false_positive_rejection_and_no_drift",
+    "known_findings": [
+      {
+        "finding_id": "A06-F1",
+        "status": "confirmed",
+        "summary": "SSOT read failures can collapse to empty collections and the dispatch guard does not reject an empty or non-positive ledger.",
+        "evidence_paths": [
+          "src/domain/universal_ingester.py",
+          "src/domain/guard_rail.py",
+          "docs/reference/logic.md"
+        ]
+      },
+      {
+        "finding_id": "A06-F2",
+        "status": "confirmed",
+        "summary": "Final ledger and required daily artifact persistence failures can still proceed toward dispatch and CompletionLock, and context scope bypasses the existing lock.",
+        "evidence_paths": [
+          "src/app/v4_engine.py",
+          "src/domain/guard_rail.py"
+        ]
+      },
+      {
+        "finding_id": "A06-F3",
+        "status": "confirmed",
+        "summary": "The monthly v4 path searches date-specific ShadowLedger history while daily v4 overwrites one canonical file; fallback and legacy value paths can produce incomplete or mismatched monthly output.",
+        "evidence_paths": [
+          "src/app/v4_engine.py",
+          "src/domain/monthly_curator.py",
+          "src/app/monthly_engine.py",
+          "src/app/renderer/report_monthly.py"
+        ]
+      },
+      {
+        "finding_id": "A06-F4",
+        "status": "confirmed",
+        "summary": "Weekly processing requires legacy ledger artifacts that current v4 does not produce.",
+        "evidence_paths": [
+          "src/domain/weekly_guard.py",
+          "src/infra/ledger_repository.py"
+        ]
+      },
+      {
+        "finding_id": "A06-F5",
+        "status": "confirmed",
+        "summary": "The Web Editor can persist empty SSOT state and its unauthenticated server binds beyond loopback.",
+        "evidence_paths": [
+          "src/web/market_units_editor/src/App.tsx",
+          "src/web/market_units_editor/server.ts"
+        ]
+      },
+      {
+        "finding_id": "A06-F6",
+        "status": "confirmed",
+        "summary": "Jinja2 is imported by the v4 renderer but is absent from the runtime dependency declaration.",
+        "evidence_paths": [
+          "src/app/renderer/v4_content_renderer.py",
+          "requirements.in"
+        ]
+      },
+      {
+        "finding_id": "A06-R1",
+        "status": "rejected_false_positive",
+        "summary": "Using one provider user-role message is not by itself a contract violation because the accepted prompt contract explicitly combines system instructions and tagged user payload into a single prompt before LlmTransporter.request_intelligence(prompt).",
+        "evidence_paths": [
+          "docs/reference/logic.md",
+          "docs/reference/prompts.md",
+          "src/domain/monthly_curator.py",
+          "src/infra/llm_transporter.py"
+        ]
+      }
+    ],
+    "assertions": [
+      {
+        "criterion_id": "A06-C1",
+        "type": "captured_response",
+        "expected": "The response reaches an explicit v4 conformance conclusion and supports reported findings with applicable authority, implementation paths, and reachable behavior."
+      },
+      {
+        "criterion_id": "A06-C2",
+        "type": "captured_response",
+        "expected": "The response identifies the critical fail-open and persistence/CompletionLock conflicts and covers multiple independent production surfaces rather than general style concerns."
+      },
+      {
+        "criterion_id": "A06-C3",
+        "type": "captured_response",
+        "expected": "The response distinguishes current artifact conformance from whether historical manufacturing provenance can be proven under newer execution rules."
+      },
+      {
+        "criterion_id": "A06-C4",
+        "type": "captured_response_negative_finding",
+        "expected": "The response does not report provider API system/user role separation as a contract violation when the repository authority explicitly defines a combined single-prompt boundary."
+      },
+      {
+        "criterion_id": "A06-C5",
+        "type": "condition_relative_drift",
+        "expected": "The condition checkout remains clean relative to its own start state."
+      }
+    ]
+  },
+  "grader": {
+    "status": "designed_not_implemented",
+    "contract_revision": "grader-contract-r1",
+    "mode": "holistic_repository_review_response_and_terminal_state",
+    "human_calibration_owner": "independent_conformance_response_check",
+    "criteria": [
+      {
+        "criterion_id": "A06-C1",
+        "evidence_sources": [
+          "captured_terminal_response",
+          "applicable_authority_and_source_check"
+        ]
+      },
+      {
+        "criterion_id": "A06-C2",
+        "evidence_sources": [
+          "captured_terminal_response",
+          "known_finding_reference"
+        ]
+      },
+      {
+        "criterion_id": "A06-C3",
+        "evidence_sources": [
+          "captured_terminal_response",
+          "execution_authority_history"
+        ]
+      },
+      {
+        "criterion_id": "A06-C4",
+        "evidence_sources": [
+          "captured_terminal_response",
+          "single_prompt_contract_reference"
+        ]
+      },
+      {
+        "criterion_id": "A06-C5",
+        "evidence_sources": [
+          "condition_relative_start_and_end_state",
+          "terminal_outcome"
+        ]
+      }
+    ],
+    "commands": [
+      "git status --short",
+      "python -m pytest tests/ -v",
+      "cd src/web/market_units_editor && npx tsc --noEmit"
+    ],
+    "success_rule": "Assign one 0-4 score to the audit outcome as a whole. Do not require a fixed worker count, file partition, tool sequence, or every known finding for a high score; penalize unsupported findings, critical omissions, provenance overclaims, and repository drift."
+  },
+  "qualification": {
+    "status": "fixture_qualified_max30_diagnostic_observed",
+    "receipt": {
+      "date": "2026-07-20",
+      "fixture_materialization": "clean checkout matched target commit and tree; changed_paths was empty",
+      "model_visible_boundary": "trial-prompt-input.json only; known findings, false-positive reference, and diagnostic routing measures remain private",
+      "model_invocation": "C43 gpt-5.6-sol ultra N=1 rerun 2b523351e1654973b41524bfacedc6e7 completed valid with declared and effective agents.max_threads=30; not blind-rated or registered as a prompt-set result"
+    }
+  },
+  "diagnostic_observation": {
+    "date": "2026-07-20",
+    "run_id": "7cf3dbdd97484ce78f87f338b0b39bf6",
+    "prompt_set_identity": {
+      "name": "the-caption-3ce91a4-outcome-authority-boundary-r1",
+      "revision": "r1",
+      "bundle_sha256": "b6455c1774c32e0bc9cb5bfe2257d35911b6797ecd5b2f3b77bbf41e4bcca531"
+    },
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "ultra",
+    "iteration": 1,
+    "status": "environment_mismatch_declared_30_effective_4",
+    "declared_agents_max_threads": 30,
+    "effective_agents_max_threads": 4,
+    "session_count": 4,
+    "worker_count": 3,
+    "all_agent_total_tokens": 24157069,
+    "elapsed_seconds": 1101.2393,
+    "tool_calls": 199,
+    "model_steps": 207,
+    "observed_boundary": "Historical diagnostic only. The adapter ignored the declared max_threads value and forced 4, so routing and efficiency comparisons are invalid."
+  },
+  "diagnostic_rerun": {
+    "date": "2026-07-20",
+    "run_id": "2b523351e1654973b41524bfacedc6e7",
+    "prompt_set_identity": {
+      "name": "the-caption-3ce91a4-outcome-authority-boundary-r1",
+      "revision": "r1",
+      "bundle_sha256": "b6455c1774c32e0bc9cb5bfe2257d35911b6797ecd5b2f3b77bbf41e4bcca531"
+    },
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "ultra",
+    "iteration": 1,
+    "status": "valid_diagnostic_not_blind_rated",
+    "declared_agents_max_threads": 30,
+    "effective_agents_max_threads": 30,
+    "session_count": 8,
+    "worker_count": 7,
+    "all_agent_total_tokens": 14343786,
+    "elapsed_seconds": 1709.7452344170015,
+    "tool_calls": 205,
+    "model_steps": 220,
+    "observed_boundary": "The agent selected seven distinct worker operations. Same-finding validator reassignment was not reproduced. Shared authority and source reads occurred across audit producers, but A06 does not isolate whether those reads were avoidable or required for independent judgement."
+  },
+  "design_provenance": {
+    "repository": "Kenn-dclxvi/THE-CAPTION-PROMPT",
+    "observed_thread_id": "019f7e0b-c2a3-7571-8bd0-6a075bec45e0",
+    "observed_target_commit": "eebc1c6c106f504978482238fd760fb73f5fff36",
+    "selection_basis": "Reproduce the broad audit topology where authority and scope were independently re-resolved across initial audit and validation producers."
+  }
+}

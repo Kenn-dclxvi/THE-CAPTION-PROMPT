@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -65,6 +66,14 @@ ADAPTER_TEARDOWN_PROTOCOL = {
     "schema_version": "the-caption-prompt.adapter-owned-teardown/v1",
     "failure_policy": "exclude_as_external_failure",
 }
+MODEL_VISIBLE_CAPABILITY_CATALOG_SCHEMA_VERSION = (
+    "the-caption-prompt.model-visible-capability-catalog/v1"
+)
+MODEL_VISIBLE_CAPABILITY_TAGS = (
+    "skills_instructions",
+    "apps_instructions",
+    "plugins_instructions",
+)
 BOUNDARY_OBSERVATION_SOURCES: dict[str, list[str]] = {
     "workspace.path": ["pwd", "-P"],
     "workspace.git.branch": ["git", "branch", "--show-current"],
@@ -132,6 +141,115 @@ def require_string_array(value: Any, name: str) -> list[str]:
     if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
         raise AdapterError(f"{name} must be a string array")
     return value
+
+
+def agents_max_threads_from_conditions(conditions: dict[str, Any]) -> int:
+    agent_environment = require_object(
+        conditions.get("agent_environment"), "comparison_conditions.agent_environment"
+    )
+    value = agent_environment.get("agents_max_threads")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise AdapterError(
+            "comparison_conditions.agent_environment.agents_max_threads "
+            "must be a positive integer"
+        )
+    return value
+
+
+def capability_catalog_policy_from_conditions(
+    conditions: dict[str, Any],
+) -> dict[str, Any] | None:
+    agent_environment = require_object(
+        conditions.get("agent_environment"), "comparison_conditions.agent_environment"
+    )
+    raw_policy = agent_environment.get("model_visible_capability_catalog")
+    if raw_policy is None:
+        return None
+    policy = require_object(
+        raw_policy,
+        "comparison_conditions.agent_environment.model_visible_capability_catalog",
+    )
+    expected = {
+        "apps_enabled": False,
+        "plugins_enabled": False,
+        "plugin_sharing_enabled": False,
+        "schema_version": MODEL_VISIBLE_CAPABILITY_CATALOG_SCHEMA_VERSION,
+    }
+    if any(policy.get(key) != value for key, value in expected.items()):
+        raise AdapterError("unsupported model-visible capability catalog policy")
+    require_string(
+        policy.get("expected_sha256"),
+        "model_visible_capability_catalog.expected_sha256",
+    )
+    return policy
+
+
+def capability_catalog_identity(rollout_file: Path) -> dict[str, Any]:
+    tag_pattern = "|".join(re.escape(tag) for tag in MODEL_VISIBLE_CAPABILITY_TAGS)
+    pattern = re.compile(
+        rf"<({tag_pattern})>.*?</\1>",
+        re.DOTALL,
+    )
+    blocks: list[str] = []
+    try:
+        lines = rollout_file.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        raise AdapterError(f"cannot read root rollout capability catalog: {rollout_file}") from exc
+    for raw_line in lines:
+        try:
+            item = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(item, dict) or item.get("type") != "response_item":
+            continue
+        payload = item.get("payload")
+        if not isinstance(payload, dict) or payload.get("role") != "developer":
+            continue
+        content = payload.get("content")
+        if not isinstance(content, list):
+            continue
+        for part in content:
+            if not isinstance(part, dict) or not isinstance(part.get("text"), str):
+                continue
+            blocks.extend(match.group(0) for match in pattern.finditer(part["text"]))
+    serialized = "".join(f"{block}\n" for block in blocks)
+    return {
+        "schema_version": MODEL_VISIBLE_CAPABILITY_CATALOG_SCHEMA_VERSION,
+        "block_count": len(blocks),
+        "block_tags": [pattern.match(block).group(1) for block in blocks],
+        "serialized_bytes": len(serialized.encode("utf-8")),
+        "sha256": hashlib.sha256(serialized.encode("utf-8")).hexdigest(),
+    }
+
+
+def root_rollout_file(all_agent_usage: dict[str, Any]) -> Path:
+    root_thread_id = require_string(
+        all_agent_usage.get("root_thread_id"), "all-agent usage root_thread_id"
+    )
+    sessions = all_agent_usage.get("sessions")
+    if not isinstance(sessions, list):
+        raise AdapterError("all-agent usage sessions must be an array")
+    for raw_session in sessions:
+        if not isinstance(raw_session, dict) or raw_session.get("thread_id") != root_thread_id:
+            continue
+        return Path(
+            require_string(raw_session.get("rollout_file"), "root session rollout_file")
+        )
+    raise AdapterError("all-agent usage does not contain the root rollout")
+
+
+def capability_catalog_external_failure(
+    identity: dict[str, Any], policy: dict[str, Any]
+) -> dict[str, str] | None:
+    if identity.get("sha256") == policy.get("expected_sha256"):
+        return None
+    return {
+        "schema_version": "the-caption-prompt.run-status/v1",
+        "status": "excluded",
+        "category": "external_failure",
+        "reason_code": "model_visible_capability_catalog_mismatch",
+        "detector": MODEL_VISIBLE_CAPABILITY_CATALOG_SCHEMA_VERSION,
+    }
 
 
 def command_protocol_for_case(
@@ -777,6 +895,8 @@ def execute() -> int:
         },
     )
     conditions = require_object(capsule.get("comparison_conditions"), "run.comparison_conditions")
+    agents_max_threads = agents_max_threads_from_conditions(conditions)
+    capability_catalog_policy = capability_catalog_policy_from_conditions(conditions)
     executor_parameters = require_object(
         conditions.get("executor_parameters"), "comparison_conditions.executor_parameters"
     )
@@ -811,7 +931,7 @@ def execute() -> int:
         "--disable",
         "memories",
         "-c",
-        "agents.max_threads=4",
+        f"agents.max_threads={agents_max_threads}",
         "-c",
         'approval_policy="never"',
         "-m",
@@ -825,6 +945,15 @@ def execute() -> int:
         str(final_response),
         "-",
     ]
+    if capability_catalog_policy is not None:
+        command[command.index("-c"):command.index("-c")] = [
+            "--disable",
+            "apps",
+            "--disable",
+            "plugins",
+            "--disable",
+            "plugin_sharing",
+        ]
     session_started_at = time.time()
     completed = subprocess.run(
         command,
@@ -842,6 +971,7 @@ def execute() -> int:
     all_agent_usage = None
     command_evidence = None
     command_protocol_audit = None
+    capability_catalog = None
     cleanup_attempts: list[dict[str, Any]] = []
     reported_cleanup_attempts: list[dict[str, Any]] = []
     if external_failure is not None:
@@ -885,15 +1015,47 @@ def execute() -> int:
                 extension_root / "all-agent-usage" / "usage.json",
                 all_agent_usage,
             )
-            write_json(
-                usage_path,
-                {
-                    "schema_version": "the-caption-prompt.token-usage/v2",
-                    "token_accounting": TOKEN_ACCOUNTING,
-                    "total_tokens": total_tokens,
-                },
-            )
-            if declared_command_protocol is not None:
+            if capability_catalog_policy is not None:
+                try:
+                    capability_catalog = capability_catalog_identity(
+                        root_rollout_file(all_agent_usage)
+                    )
+                except AdapterError as exc:
+                    external_failure = {
+                        "schema_version": "the-caption-prompt.run-status/v1",
+                        "status": "excluded",
+                        "category": "external_failure",
+                        "reason_code": "model_visible_capability_catalog_unavailable",
+                        "detector": MODEL_VISIBLE_CAPABILITY_CATALOG_SCHEMA_VERSION,
+                    }
+                    write_json(
+                        adapter_extension / "capability-catalog-error.json",
+                        {
+                            "schema_version": "the-caption-prompt.capability-catalog-error/v1",
+                            "reason": str(exc),
+                        },
+                    )
+                else:
+                    write_json(
+                        extension_root / "model-visible-capability-catalog" / "identity.json",
+                        capability_catalog,
+                    )
+                    external_failure = capability_catalog_external_failure(
+                        capability_catalog, capability_catalog_policy
+                    )
+                if external_failure is not None:
+                    write_json(status_path, external_failure)
+                    total_tokens = None
+            if external_failure is None:
+                write_json(
+                    usage_path,
+                    {
+                        "schema_version": "the-caption-prompt.token-usage/v2",
+                        "token_accounting": TOKEN_ACCOUNTING,
+                        "total_tokens": total_tokens,
+                    },
+                )
+            if external_failure is None and declared_command_protocol is not None:
                 try:
                     command_evidence = collect_command_evidence(
                         extension_root / "all-agent-usage" / "usage.json",
@@ -1032,6 +1194,7 @@ def execute() -> int:
             "command_protocol_audit_schema_version": (
                 None if command_protocol_audit is None else command_protocol_audit["schema_version"]
             ),
+            "model_visible_capability_catalog": capability_catalog,
             "token_accounting": TOKEN_ACCOUNTING,
             "reasoning_effort": reasoning_effort,
             "runtime_links": runtime_links,
