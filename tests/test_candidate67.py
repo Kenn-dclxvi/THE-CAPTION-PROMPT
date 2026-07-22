@@ -40,6 +40,12 @@ PROFILE_PAIRS = (
         PROFILES
         / "candidate67-cross-label-predicate-deduplication-explicit-producer-d01-v9-global-m5-n5-catalog-fixed-r1.json",
     ),
+    (
+        PROFILES
+        / "candidate43-outcome-authority-boundary-v10-standard14-global-m24-n5-r1.json",
+        PROFILES
+        / "candidate67-cross-label-predicate-deduplication-v10-standard14-global-m24-n5-r1.json",
+    ),
 )
 
 EXPLICIT_DELEGATION_DUPLICATE = (
