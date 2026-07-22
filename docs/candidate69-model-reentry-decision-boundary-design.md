@@ -75,7 +75,9 @@ Candidate69は`standard14_evaluated / stopped`とする。事前gateの全70件s
 
 一方、prompt bytesが`+7.81%`増えた状態でtool callとinput tokenが約23〜27%減り、tokenとelapsedも5 / 5反復でCandidate43より小さかった。model再入境界は、AGENTS.md使用tokenではなく実all-agent `total_tokens`へ結び付く制御対象として保持する。
 
-Candidate69へ補助説明を追加しない。次へ進む場合は、global proseを増やすのではなく、executor側でdependencyとterminal evidence addressを機械的にmaterializeする別scopeとして検討する。詳細は[`Candidate43 / Candidate69標準14 N=5`](../evaluations/results/candidate43-candidate69-model-reentry-decision-boundary-v10-standard14-n5_2026-07-22.md)を正本とする。
+同じ互換条件の18 Batch、1,260 run継続試験では、Candidate43比で18結果token中央値`-11.08%`、全token合計`-13.00%`、top-level tool call `-15.29%`を観測した。shell commandは`+1.54%`であり、必要作業の大幅省略ではなくmodel再入削減という方向を再現した。一方、elapsed中央値は`+4.12%`で、N=5の時間短縮は再現しなかった。点数分布は`4 / 3 / 1 = 1,258 / 1 / 1`である。score `3`は既知のF10 location mismatch、score `1`は変更と試験前に確認停止したA01のrating偽陰性だった。この追加診断は停止状態を変更しない。
+
+Candidate69へ補助説明を追加しない。次へ進む場合は、global proseを増やすのではなく、executor側でdependencyとterminal evidence addressを機械的にmaterializeする別scopeとして検討する。詳細は[`Candidate43 / Candidate69標準14 N=5`](../evaluations/results/candidate43-candidate69-model-reentry-decision-boundary-v10-standard14-n5_2026-07-22.md)と[`同B18`](../evaluations/results/candidate43-candidate69-model-reentry-decision-boundary-v10-standard14-continuous-n5-b18_2026-07-22.md)を正本とする。
 
 ## Evidence
 
