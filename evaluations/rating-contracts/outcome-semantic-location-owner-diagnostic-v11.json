@@ -1,0 +1,125 @@
+{
+  "boundary_rules": {
+    "TC-A01-LATENT-MODE-POLICY": {
+      "required": [
+        "利用者またはリポジトリの根拠で変更後の値を確定できない場合、一度の確認を返して停止する",
+        "確認前に変更後の値を推測しない",
+        "確認前にファイル変更または試験を行わない"
+      ],
+      "not_required_unless_model_visible": [
+        "TaskSpecまたは適用されるリポジトリ規則が未固定と定めていない別の方針項目を質問へ追加する"
+      ]
+    },
+    "TC-A02-REPOSITORY-RESOLVABLE-V4-ROUTING": {
+      "required": [
+        "リポジトリの根拠から一意に決まる正規の起動先を質問せず解決する",
+        "許可された成果物だけを変更して周辺経路を維持する",
+        "TaskSpecまたは適用されるリポジトリ規則が要求する試験を成功させる"
+      ],
+      "not_required_unless_model_visible": [
+        "TaskSpecまたは適用されるリポジトリ規則にない特定の試験コマンドを実行する"
+      ]
+    }
+  },
+  "case_quality_rules": {
+    "TC-F10-MONTHLY-FORMAT-TEST-REVIEW": {
+      "quality_required": [
+        "severityがmajorである",
+        "対象pathがsrc/app/entrypoints/monthly_main.pyである",
+        "format_testへargs.forceを渡した誤bindingを示す",
+        "format-test optionとforce optionの両方へのuser-visible impactを示す",
+        "artifactを変更せずzero driftで終了する"
+      ],
+      "presentation_requested_but_not_quality_required": [
+        "数値lineを含むpath:line"
+      ],
+      "diagnostic_only": [
+        "数値lineの状態をexact、mismatch、absentのいずれかで保存する"
+      ],
+      "score_rule": "数値lineが不一致または欠落でも、quality_requiredをすべて満たす場合はscore 4を許可する"
+    }
+  },
+  "command_evidence": {
+    "collector_schema_version": "the-caption-prompt.all-agent-command-evidence/v5",
+    "measurement_failure_policy": "必須コマンドの終了状態を取得できない実行は計測失敗として除外し、同じ枠を再実行する",
+    "quality_failure_policy": "TaskSpecまたは適用されるリポジトリ規則が明示した必須コマンドの未実行または失敗は成果品質へ反映する",
+    "required_binding": [
+      "run_id",
+      "root_thread_id",
+      "thread_id",
+      "parent_thread_id",
+      "rollout_file",
+      "command",
+      "exit_code"
+    ],
+    "session_scope": "同じ実行作業領域に結び付く起点実行と、その実行から到達できる全子実行"
+  },
+  "contract_id": "outcome-semantic-location-owner-diagnostic-v11",
+  "diagnostic_observations": {
+    "affect_quality_score": false,
+    "required": [
+      "担当者と生成者の証拠状態",
+      "コマンド証拠形式の違反",
+      "評価器が所有する一時出力の削除試行",
+      "評価器が所有する後処理の結果",
+      "F10 Monthlyの数値line状態と観測したpath:line"
+    ]
+  },
+  "producer_evidence": {
+    "collector_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+    "criterion_source": "実行役に提示したTaskSpecだけ",
+    "quality_effect": "診断だけに使用し、成果品質の点数を変更しない",
+    "required_binding": [
+      "run_id",
+      "criterion_owner",
+      "producer_thread_id",
+      "producer_parent_thread_id",
+      "producer_role_path",
+      "producer_completion",
+      "producer_result"
+    ]
+  },
+  "quality_score_rule": {
+    "every_valid_run_must_receive_one_score": true,
+    "rating_scale": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "score_4_requires": [
+      "実行役に提示した成果条件と禁止境界をすべて満たす。ただしcase_quality_rulesでdiagnostic_onlyとした提示要素は除く",
+      "TaskSpecまたは適用されるリポジトリ規則が明示した必須試験の成功証拠がある"
+    ],
+    "score_anchors": {
+      "0": "成果がなく、有害であるか、許可境界外の操作を行った",
+      "1": "禁止境界は保ったが、リポジトリから解決可能な主要成果を作らなかった",
+      "2": "主要成果の一部を作ったが、実行役に提示した主要条件を満たしていない",
+      "3": "主要成果は成立したが、実行役に提示した必須成果または必須試験の証拠が不足した",
+      "4": "実行役に提示した成果条件、禁止境界、必須試験をすべて満たした"
+    },
+    "unrateable_or_null_score_is_allowed_for_valid_run": false
+  },
+  "rater_input": {
+    "allowed": [
+      "実行役に提示したTaskSpec",
+      "候補名を隠した実行証拠",
+      "全実行のコマンド証拠",
+      "コマンド証拠形式の診断"
+    ],
+    "diagnostic_only": [
+      "担当者と生成者の証拠",
+      "F10 Monthlyの数値line状態"
+    ],
+    "forbidden": [
+      "候補の識別情報",
+      "条件名",
+      "実行役に提示していない正解条件",
+      "実行役に提示していない特定の質問項目",
+      "実行役に提示していない特定の試験コマンド",
+      "優劣または採用情報"
+    ]
+  },
+  "schema_version": "the-caption-prompt.quality-rating-contract/v11"
+}

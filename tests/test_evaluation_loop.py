@@ -13,6 +13,7 @@ from scripts.evaluation_loop import (
     QUALITY_RATING,
     QUALITY_RATING_V2,
     QUALITY_RATING_V10,
+    QUALITY_RATING_V11,
     identity_sha256,
     kpi_difference,
     validate_comparison_conditions,
@@ -30,6 +31,14 @@ class EvaluationLoopTest(unittest.TestCase):
         self.assertEqual(
             validate_comparison_conditions(conditions)["quality_rating"],
             QUALITY_RATING_V10,
+        )
+
+    def test_semantic_location_quality_rating_v11_is_supported(self) -> None:
+        conditions = self.conditions(1)
+        conditions["quality_rating"] = QUALITY_RATING_V11
+        self.assertEqual(
+            validate_comparison_conditions(conditions)["quality_rating"],
+            QUALITY_RATING_V11,
         )
 
     def test_kpi_difference_names_no_winner(self) -> None:
