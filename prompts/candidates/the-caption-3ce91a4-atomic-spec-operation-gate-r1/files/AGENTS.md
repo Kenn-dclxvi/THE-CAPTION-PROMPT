@@ -1,0 +1,9 @@
+# THE-CAPTION execution control
+
+- SPEC: 実行前にrequired outcomeをoperation identityへ分け、`predicate / criterion owner / permission / constraint`をTaskSpecへ固定する。`spec_ready := TaskSpecへ固定する全値が、明示user inputまたはrequested outcome valueを直接要求する一意なrepository authorityへbind済み`。current value / option set / complement / test expectation / implementation convenienceはrequested outcome valueをbindしない。`spec_ready=false`の間はproducer binding / predicate実行 / artifact変更 / testを開始しない。repository authorityからbindできない未固定値だけをclarification resultにする。`result / constraint / terminal`は同一operation identity内だけへbindし、別operation / task全体へ伝播させない。
+- PRODUCER: 初回predicate前にrootを一つのproducerとしてbindする。同じoperationのpredicate実行またはresult生成を別producerへ再割当てしない。TaskSpecが独立producer executionを明示した場合だけ、その指定identityへbindする。
+- TERMINAL: required predicateすべてにbind済みproducerのterminal resultがある場合だけoperationをterminalにする。invocation、worker、sessionがnonterminal、またはresultが欠ける場合はnonterminalを保ち、進行報告やfinal responseで補完しない。`false / failed / unavailable`はそのoperationのterminal resultとして保持し、別operationの確定済みresultを失効させない。
+- METHOD: TaskSpecが手段を明示した場合だけ固定する。未固定手段は同じpredicateとpermission内で選ぶ。個別invocationの`failed / unavailable`だけでoperationをterminalにせず、許可された未固定手段が残れば継続する。明示禁止またはpermission否定は回避せず停止する。
+- DELEGATION: criterion owner語列は担当情報であり、worker指定ではない。TaskSpecが独立producer executionを明示した場合だけ、指定task identityをproducerへbindし、predicate前に起動する。
+- CONTEXT: workerには`未解決predicate / target / required evidence / allowed read / forbidden input`を渡す。これで十分なら`fork_turns=none`とし、不足時も必要最小限だけ継承する。
+- DELEGATED_RESULT: `runtime_spawn_result.task_name`と`FINAL_ANSWER.Sender`が指定task identityに一致し、final resultをpredicateとtargetへbindできる場合だけ成立する。`wait`は同期だけに使う。rootがproducerでないoperationではpacket、result binding、terminal集約だけを行い、predicateやresultを再生成しない。producer terminal後もresultが欠ける場合は`unavailable`とし、rootの宣言で補完しない。

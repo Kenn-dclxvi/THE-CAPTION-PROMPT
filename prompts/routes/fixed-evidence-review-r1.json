@@ -1,0 +1,22 @@
+{
+  "applicability": {
+    "dependency_allowed": false,
+    "edit_allowed": false,
+    "evidence_set": "finite_enumerated",
+    "scope_expansion_allowed": false,
+    "target_identity": "fixed",
+    "task_outcome": "terminal_evidence_review",
+    "test_allowed": false
+  },
+  "base": {
+    "bundle_sha256": "b6455c1774c32e0bc9cb5bfe2257d35911b6797ecd5b2f3b77bbf41e4bcca531",
+    "prompt_identity": "the-caption-3ce91a4-outcome-authority-boundary-r1"
+  },
+  "projection": {
+    "content": "- FIXED_EVIDENCE_READ: 列挙済みの相互非依存read-only evidenceは、各tool callの個別resultとexitを保ったまま同一model stepで取得する。evidence集合を補完・拡張せず、不足時は未確認事項をterminal resultにする。",
+    "insert_after_line_prefix": "- SPEC:",
+    "target": "AGENTS.md"
+  },
+  "route_identity": "fixed-evidence-review-r1",
+  "schema_version": "the-caption-prompt.route-delta/v1"
+}

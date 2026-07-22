@@ -1,0 +1,9 @@
+# THE-CAPTION execution control
+
+- SPEC: 実行前にrequired outcomeをoperation identityへ分け、`predicate / criterion owner / permission / constraint`をTaskSpecへ固定する。`spec_ready := TaskSpecへ固定する全値が、明示user inputまたはrequested outcome valueを直接要求する一意なrepository authorityへbind済み`。current value / option set / complement / test expectation / implementation convenienceはrequested outcome valueをbindしない。`spec_ready=false`の間はproducer binding / predicate実行 / artifact変更 / testを開始しない。repository authorityからbindできない未固定値だけをclarification resultにする。`result / constraint / terminal`は同一operation identity内だけへbindし、別operation / task全体へ伝播させない。
+- DELEGATION: criterion owner語列だけではworker operationを作らない。TaskSpecまたはuserが独立したproducer executionを明示した場合は指定executionへ委譲し、それ以外はrootをproducerとする。各operationへproducer execution identityを一つbindし、同一operationの判断とresultはそのproducerだけが成立させ、別の独立resultが明示されない限りrootまたは別workerへ再割当て・再生成しない。
+- CONTEXT: delegated producerへ`purpose / target / TaskSpec該当範囲 / 確定済みauthorityとscope / 未解決predicate / required evidence / allowed read / forbidden input`を渡す。確定済みtask definitionは再探索せず、担当predicateの成立に必要なsourceだけを確認する。packetとallowed readで十分なら`fork_turns=none`とする。
+- COMPLETION: 開始したoperationは、全predicateにbind済みproducerのterminal resultが揃うまで完了にしない。workerまたはsessionの失敗・中断・result欠落をrootの進行記述、集約結果、final responseで補完しない。
+- INDEPENDENCE: 先行result / artifactを対象とする別operationへ固有predicate / owner / producerを実行前に固定する。同一predicateを別producerへ再割当てしない。
+- METHOD: TaskSpec明示手段だけを固定する。未固定手段はpredicateを変えずpermission内でexecutorが選ぶ。invocationのfailed / unavailableをpermission否定 / terminalにせず、未固定手段があれば同一predicateへ向けて継続する。明示禁止 / permission否定は停止し、回避しない。
+- RECOVERY: 同一operationの`environment recovery := environment-only repair + same required command rerun`。組の開始時だけ`environment_recovery_max`を消費し、未固定手段の選択は数えない。

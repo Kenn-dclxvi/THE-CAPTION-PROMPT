@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import subprocess
 import tempfile
 import unittest
@@ -9,7 +11,11 @@ from scripts.run_codex_evaluation import (
     ADAPTER_TEARDOWN_PROTOCOL,
     AdapterError,
     COMMAND_EVIDENCE_PROTOCOL,
+    agents_max_threads_from_conditions,
     adapter_teardown_paths_from_protocol,
+    capability_catalog_external_failure,
+    capability_catalog_identity,
+    capability_catalog_policy_from_conditions,
     command_protocol_for_case,
     command_evidence_external_failure,
     detect_external_failure,
@@ -46,6 +52,75 @@ class RunCodexEvaluationTest(unittest.TestCase):
         subprocess.run(["git", "commit", "-qam", "overlay"], cwd=workspace, check=True)
         return temporary, workspace, seed
 
+    def test_binds_disabled_capability_catalog_policy(self) -> None:
+        policy = {
+            "apps_enabled": False,
+            "expected_sha256": "a" * 64,
+            "plugin_sharing_enabled": False,
+            "plugins_enabled": False,
+            "schema_version": "the-caption-prompt.model-visible-capability-catalog/v1",
+        }
+        conditions = {"agent_environment": {"model_visible_capability_catalog": policy}}
+
+        self.assertEqual(capability_catalog_policy_from_conditions(conditions), policy)
+        self.assertIsNone(
+            capability_catalog_policy_from_conditions({"agent_environment": {}})
+        )
+        conditions["agent_environment"]["model_visible_capability_catalog"] = {
+            **policy,
+            "plugins_enabled": True,
+        }
+        with self.assertRaisesRegex(AdapterError, "unsupported"):
+            capability_catalog_policy_from_conditions(conditions)
+
+    def test_extracts_and_hashes_only_model_visible_capability_blocks(self) -> None:
+        skills = "<skills_instructions>\nseven skills\n</skills_instructions>"
+        plugins = "<plugins_instructions>\nplugin note\n</plugins_instructions>"
+        items = [
+            {
+                "type": "response_item",
+                "payload": {
+                    "role": "developer",
+                    "content": [{"type": "input_text", "text": f"before\n{skills}\nafter"}],
+                },
+            },
+            {
+                "type": "response_item",
+                "payload": {
+                    "role": "developer",
+                    "content": [{"type": "input_text", "text": plugins}],
+                },
+            },
+            {
+                "type": "response_item",
+                "payload": {
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "ignored"}],
+                },
+            },
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            rollout = Path(temporary) / "rollout.jsonl"
+            rollout.write_text(
+                "".join(json.dumps(item) + "\n" for item in items), encoding="utf-8"
+            )
+            identity = capability_catalog_identity(rollout)
+
+        serialized = f"{skills}\n{plugins}\n".encode()
+        self.assertEqual(identity["block_tags"], ["skills_instructions", "plugins_instructions"])
+        self.assertEqual(identity["block_count"], 2)
+        self.assertEqual(identity["serialized_bytes"], len(serialized))
+        self.assertEqual(identity["sha256"], hashlib.sha256(serialized).hexdigest())
+        self.assertIsNone(
+            capability_catalog_external_failure(
+                identity, {"expected_sha256": identity["sha256"]}
+            )
+        )
+        failure = capability_catalog_external_failure(
+            identity, {"expected_sha256": "0" * 64}
+        )
+        self.assertEqual(failure["reason_code"], "model_visible_capability_catalog_mismatch")
+
     def test_detects_missing_parent_thread_spawn_failure(self) -> None:
         failure = detect_external_failure(
             b"ERROR codex_core::tools::router: error=collab spawn failed: no thread with id: 019f-test\n"
@@ -53,6 +128,21 @@ class RunCodexEvaluationTest(unittest.TestCase):
         self.assertIsNotNone(failure)
         assert failure is not None
         self.assertEqual(failure["reason_code"], "codex_collab_parent_thread_missing")
+
+    def test_binds_declared_agents_max_threads(self) -> None:
+        self.assertEqual(
+            agents_max_threads_from_conditions(
+                {"agent_environment": {"agents_max_threads": 30}}
+            ),
+            30,
+        )
+
+        for invalid in (None, 0, -1, True, "30"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(AdapterError, "must be a positive integer"):
+                    agents_max_threads_from_conditions(
+                        {"agent_environment": {"agents_max_threads": invalid}}
+                    )
 
     def test_does_not_exclude_agent_or_noncritical_runtime_errors(self) -> None:
         stderr = b"\n".join(

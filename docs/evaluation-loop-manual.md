@@ -135,6 +135,8 @@ capsuleへsecretやcredentialを直接保存しない。非公開のraw run evid
 
 値の内部は`repetition_condition.iterations`以外opaqueだが、result間ではcanonical JSONとして完全一致を要求する。prompt bundle pathやprompt固有hashを`executor_parameters`へ入れない。実行順、外側並列度、reasoningなど比較対象間で固定する値はここへ入れる。
 
+Codex adapterでmodel-visible capability catalogを固定する場合は、`agent_environment.model_visible_capability_catalog`へ`apps_enabled / plugins_enabled / plugin_sharing_enabled / expected_sha256 / schema_version`を保存する。現行`v1`は3 featureを`false`へ固定する。adapterは各root rolloutからskills / apps / plugins blockを抽出し、SHA-256不一致を`model_visible_capability_catalog_mismatch`として除外する。identity artifactは`layer2/extensions/<run_id>/model-visible-capability-catalog/identity.json`へ保存する。
+
 ## 6. Executor contract
 
 `run`は`adapter.argv`を独立したfixture copy内でshellを介さず実行する。Layer 1と同じくCopy-on-Writeを使用できる場合は利用するが、workspaceの変更は固定fixtureへ反映されない。executorへ次の環境変数を渡す。

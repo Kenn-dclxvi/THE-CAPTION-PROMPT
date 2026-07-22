@@ -143,9 +143,9 @@ TaskSpecのrisk owner語列をruntime worker identityへ変換し、正しいpro
 
 ### 削除される判断点
 
-- owner語列からruntime task identityを生成する判断。
+-  task identityを生成する判断。
 - owner語列、spawn `task_name`、`FINAL_ANSWER.Sender`を三重照合する判断。
-- TaskSpecが独立executionを明示しないF05 / F10でworkerを起動する判断。
+- TaskSpecが独owner語列からruntime立executionを明示しないF05 / F10でworkerを起動する判断。
 - root / childの双方が同じauthorityとsourceを再取得する経路。
 
 ### quality不変条件
