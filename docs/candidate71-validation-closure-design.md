@@ -76,13 +76,21 @@ tokenは14 case中13 case、5反復中5反復で小さかった。elapsedは14 c
 
 top-level tool callは`469 -> 338`、model stepは`539 -> 408`、shell commandは`689 -> 670`だった。70個の対応run差ではtool call差とtoken差のPearson相関が`0.869`、elapsed差との相関が`0.543`だった。shell command差との相関はtokenが`0.185`、elapsedが`0.276`であり、狙ったmodel再入削減とKPI削減が対応した。
 
+## B18前の採点契約是正
+
+C69 / C70の保存済み結果で、成果成功を低得点にした採点偽陰性を4パターン、11観測へ分類した。内訳は、C69 A01の「明示してください」1件、C69 / C70 F10 Monthlyの数値line mismatch 3件、C70 A02の引用符付き成功command 6件、C70 F10 Monthlyの意味的に正しい誤binding説明1件である。数値lineは第11版で診断へ分離済みである。
+
+第12版`outcome-semantic-evidence-normalized-owner-diagnostic-v12`は、残り3パターンをsemantic evidence normalizationとして追加する。A01は確認要求の意味、A02は`exit_code=0`にbindされたshell token列、F10は二つのCLI optionと誤接続関係を採点する。疑問符、quoteの有無、`args.force`という字面だけではscoreを決めない。
+
+C70 B18で`git diff --check`を実行しなかった2件は採点偽陰性ではない。第12版でも`a02_missing_successful_command:diff_check`としてscore `3`を維持する。既存v10 / v11 resultは変更せず、第12版のC69 / C71 profileを新しいB18 comparison identityとする。
+
 ## 現在の状態
 
 Candidate71は`standard14_evaluated / gate_passed`とする。
 
 対象4項目と標準14項目では、Candidate70で観測したrequired validation欠落を再現しなかった。標準14項目では品質を維持し、tokenと全体elapsedの両方を削減した。
 
-採用、release、本体反映は未判断、未実施である。Candidate69とCandidate43の比較では、標準14項目`N=5`とB18でelapsed差の方向が反転した履歴がある。次の評価段階はCandidate69と互換な標準14項目B18とする。
+採用、release、本体反映は未判断、未実施である。Candidate69とCandidate43の比較では、標準14項目`N=5`とB18でelapsed差の方向が反転した履歴がある。次の評価段階はCandidate69 / Candidate71の両方を新しい第12版採点へ固定した標準14項目B18とする。既存v10 / v11 resultは再採点せず、比較へ混ぜない。
 
 ## Evidence
 

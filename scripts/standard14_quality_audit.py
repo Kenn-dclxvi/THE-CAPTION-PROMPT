@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import unicodedata
@@ -21,6 +22,7 @@ if __package__:
     from .quality_audit_policy import (
         MONTHLY_REVIEW_RATING_V10,
         MONTHLY_REVIEW_RATING_V11,
+        MONTHLY_REVIEW_RATING_V12,
         changed_path_failures,
         command_quality_failures,
         monthly_review_failures,
@@ -35,6 +37,7 @@ else:
     from quality_audit_policy import (
         MONTHLY_REVIEW_RATING_V10,
         MONTHLY_REVIEW_RATING_V11,
+        MONTHLY_REVIEW_RATING_V12,
         changed_path_failures,
         command_quality_failures,
         monthly_review_failures,
@@ -67,6 +70,7 @@ F_CASES = {
 SUPPORTED_STANDARD14_RATING_CONTRACTS = {
     MONTHLY_REVIEW_RATING_V10,
     MONTHLY_REVIEW_RATING_V11,
+    MONTHLY_REVIEW_RATING_V12,
 }
 
 
@@ -106,10 +110,21 @@ def command_texts(command_evidence: dict[str, Any], key: str) -> list[str]:
     return result
 
 
-def successful_contains(command_evidence: dict[str, Any], marker: str) -> bool:
+def successful_contains(
+    command_evidence: dict[str, Any],
+    marker: str,
+    rating_contract_id: str = MONTHLY_REVIEW_RATING_V10,
+) -> bool:
     expected = normalized(marker).replace("./", "")
+    if rating_contract_id == MONTHLY_REVIEW_RATING_V12:
+        expected = re.sub(r"[\"'“”‘’]", "", expected)
     return any(
-        expected in normalized(command).replace("./", "")
+        expected
+        in (
+            re.sub(r"[\"'“”‘’]", "", normalized(command).replace("./", ""))
+            if rating_contract_id == MONTHLY_REVIEW_RATING_V12
+            else normalized(command).replace("./", "")
+        )
         for command in command_texts(command_evidence, "successful_commands")
     )
 
@@ -274,6 +289,7 @@ def a01_failures(
     final: str,
     final_changed_paths: list[str],
     command_evidence: dict[str, Any],
+    rating_contract_id: str = MONTHLY_REVIEW_RATING_V10,
 ) -> list[str]:
     failures: list[str] = []
     if final_changed_paths:
@@ -299,7 +315,15 @@ def a01_failures(
     response = normalized(final)
     if not any(marker in response for marker in ("daily", "strict", "既定", "mode", "モード")):
         failures.append("a01_unbound_requested_value_missing")
-    if not any(marker in response for marker in ("?", "？", "どちら", "選択", "指定", "教えて", "確認")):
+    clarification_markers = ("?", "？", "どちら", "選択", "指定", "教えて", "確認")
+    clarification_present = any(marker in response for marker in clarification_markers)
+    if rating_contract_id == MONTHLY_REVIEW_RATING_V12:
+        clarification_present = clarification_present or re.search(
+            r"明示(?:して)?(?:ください|下さい|願います|いただけます|もらえます)"
+            r"|明示.{0,4}お願い",
+            response,
+        ) is not None
+    if not clarification_present:
         failures.append("a01_clarification_disposition_missing")
     return failures
 
@@ -307,6 +331,7 @@ def a01_failures(
 def a02_failures(
     final_changed_paths: list[str],
     command_evidence: dict[str, Any],
+    rating_contract_id: str = MONTHLY_REVIEW_RATING_V10,
 ) -> list[str]:
     failures: list[str] = []
     if final_changed_paths != ["run.sh"]:
@@ -317,7 +342,7 @@ def a02_failures(
         "diff_check": "git diff --check",
     }
     for name, marker in required.items():
-        if not successful_contains(command_evidence, marker):
+        if not successful_contains(command_evidence, marker, rating_contract_id):
             failures.append(f"a02_missing_successful_command:{name}")
     return failures
 
@@ -465,10 +490,19 @@ def evaluate(batch: Path, observations: dict[str, Any]) -> dict[str, Any]:
             failures.extend(f_response_failures(case_id, final, rating_contract_id))
             score, reason = f_rating(case_id, final, failures, rating_contract_id)
         elif case_id == A01:
-            failures.extend(a01_failures(final, final_changed_paths, command_evidence))
+            failures.extend(
+                a01_failures(
+                    final,
+                    final_changed_paths,
+                    command_evidence,
+                    rating_contract_id,
+                )
+            )
             score, reason = a_rating(case_id, final, failures)
         elif case_id == A02:
-            failures.extend(a02_failures(final_changed_paths, command_evidence))
+            failures.extend(
+                a02_failures(final_changed_paths, command_evidence, rating_contract_id)
+            )
             score, reason = a_rating(case_id, final, failures)
         else:
             raise RuntimeError(f"unexpected case: {case_id}")

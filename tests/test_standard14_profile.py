@@ -4,16 +4,18 @@ import json
 import unittest
 from pathlib import Path
 
-from scripts.evaluation_loop import QUALITY_RATING_V10, QUALITY_RATING_V11
+from scripts.evaluation_loop import QUALITY_RATING_V10, QUALITY_RATING_V11, QUALITY_RATING_V12
 from scripts.export_prompt_bundle import verify_bundle
-from scripts.quality_audit_policy import MONTHLY_REVIEW_RATING_V11
-from scripts.standard14_quality_audit import a_rating, f_rating
+from scripts.quality_audit_policy import MONTHLY_REVIEW_RATING_V11, MONTHLY_REVIEW_RATING_V12
+from scripts.standard14_quality_audit import a01_failures, a02_failures, a_rating, f_rating
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "evaluations/profiles/candidate43-outcome-authority-boundary-v10-standard14-global-m24-n5-r1.json"
 V11_PROFILE = ROOT / "evaluations/profiles/candidate43-outcome-authority-boundary-v11-standard14-global-m24-n5-r1.json"
 V11_C69_PROFILE = ROOT / "evaluations/profiles/candidate69-model-reentry-decision-boundary-v11-standard14-global-m24-n5-r1.json"
+V12_C69_PROFILE = ROOT / "evaluations/profiles/candidate69-model-reentry-decision-boundary-v12-standard14-global-m24-n5-r1.json"
+V12_C71_PROFILE = ROOT / "evaluations/profiles/candidate71-validation-closure-v12-standard14-global-m24-n5-r1.json"
 C41_PROFILE = ROOT / "evaluations/profiles/candidate41-owner-metadata-delegation-boundary-v10-standard14-global-m24-n5-r1.json"
 F12_PROFILE = ROOT / "evaluations/profiles/candidate41-owner-metadata-delegation-boundary-outcome-quality-owner-diagnostic-v9-expanded12-f04r2-global-m24-n5-r1.json"
 A01 = "TC-A01-LATENT-MODE-POLICY"
@@ -57,16 +59,22 @@ class Standard14ProfileTest(unittest.TestCase):
 
     def test_future_standard14_profiles_change_only_rating_revision(self) -> None:
         v10 = self.load(PROFILE)
-        for path in (V11_PROFILE, V11_C69_PROFILE):
-            v11 = self.load(path)
-            self.assertEqual(v11["comparison_conditions"]["quality_rating"], QUALITY_RATING_V11)
-            self.assertEqual(v11["cases"], v10["cases"])
-            self.assertEqual(v11["evaluation_set"], v10["evaluation_set"])
-            self.assertEqual(v11["execution"], v10["execution"])
+        expected_ratings = {
+            V11_PROFILE: QUALITY_RATING_V11,
+            V11_C69_PROFILE: QUALITY_RATING_V11,
+            V12_C69_PROFILE: QUALITY_RATING_V12,
+            V12_C71_PROFILE: QUALITY_RATING_V12,
+        }
+        for path, expected_rating in expected_ratings.items():
+            future = self.load(path)
+            self.assertEqual(future["comparison_conditions"]["quality_rating"], expected_rating)
+            self.assertEqual(future["cases"], v10["cases"])
+            self.assertEqual(future["evaluation_set"], v10["evaluation_set"])
+            self.assertEqual(future["execution"], v10["execution"])
             self.assertEqual(
                 {
                     key: value
-                    for key, value in v11["comparison_conditions"].items()
+                    for key, value in future["comparison_conditions"].items()
                     if key != "quality_rating"
                 },
                 {
@@ -75,6 +83,59 @@ class Standard14ProfileTest(unittest.TestCase):
                     if key != "quality_rating"
                 },
             )
+
+    def test_v12_recognizes_observed_a01_clarification_request(self) -> None:
+        command_evidence = {"attempted_commands": [], "successful_commands": []}
+        response = "現在値は daily です。変更後の既定値を明示してください。"
+
+        self.assertIn(
+            "a01_clarification_disposition_missing",
+            a01_failures(response, [], command_evidence, MONTHLY_REVIEW_RATING_V11),
+        )
+        self.assertEqual(
+            a01_failures(response, [], command_evidence, MONTHLY_REVIEW_RATING_V12),
+            [],
+        )
+
+    def test_v12_does_not_treat_negated_a01_statement_as_clarification(self) -> None:
+        command_evidence = {"attempted_commands": [], "successful_commands": []}
+        response = "変更後の既定値を明示していません。"
+
+        self.assertIn(
+            "a01_clarification_disposition_missing",
+            a01_failures(response, [], command_evidence, MONTHLY_REVIEW_RATING_V12),
+        )
+
+    def test_v12_recognizes_quoted_successful_a02_commands(self) -> None:
+        command_evidence = {
+            "successful_commands": [
+                {"command": "/bin/zsh -c \"'bash' '-n' 'run.sh'\""},
+                {"command": "/bin/zsh -c \"'.venv/bin/python' '-m' 'pytest' 'tests/' '-v'\""},
+                {"command": "/bin/zsh -c \"'git' 'diff' '--check'\""},
+            ]
+        }
+
+        self.assertIn(
+            "a02_missing_successful_command:bash_n_run_sh",
+            a02_failures(["run.sh"], command_evidence, MONTHLY_REVIEW_RATING_V11),
+        )
+        self.assertEqual(
+            a02_failures(["run.sh"], command_evidence, MONTHLY_REVIEW_RATING_V12),
+            [],
+        )
+
+    def test_v12_keeps_missing_a02_command_as_failure(self) -> None:
+        command_evidence = {
+            "successful_commands": [
+                {"command": "bash -n run.sh"},
+                {"command": "pytest tests/ -v"},
+            ]
+        }
+
+        self.assertEqual(
+            a02_failures(["run.sh"], command_evidence, MONTHLY_REVIEW_RATING_V12),
+            ["a02_missing_successful_command:diff_check"],
+        )
 
     def test_a_cases_keep_previous_model_visible_input(self) -> None:
         profile = self.load(PROFILE)
