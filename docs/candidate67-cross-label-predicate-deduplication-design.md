@@ -45,7 +45,7 @@ Candidate67をCandidate43の直接childとして構築した。
 - label: 9 / 9を同じ順序で保持
 - 削除: 設計済みのcross-label duplicate 2文だけ
 
-構造testは、候補全文がCandidate43から対象2文だけを削除した結果と完全一致すること、正本predicateが残ること、4 profileがprompt identity以外を変えないことを確認した。
+構造testは、候補全文がCandidate43から対象2文だけを削除した結果と完全一致すること、正本predicateが残ること、5 profileがprompt identity以外を変えないことを確認した。
 
 ## 測定訂正
 
@@ -71,6 +71,8 @@ gate通過後にA01 / A02、F05 / F10、D01を各`N=5`で実行した。Candidat
 
 ## 状態
 
-Candidate67は`targeted_evaluated / stopped`とする。二つの重複predicateを正本一か所へ統合できる意味証拠として保持するが、runtime効率候補、採用候補、release候補へ進めない。
+対象試験の終了時点ではCandidate67を`targeted_evaluated / stopped`とした。二つの重複predicateを正本一か所へ統合できる意味証拠として保持したが、追加F10とD01でruntime削減を再現しなかったためである。
 
-次はCandidate43へ戻り、`F9`一文だけを対象にする。今回の二つの削除、`F5`、`D6`、`R1 / R2`を混ぜない。詳細は[`Candidate43 / Candidate67 catalog固定N=5`](../evaluations/results/candidate43-candidate67-cross-label-predicate-deduplication-catalog-fixed-n5_2026-07-22.md)を正本とする。
+その後、判断には14ケースが必要という別判断により、Candidate43の標準14 profileから候補identityだけを替えた各`N=5`を追加実行した。Candidate43とCandidate67は両方が70 / 70 score `4`だった。3 KPI中央値はCandidate67からCandidate43を引いてquality `0.000`、all-agent token `-84,992`、elapsed `-9.276秒`だった。一方、70件token合計はCandidate67が`+48,808`多い。
+
+現在の状態は`standard14_evaluated`とする。標準14項目で意味欠落は観測しなかったが、runtime差は反復間で方向が揃わないため削減効果を確定しない。採用候補、release候補、本体反映は未判断である。詳細は[`Candidate43 / Candidate67標準14 N=5`](../evaluations/results/candidate43-candidate67-cross-label-predicate-deduplication-v10-standard14-n5_2026-07-22.md)を正本とする。
