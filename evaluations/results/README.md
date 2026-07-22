@@ -100,6 +100,8 @@ C43の明示委譲gateとproducer再割当て禁止について、別labelの短
 
 C43の`INDEPENDENCE`から先行artifactの独立確認を別operationへ固定するF9一文だけを削除したCandidate68は、[`F10-only N=5`](candidate43-candidate68-independent-review-operation-removal-f10-n5_2026-07-22.md)を登録した。root bytesは`-3.02%`、5 / 5 score `4`、root-only、zero driftだった。3 KPI中央値はquality同値、all-agent token `+1.16%`、elapsed `+26.04%`で、token合計も`+426`、`+0.05%`となった。事前gateに従いCandidate68は停止し、A / F追加scope / D、standard14、採用、release、本体反映へ進めていない。
 
+C43実traceでall-agent tokenと強く結び付いたmodel再入を直接対象にしたCandidate69は、[`標準14項目各N=5`](candidate43-candidate69-model-reentry-decision-boundary-v10-standard14-n5_2026-07-22.md)を登録した。70 / 70 valid・rateable、zero driftで、Candidate69の点数分布は`4 / 3 = 69 / 1`だった。3 KPI中央値差はquality `0.000`、all-agent token `-26.21%`、elapsed `-18.37%`、70件token合計は`-22.59%`、top-level tool callは`-26.60%`だった。score `3`はF10 monthlyの既知のfinding location mismatchである。事前gate未達のためCandidate69は停止するが、model再入境界を次の機械制御対象として保持する。
+
 C15連続試験のF04 / F10低scoreに対するCandidate16 / 17の原則化、および明示合意なく診断中に追加され後に破棄したC18 / C19の経緯は[`evidence boundary targeted checks`](candidate16-candidate19-evidence-boundary-targeted_2026-07-17.md)へ分離した。expanded 12 case resultへ混ぜず、観測値と破棄理由を履歴として保持する。
 
 Candidate17のpromptを維持し、実行adapterへtyped boundary evidenceを追加したF10 `N=90`は[`Candidate17 typed boundary evidence F10 N=90`](candidate17-typed-boundary-evidence-f10-n90_2026-07-17.md)へ分離した。execution compatibilityが異なるため既存Candidate17 resultへ混ぜず、90 / 90のscore `4`相当、450 / 450のtyped observation pass、開始identity誤認0件を記録する。

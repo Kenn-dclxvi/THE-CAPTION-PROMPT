@@ -192,6 +192,8 @@ Candidate67はCandidate43の9 labelと本文を維持し、`PRODUCER / OWNER_ROL
 
 Candidate68はCandidate43の9 labelと残りの本文を維持し、`INDEPENDENCE`からF9一文だけを削除した。root bytesは`3,980 -> 3,860`、`-3.02%`である。[F10-only `N=5`](evaluations/results/candidate43-candidate68-independent-review-operation-removal-f10-n5_2026-07-22.md)は5 / 5 score `4`、root-only、zero driftだった。3 KPI中央値はquality同値、all-agent token `+1.16%`、elapsed `+26.04%`で、token合計も`+426`となった。事前gateに従いCandidate68は停止し、次はCandidate43から`F5`だけを分離してproducer変更境界の正のcaseで確認する。
 
+Candidate69はprompt使用tokenではなくC43実runのall-agent `total_tokens`を対象とし、未発行invocationの選択を変えないresult間でmodelへ戻らない`DECISION_BOUNDARY`一文を追加した。[標準14項目各`N=5`](evaluations/results/candidate43-candidate69-model-reentry-decision-boundary-v10-standard14-n5_2026-07-22.md)では、3 KPI中央値差がquality `0.000`、all-agent token `-26.21%`、elapsed `-18.37%`、70件token合計が`-22.59%`、top-level tool callが`-26.60%`だった。一方、F10 monthlyのfinding location mismatchが1件あり、点数分布は`4 / 3 = 69 / 1`だった。事前gateに従いCandidate69は`standard14_evaluated / stopped`とし、次はglobal prompt追記ではなくdependencyとterminal evidence addressの機械的materializationを検討する。
+
 C41 expanded 12-case `N=5`は60 / 60がvalid、rateable、score `4`で、全runがroot-onlyだった。同じv9、evaluation set、target、model、Agent、permission、executor parameter、反復条件へ固定した4-result比較は次のとおりである。
 
 | prompt set | score 4 / 3 | `quality_score`中央値 | all-agent `total_tokens`中央値 | token合計 | `elapsed_seconds`中央値 |
