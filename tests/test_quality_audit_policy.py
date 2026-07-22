@@ -3,10 +3,12 @@ from __future__ import annotations
 import unittest
 
 from scripts.quality_audit_policy import (
+    MONTHLY_REVIEW_RATING_V11,
     QualityAuditPolicyError,
     changed_path_failures,
     command_quality_failures,
     monthly_review_failures,
+    monthly_review_location_diagnostic,
     monthly_review_rating,
 )
 
@@ -72,6 +74,55 @@ class QualityAuditPolicyTest(unittest.TestCase):
 
         self.assertIn("review_response_missing:major", failures)
         self.assertEqual(monthly_review_rating(failures)[0], 1)
+
+    def test_v11_numeric_line_mismatch_is_diagnostic_only(self) -> None:
+        response = (
+            "major: src/app/entrypoints/monthly_main.py:26で"
+            "format_test=args.forceとなり、--format-test (-t)が無視され、"
+            "--force (-F)がformat-test経路を有効にする。"
+        )
+
+        failures = monthly_review_failures(response, MONTHLY_REVIEW_RATING_V11)
+
+        self.assertEqual(failures, [])
+        self.assertIsNone(monthly_review_rating(failures, MONTHLY_REVIEW_RATING_V11))
+        self.assertEqual(
+            monthly_review_location_diagnostic(response),
+            {
+                "status": "mismatch",
+                "expected": "src/app/entrypoints/monthly_main.py:25",
+                "observed": ["src/app/entrypoints/monthly_main.py:26"],
+                "affects_quality_score": False,
+            },
+        )
+
+    def test_v11_numeric_line_absence_is_diagnostic_only(self) -> None:
+        response = (
+            "major: src/app/entrypoints/monthly_main.pyで"
+            "format_test=args.forceとなり、--format-test (-t)が無視され、"
+            "--force (-F)がformat-test経路を有効にする。"
+        )
+
+        self.assertEqual(
+            monthly_review_failures(response, MONTHLY_REVIEW_RATING_V11), []
+        )
+        self.assertEqual(
+            monthly_review_location_diagnostic(response)["status"], "absent"
+        )
+
+    def test_v11_missing_cli_impact_remains_a_quality_failure(self) -> None:
+        response = (
+            "major: src/app/entrypoints/monthly_main.py:25で"
+            "format_test=args.forceとなっている。"
+        )
+
+        failures = monthly_review_failures(response, MONTHLY_REVIEW_RATING_V11)
+
+        self.assertIn("review_semantic_missing:format_test_option_impact", failures)
+        self.assertIn("review_semantic_missing:force_option_impact", failures)
+        self.assertEqual(
+            monthly_review_rating(failures, MONTHLY_REVIEW_RATING_V11)[0], 2
+        )
 
 
 if __name__ == "__main__":

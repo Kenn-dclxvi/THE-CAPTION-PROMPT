@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""標準14項目の保存済み証拠を第10版で採点する。"""
+"""標準14項目の保存済み証拠をbinding済みrating revisionで採点する。"""
 
 from __future__ import annotations
 
@@ -19,9 +19,12 @@ if __package__:
         collect as collect_command_evidence,
     )
     from .quality_audit_policy import (
+        MONTHLY_REVIEW_RATING_V10,
+        MONTHLY_REVIEW_RATING_V11,
         changed_path_failures,
         command_quality_failures,
         monthly_review_failures,
+        monthly_review_location_diagnostic,
         monthly_review_rating,
     )
 else:
@@ -30,9 +33,12 @@ else:
         collect as collect_command_evidence,
     )
     from quality_audit_policy import (
+        MONTHLY_REVIEW_RATING_V10,
+        MONTHLY_REVIEW_RATING_V11,
         changed_path_failures,
         command_quality_failures,
         monthly_review_failures,
+        monthly_review_location_diagnostic,
         monthly_review_rating,
     )
 
@@ -57,6 +63,10 @@ F_CASES = {
     "TC-F08-CANONICAL-CLI-REFERENCE-SYNC",
     "TC-F10-ENTRYPOINT-INVENTORY-REVIEW",
     "TC-F10-MONTHLY-FORMAT-TEST-REVIEW",
+}
+SUPPORTED_STANDARD14_RATING_CONTRACTS = {
+    MONTHLY_REVIEW_RATING_V10,
+    MONTHLY_REVIEW_RATING_V11,
 }
 
 
@@ -206,7 +216,30 @@ def collect(batch: Path) -> dict[str, Any]:
     }
 
 
-def f_response_failures(case_id: str, final: str) -> list[str]:
+def quality_rating_contract_id(cycle: Path) -> str:
+    contract_ids: set[str] = set()
+    for binding_file in sorted((cycle / "layer2/bindings").glob("*.json")):
+        binding = load_json(binding_file)
+        if binding.get("status") != "valid":
+            continue
+        conditions = binding.get("comparison_conditions")
+        rating = conditions.get("quality_rating") if isinstance(conditions, dict) else None
+        contract_id = rating.get("contract_id") if isinstance(rating, dict) else None
+        if isinstance(contract_id, str):
+            contract_ids.add(contract_id)
+    if len(contract_ids) != 1:
+        raise RuntimeError("standard14 audit requires exactly one quality rating contract")
+    contract_id = next(iter(contract_ids))
+    if contract_id not in SUPPORTED_STANDARD14_RATING_CONTRACTS:
+        raise RuntimeError(f"unsupported standard14 quality rating contract: {contract_id}")
+    return contract_id
+
+
+def f_response_failures(
+    case_id: str,
+    final: str,
+    rating_contract_id: str = MONTHLY_REVIEW_RATING_V10,
+) -> list[str]:
     failures: list[str] = []
     if case_id == "TC-F05-CLARIFY-UNITS-MODE":
         text = normalized(final)
@@ -233,7 +266,7 @@ def f_response_failures(case_id: str, final: str) -> list[str]:
             if marker not in final:
                 failures.append(f"inventory_response_missing:{marker}")
     elif case_id == "TC-F10-MONTHLY-FORMAT-TEST-REVIEW":
-        failures.extend(monthly_review_failures(final))
+        failures.extend(monthly_review_failures(final, rating_contract_id))
     return failures
 
 
@@ -289,9 +322,14 @@ def a02_failures(
     return failures
 
 
-def f_rating(case_id: str, final: str, failures: list[str]) -> tuple[int, str]:
+def f_rating(
+    case_id: str,
+    final: str,
+    failures: list[str],
+    rating_contract_id: str = MONTHLY_REVIEW_RATING_V10,
+) -> tuple[int, str]:
     if case_id == "TC-F10-MONTHLY-FORMAT-TEST-REVIEW":
-        monthly = monthly_review_rating(failures)
+        monthly = monthly_review_rating(failures, rating_contract_id)
         if monthly is not None:
             return monthly
     if (
@@ -381,6 +419,7 @@ def a_rating(case_id: str, final: str, failures: list[str]) -> tuple[int, str]:
 
 def evaluate(batch: Path, observations: dict[str, Any]) -> dict[str, Any]:
     cycle = batch / "cycle"
+    rating_contract_id = quality_rating_contract_id(cycle)
     owner_evidence = load_json(cycle / "layer3/owner-producer-evidence.json")
     owner_by_run = {item["run_id"]: item for item in owner_evidence["runs"]}
     if len(owner_by_run) != len(observations["runs"]):
@@ -423,8 +462,8 @@ def evaluate(batch: Path, observations: dict[str, Any]) -> dict[str, Any]:
             if command_audit.get("run_id") != run_id:
                 raise RuntimeError(f"invalid command protocol audit: {run_id}")
             failures.extend(command_quality_failures(command_audit["requirements"]))
-            failures.extend(f_response_failures(case_id, final))
-            score, reason = f_rating(case_id, final, failures)
+            failures.extend(f_response_failures(case_id, final, rating_contract_id))
+            score, reason = f_rating(case_id, final, failures, rating_contract_id)
         elif case_id == A01:
             failures.extend(a01_failures(final, final_changed_paths, command_evidence))
             score, reason = a_rating(case_id, final, failures)
@@ -435,6 +474,19 @@ def evaluate(batch: Path, observations: dict[str, Any]) -> dict[str, Any]:
             raise RuntimeError(f"unexpected case: {case_id}")
 
         owner_item = owner_by_run[run_id]
+        diagnostics: dict[str, Any] = {
+            "command_protocol_violation_count": command_evidence.get(
+                "protocol_violation_count"
+            ),
+            "owner_producer_evidence_eligible": bool(
+                owner_item.get("score_4_owner_evidence_eligible")
+            ),
+            "owner_producer_evidence_status": owner_item.get("status"),
+        }
+        if case_id == "TC-F10-MONTHLY-FORMAT-TEST-REVIEW":
+            diagnostics["monthly_review_numeric_location"] = (
+                monthly_review_location_diagnostic(final)
+            )
         results.append(
             {
                 "run_id": run_id,
@@ -443,20 +495,18 @@ def evaluate(batch: Path, observations: dict[str, Any]) -> dict[str, Any]:
                 "candidate_score": score,
                 "rating_reason": reason,
                 "failures": failures,
-                "diagnostics": {
-                    "command_protocol_violation_count": command_evidence.get(
-                        "protocol_violation_count"
-                    ),
-                    "owner_producer_evidence_eligible": bool(
-                        owner_item.get("score_4_owner_evidence_eligible")
-                    ),
-                    "owner_producer_evidence_status": owner_item.get("status"),
-                },
+                "diagnostics": diagnostics,
             }
         )
+    monthly_location_statuses = [
+        item["diagnostics"]["monthly_review_numeric_location"]["status"]
+        for item in results
+        if "monthly_review_numeric_location" in item["diagnostics"]
+    ]
     return {
         "schema_version": "the-caption-prompt.standard14-quality-audit/v1",
         "batch": batch.name,
+        "quality_rating_contract": rating_contract_id,
         "run_count": len(results),
         "rateable_runs": len(results),
         "score_counts": dict(Counter(str(item["candidate_score"]) for item in results)),
@@ -470,6 +520,7 @@ def evaluate(batch: Path, observations: dict[str, Any]) -> dict[str, Any]:
                 item["diagnostics"]["command_protocol_violation_count"] or 0
                 for item in results
             ),
+            "monthly_review_numeric_location": dict(Counter(monthly_location_statuses)),
         },
         "runs": results,
     }

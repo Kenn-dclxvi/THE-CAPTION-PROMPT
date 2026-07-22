@@ -13,6 +13,7 @@ from scripts.evaluation_loop import (
     QUALITY_RATING_V6,
     QUALITY_RATING_V7,
     QUALITY_RATING_V9,
+    QUALITY_RATING_V11,
     EvaluationError,
     layer3_rate,
 )
@@ -78,6 +79,18 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
         self.assertEqual(
             hashlib.sha256(contract.read_bytes()).hexdigest(),
             QUALITY_RATING_V9["contract_sha256"],
+        )
+
+    def test_rating_v11_contract_hash_matches_semantic_location_configuration(self) -> None:
+        contract = (
+            Path(__file__).resolve().parents[1]
+            / "evaluations"
+            / "rating-contracts"
+            / "outcome-semantic-location-owner-diagnostic-v11.json"
+        )
+        self.assertEqual(
+            hashlib.sha256(contract.read_bytes()).hexdigest(),
+            QUALITY_RATING_V11["contract_sha256"],
         )
 
     def test_rating_v2_contract_hash_remains_supported(self) -> None:

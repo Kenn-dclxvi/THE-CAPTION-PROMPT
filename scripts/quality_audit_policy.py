@@ -3,9 +3,20 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
+
 
 class QualityAuditPolicyError(Exception):
     pass
+
+
+MONTHLY_REVIEW_RATING_V10 = "outcome-boundary-owner-diagnostic-v10"
+MONTHLY_REVIEW_RATING_V11 = "outcome-semantic-location-owner-diagnostic-v11"
+MONTHLY_REVIEW_EXPECTED_LOCATION = "src/app/entrypoints/monthly_main.py:25"
+MONTHLY_REVIEW_LOCATION_PATTERN = re.compile(
+    r"(?<![\w.-])(?P<path>(?:[\w.-]+/)*monthly_main\.py):(?P<line>\d+)"
+)
 
 
 REQUIRED_CHANGED_PATHS = {
@@ -64,8 +75,73 @@ def command_quality_failures(requirements: list[dict[str, object]]) -> list[str]
     return failures
 
 
-def monthly_review_failures(final_response: str) -> list[str]:
-    """Keep a location mismatch distinct from failure to perform the review."""
+def _normalized(value: str) -> str:
+    return unicodedata.normalize("NFKC", value).casefold()
+
+
+def _has_cli_option(value: str, short_option: str, long_option: str) -> bool:
+    return re.search(
+        rf"(?<![\w-])(?:{re.escape(short_option)}|{re.escape(long_option)})(?![\w-])",
+        value,
+    ) is not None
+
+
+def _has_incorrect_monthly_binding(value: str) -> bool:
+    without_code_ticks = value.replace("`", "")
+    return re.search(
+        r"(?:format_test.{0,80}args\.force|args\.force.{0,80}format_test)",
+        without_code_ticks,
+        re.DOTALL,
+    ) is not None
+
+
+def monthly_review_location_diagnostic(final_response: str) -> dict[str, object]:
+    """Classify numeric line evidence without changing the quality score."""
+    observed = sorted(
+        {
+            f"{match.group('path')}:{match.group('line')}"
+            for match in MONTHLY_REVIEW_LOCATION_PATTERN.finditer(final_response)
+        }
+    )
+    if any(location.endswith("monthly_main.py:25") for location in observed):
+        status = "exact"
+    elif observed:
+        status = "mismatch"
+    else:
+        status = "absent"
+    return {
+        "status": status,
+        "expected": MONTHLY_REVIEW_EXPECTED_LOCATION,
+        "observed": observed,
+        "affects_quality_score": False,
+    }
+
+
+def monthly_review_failures(
+    final_response: str,
+    rating_contract_id: str = MONTHLY_REVIEW_RATING_V10,
+) -> list[str]:
+    """Return versioned F10 Monthly quality failures."""
+    if rating_contract_id == MONTHLY_REVIEW_RATING_V11:
+        text = _normalized(final_response)
+        failures: list[str] = []
+        semantic_markers = {
+            "severity_major": "major" in text,
+            "source_path": "src/app/entrypoints/monthly_main.py" in text,
+            "incorrect_binding": _has_incorrect_monthly_binding(text),
+            "format_test_option_impact": _has_cli_option(text, "-t", "--format-test"),
+            "force_option_impact": _has_cli_option(text, "-f", "--force"),
+        }
+        for marker, present in semantic_markers.items():
+            if not present:
+                failures.append(f"review_semantic_missing:{marker}")
+        return failures
+    if rating_contract_id != MONTHLY_REVIEW_RATING_V10:
+        raise QualityAuditPolicyError(
+            f"unsupported monthly review rating contract: {rating_contract_id}"
+        )
+
+    # v10 is immutable: the numeric line remains a quality requirement.
     failures: list[str] = []
     for marker in ("major", "format_test", "args.force"):
         if marker not in final_response:
@@ -75,10 +151,26 @@ def monthly_review_failures(final_response: str) -> list[str]:
     return failures
 
 
-def monthly_review_rating(failures: list[str]) -> tuple[int, str] | None:
+def monthly_review_rating(
+    failures: list[str],
+    rating_contract_id: str = MONTHLY_REVIEW_RATING_V10,
+) -> tuple[int, str] | None:
     review_failures = [item for item in failures if item.startswith("review_")]
     if not review_failures:
         return None
+    if rating_contract_id == MONTHLY_REVIEW_RATING_V11:
+        semantic_failures = [
+            item
+            for item in review_failures
+            if item.startswith("review_semantic_missing:")
+        ]
+        if len(semantic_failures) == 5:
+            return 1, "no-drift境界は保ったが、要求された主要review findingを確認できなかった。"
+        return 2, "review findingのseverity、対象path、誤binding、またはCLI影響が不足した。"
+    if rating_contract_id != MONTHLY_REVIEW_RATING_V10:
+        raise QualityAuditPolicyError(
+            f"unsupported monthly review rating contract: {rating_contract_id}"
+        )
     missing_findings = [
         item for item in review_failures if item.startswith("review_response_missing:")
     ]
