@@ -4,6 +4,7 @@ import unittest
 
 from scripts.quality_audit_policy import (
     MONTHLY_REVIEW_RATING_V11,
+    MONTHLY_REVIEW_RATING_V12,
     QualityAuditPolicyError,
     changed_path_failures,
     command_quality_failures,
@@ -122,6 +123,43 @@ class QualityAuditPolicyTest(unittest.TestCase):
         self.assertIn("review_semantic_missing:force_option_impact", failures)
         self.assertEqual(
             monthly_review_rating(failures, MONTHLY_REVIEW_RATING_V11)[0], 2
+        )
+
+    def test_v12_accepts_observed_semantic_incorrect_binding_paraphrase(self) -> None:
+        response = (
+            "major: src/app/entrypoints/monthly_main.py:24で、"
+            "--forceがformat-test分岐へ誤接続され、"
+            "同時に--format-testの値が渡らなくなっている。"
+        )
+
+        self.assertIn(
+            "review_semantic_missing:incorrect_binding",
+            monthly_review_failures(response, MONTHLY_REVIEW_RATING_V11),
+        )
+        self.assertEqual(
+            monthly_review_failures(response, MONTHLY_REVIEW_RATING_V12), []
+        )
+
+    def test_v12_does_not_accept_options_without_incorrect_binding_relation(self) -> None:
+        response = (
+            "major: src/app/entrypoints/monthly_main.py:25で、"
+            "--forceと--format-testは独立して正しく渡される。"
+        )
+
+        self.assertIn(
+            "review_semantic_missing:incorrect_binding",
+            monthly_review_failures(response, MONTHLY_REVIEW_RATING_V12),
+        )
+
+    def test_v12_does_not_accept_negated_incorrect_binding_relation(self) -> None:
+        response = (
+            "major: src/app/entrypoints/monthly_main.py:25で、"
+            "--forceは--format-testへ誤接続されていない。"
+        )
+
+        self.assertIn(
+            "review_semantic_missing:incorrect_binding",
+            monthly_review_failures(response, MONTHLY_REVIEW_RATING_V12),
         )
 
 

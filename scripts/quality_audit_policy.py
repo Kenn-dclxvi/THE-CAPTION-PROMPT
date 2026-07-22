@@ -13,6 +13,7 @@ class QualityAuditPolicyError(Exception):
 
 MONTHLY_REVIEW_RATING_V10 = "outcome-boundary-owner-diagnostic-v10"
 MONTHLY_REVIEW_RATING_V11 = "outcome-semantic-location-owner-diagnostic-v11"
+MONTHLY_REVIEW_RATING_V12 = "outcome-semantic-evidence-normalized-owner-diagnostic-v12"
 MONTHLY_REVIEW_EXPECTED_LOCATION = "src/app/entrypoints/monthly_main.py:25"
 MONTHLY_REVIEW_LOCATION_PATTERN = re.compile(
     r"(?<![\w.-])(?P<path>(?:[\w.-]+/)*monthly_main\.py):(?P<line>\d+)"
@@ -79,17 +80,65 @@ def _normalized(value: str) -> str:
     return unicodedata.normalize("NFKC", value).casefold()
 
 
-def _has_cli_option(value: str, short_option: str, long_option: str) -> bool:
+def _has_cli_option(
+    value: str,
+    short_option: str,
+    long_option: str,
+    *,
+    allow_adjacent_japanese: bool = False,
+) -> bool:
+    boundary = r"[a-z0-9_-]" if allow_adjacent_japanese else r"[\w-]"
     return re.search(
-        rf"(?<![\w-])(?:{re.escape(short_option)}|{re.escape(long_option)})(?![\w-])",
+        rf"(?<!{boundary})(?:{re.escape(short_option)}|{re.escape(long_option)})(?!{boundary})",
         value,
     ) is not None
 
 
-def _has_incorrect_monthly_binding(value: str) -> bool:
+def _has_incorrect_monthly_binding(
+    value: str,
+    *,
+    allow_semantic_paraphrase: bool = False,
+) -> bool:
     without_code_ticks = value.replace("`", "")
-    return re.search(
+    if re.search(
         r"(?:format_test.{0,80}args\.force|args\.force.{0,80}format_test)",
+        without_code_ticks,
+        re.DOTALL,
+    ) is not None:
+        return True
+    if not allow_semantic_paraphrase:
+        return False
+    if not (
+        _has_cli_option(
+            without_code_ticks,
+            "-t",
+            "--format-test",
+            allow_adjacent_japanese=True,
+        )
+        and _has_cli_option(
+            without_code_ticks,
+            "-f",
+            "--force",
+            allow_adjacent_japanese=True,
+        )
+    ):
+        return False
+    if re.search(
+        r"(?:誤接続|誤って|入れ替|取り違)(?:され|し|え|わっ)?(?:て)?いない"
+        r"|(?:not\s+(?:misbound|miswired)|(?:misbound|miswired)\s+is\s+not)",
+        without_code_ticks,
+    ) is not None:
+        return False
+    force_option = r"(?:--force|(?<![a-z0-9_-])-f(?![a-z0-9_-]))"
+    format_option = (
+        r"(?:--format-test|(?<![a-z0-9_-])-t(?![a-z0-9_-])|format[-_ ]?test)"
+    )
+    incorrect_relation = (
+        r"(?:誤接続|誤って|入れ替|取り違|misbind|miswire|incorrect binding)"
+    )
+    return re.search(
+        rf"(?:{force_option}.{{0,100}}{format_option}.{{0,100}}{incorrect_relation}"
+        rf"|{format_option}.{{0,100}}{force_option}.{{0,100}}{incorrect_relation})",
         without_code_ticks,
         re.DOTALL,
     ) is not None
@@ -122,15 +171,28 @@ def monthly_review_failures(
     rating_contract_id: str = MONTHLY_REVIEW_RATING_V10,
 ) -> list[str]:
     """Return versioned F10 Monthly quality failures."""
-    if rating_contract_id == MONTHLY_REVIEW_RATING_V11:
+    if rating_contract_id in {MONTHLY_REVIEW_RATING_V11, MONTHLY_REVIEW_RATING_V12}:
         text = _normalized(final_response)
         failures: list[str] = []
         semantic_markers = {
             "severity_major": "major" in text,
             "source_path": "src/app/entrypoints/monthly_main.py" in text,
-            "incorrect_binding": _has_incorrect_monthly_binding(text),
-            "format_test_option_impact": _has_cli_option(text, "-t", "--format-test"),
-            "force_option_impact": _has_cli_option(text, "-f", "--force"),
+            "incorrect_binding": _has_incorrect_monthly_binding(
+                text,
+                allow_semantic_paraphrase=(rating_contract_id == MONTHLY_REVIEW_RATING_V12),
+            ),
+            "format_test_option_impact": _has_cli_option(
+                text,
+                "-t",
+                "--format-test",
+                allow_adjacent_japanese=(rating_contract_id == MONTHLY_REVIEW_RATING_V12),
+            ),
+            "force_option_impact": _has_cli_option(
+                text,
+                "-f",
+                "--force",
+                allow_adjacent_japanese=(rating_contract_id == MONTHLY_REVIEW_RATING_V12),
+            ),
         }
         for marker, present in semantic_markers.items():
             if not present:
@@ -158,7 +220,7 @@ def monthly_review_rating(
     review_failures = [item for item in failures if item.startswith("review_")]
     if not review_failures:
         return None
-    if rating_contract_id == MONTHLY_REVIEW_RATING_V11:
+    if rating_contract_id in {MONTHLY_REVIEW_RATING_V11, MONTHLY_REVIEW_RATING_V12}:
         semantic_failures = [
             item
             for item in review_failures

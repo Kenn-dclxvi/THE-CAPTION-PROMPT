@@ -14,6 +14,7 @@ from scripts.evaluation_loop import (
     QUALITY_RATING_V7,
     QUALITY_RATING_V9,
     QUALITY_RATING_V11,
+    QUALITY_RATING_V12,
     EvaluationError,
     layer3_rate,
 )
@@ -91,6 +92,18 @@ class OwnerProducerEvidenceTests(unittest.TestCase):
         self.assertEqual(
             hashlib.sha256(contract.read_bytes()).hexdigest(),
             QUALITY_RATING_V11["contract_sha256"],
+        )
+
+    def test_rating_v12_contract_hash_matches_normalized_evidence_configuration(self) -> None:
+        contract = (
+            Path(__file__).resolve().parents[1]
+            / "evaluations"
+            / "rating-contracts"
+            / "outcome-semantic-evidence-normalized-owner-diagnostic-v12.json"
+        )
+        self.assertEqual(
+            hashlib.sha256(contract.read_bytes()).hexdigest(),
+            QUALITY_RATING_V12["contract_sha256"],
         )
 
     def test_rating_v2_contract_hash_remains_supported(self) -> None:
