@@ -86,11 +86,15 @@ C70 B18で`git diff --check`を実行しなかった2件は採点偽陰性では
 
 ## 現在の状態
 
-Candidate71は`standard14_evaluated / gate_passed`とする。
+Candidate71は`standard14_b18_evaluated / stopped`とする。
 
-対象4項目と標準14項目では、Candidate70で観測したrequired validation欠落を再現しなかった。標準14項目では品質を維持し、tokenと全体elapsedの両方を削減した。
+Candidate69 / Candidate71を第12版採点、標準14項目、各`N=5`、18 Batchで実行した。両条件とも1,260 / 1,260件がvalid・rateableで、18 / 18 result登録と圧縮を完了した。
 
-採用、release、本体反映は未判断、未実施である。Candidate69とCandidate43の比較では、標準14項目`N=5`とB18でelapsed差の方向が反転した履歴がある。次の評価段階はCandidate69 / Candidate71の両方を新しい第12版採点へ固定した標準14項目B18とする。既存v10 / v11 resultは再採点せず、比較へ混ぜない。
+Candidate71はCandidate69比で、all-agent token合計`-27.93%`、elapsed合計`-11.71%`、top-level tool call`-30.16%`、model step`-26.54%`だった。token中央値とelapsed中央値は18 / 18 Batchで小さかった。
+
+一方、保存traceの意味確認ではCandidate71にA02の`git diff --check`欠落3件と、A01で未固定modeを確認せず実装・試験へ進んだ1件があった。Candidate69の実質欠落はA02の`git diff --check`欠落1件だった。Candidate71は実質的な品質後退なしという条件を満たさない。
+
+Candidate71の採用、release、本体反映は未実施である。効率削減は保存するが、Candidate71へ補助predicateを追加せず停止する。第12版採点に残った偽陰性を修正する場合は新しいrating revisionとして扱い、このB18 resultを再採点またはin-place変更しない。
 
 ## Evidence
 
@@ -99,4 +103,5 @@ Candidate71は`standard14_evaluated / gate_passed`とする。
 - [Candidate69 / Candidate70 B18](../evaluations/results/candidate69-candidate70-machine-decision-boundary-v10-standard14-continuous-n5-b18_2026-07-22.md)
 - [Candidate69 / Candidate71対象4項目結果](../evaluations/results/candidate69-candidate71-validation-closure-targeted4-n5_2026-07-22.md)
 - [Candidate69 / Candidate71標準14項目結果](../evaluations/results/candidate69-candidate71-validation-closure-v10-standard14-n5_2026-07-22.md)
+- [Candidate69 / Candidate71第12版B18](../evaluations/results/candidate69-candidate71-validation-closure-v12-standard14-continuous-n5-b18_2026-07-22.md)
 - [Prompt制御の検討原則](prompt-control-design-principles.md)
