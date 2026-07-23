@@ -36,8 +36,22 @@
       "B18の効率値を評価範囲外へ一般化すること"
     ],
     "prompt_set_name": "validation_closure_release",
+    "projection_evidence": {
+      "baseline_commit": "8f8b48515b33bdb973558bca57b9194af665a060",
+      "effective_path_count": 1,
+      "manifest_target_count": 19,
+      "matched_manifest_target_count": 18,
+      "merge_commit": "326fdd343a50522629592d67b0f028fb66e94eb3",
+      "preserved_target_drift": [
+        "docs/how-to/index.md"
+      ],
+      "projection_record": "projection.json",
+      "pull_request": "https://github.com/Kenn-dclxvi/THE-CAPTION/pull/340",
+      "rollback_identity": "8f8b48515b33bdb973558bca57b9194af665a060",
+      "validation": "bash ./scripts/dev/verify_change_set.sh: 362 passed, 3 skipped in 1.63s"
+    },
     "release_identity": "the-caption-3ce91a4-validation-closure-release-r1",
-    "release_status": "approved_for_projection",
+    "release_status": "projected",
     "scope": "評価済みCandidate71の19 path full bundleを内容変更なしで固定し、THE-CAPTIONへ投影する。",
     "unresolved_risks": [
       "第12版B18でA02のgit diff --check欠落を3 / 90件観測した。",
@@ -210,7 +224,7 @@
     ],
     "design_status": "release_candidate",
     "evaluation_status": "evaluated_v12_standard14_continuous_n5_b18",
-    "runtime_projection_status": "not_projected",
+    "runtime_projection_status": "projected",
     "source_interpretation": "This release is a content-identical snapshot of Candidate71. Candidate71 remained stopped after its predeclared quality gate failed; the explicit user request on 2026-07-23 separately authorizes adoption and projection with the unresolved risks retained."
   },
   "schema_version": "the-caption-prompt.bundle/v1",

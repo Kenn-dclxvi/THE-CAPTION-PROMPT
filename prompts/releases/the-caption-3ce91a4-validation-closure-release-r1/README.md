@@ -2,9 +2,9 @@
 
 ## 結論
 
-候補71の19対象完全一式を、内容変更なしでTHE-CAPTIONへ投影するリリースとして承認した。
+候補71の実効変更を、THE-CAPTIONへ投影した。
 
-リリース状態は`approved_for_projection`、承認状態は`approved`である。
+リリース状態は`projected`、承認状態は`approved`である。
 
 候補71は事前の品質gateを通過していない。今回の承認は、2026-07-23の明示依頼に基づく別の採用判断であり、保存済み評価結果または停止判定を変更しない。
 
@@ -40,13 +40,27 @@
 ## 承認状態
 
 - リリース準備: `complete`
-- リリース状態: `approved_for_projection`
+- リリース状態: `projected`
 - 採用承認: `approved`
-- 本体反映: `not_projected`
+- 本体反映: `projected`。`main`へのマージで有効化済み
 - 承認根拠: 2026-07-23の明示的な本体適用依頼
+
+## 投影結果
+
+- 投影前commit / 巻き戻し先: `8f8b48515b33bdb973558bca57b9194af665a060`
+- 投影した実変更対象: root `AGENTS.md`一つ
+- 検証: `bash ./scripts/dev/verify_change_set.sh`、`362 passed, 3 skipped in 1.63s`
+- 統合後release対象一致: `18 / 19`
+- 一致しない対象: `docs/how-to/index.md`一つ
+- 不一致理由: C43投影後のTHE-CAPTION本体更新であり、C71の変更対象外のため現行内容を保持
+- THE-CAPTION PR: [#340](https://github.com/Kenn-dclxvi/THE-CAPTION/pull/340)
+- 統合commit: `326fdd343a50522629592d67b0f028fb66e94eb3`
+- 投影記録: [`projection.json`](projection.json)
 
 ## 根拠
 
+- [投影記録](projection.json)
+- [THE-CAPTION PR #340](https://github.com/Kenn-dclxvi/THE-CAPTION/pull/340)
 - [候補71 第12版B18](../../../evaluations/results/candidate69-candidate71-validation-closure-v12-standard14-continuous-n5-b18_2026-07-22.md)
 - [候補71設計記録](../../../docs/candidate71-validation-closure-design.md)
 - [候補71 manifest](../../candidates/the-caption-3ce91a4-validation-closure-r1/manifest.json)
