@@ -1,0 +1,222 @@
+{
+  "artifact": {
+    "approval_status": "approved",
+    "artifact_role": "release",
+    "candidate_identity": "the-caption-3ce91a4-validation-closure-r1",
+    "evaluation_evidence": {
+      "continuous_b18_result_ids": [
+        "a5ef7fb7a36a43fd8f40c6fa6182a63c",
+        "af6f4ed3516e4a2ca1cabafb397fdd79",
+        "0f608e2197fe45ee984c95e0927d323e",
+        "d385ed1af8ed43419c2ff85c5cf640d3",
+        "00bfc8780592447997f775478937001b",
+        "b51d4d5196c54f93b72bc50e6fe0af62",
+        "8b494a9a47d5453f92cea1a26d44d2b7",
+        "b031353be6634beba1901e7c572a9771",
+        "2aa947d862ee4bf5adfb2d7bc41d26fd",
+        "dda9fcf1616b4c0b910c2304da5e5129",
+        "f6a7e80e25ab43479236b0bc1bf8c874",
+        "b7d46037685b4aa0befab61e4434b605",
+        "57c6df4ba9d04406913153e3b5f92a8d",
+        "79167dcb41dc42bd8a82e11c2a4a408c",
+        "9ba03a6bb5054f71a7c0d866a41d1a35",
+        "991a0161513846ee9b304b5d046634c1",
+        "78044a1570494adcb58ef7a0ec07ae76",
+        "e1a280b81d374b30a05b5a1d53391da3"
+      ],
+      "current_quality_rating": "outcome-semantic-evidence-normalized-owner-diagnostic-v12",
+      "standard14_result_id": "b251576a67c540c792af5e8de99a3f50",
+      "targeted_result_id": "5dc74f629d184965a07a439759f93e98"
+    },
+    "evaluation_status": "evaluated_v12_standard14_continuous_n5_b18",
+    "non_goals": [
+      "Candidate71 prompt内容の変更",
+      "既存resultの再採点またはin-place変更",
+      "A01誤実行またはA02 required validation欠落を隠すこと",
+      "B18の効率値を評価範囲外へ一般化すること"
+    ],
+    "prompt_set_name": "validation_closure_release",
+    "release_identity": "the-caption-3ce91a4-validation-closure-release-r1",
+    "release_status": "approved_for_projection",
+    "scope": "評価済みCandidate71の19 path full bundleを内容変更なしで固定し、THE-CAPTIONへ投影する。",
+    "unresolved_risks": [
+      "第12版B18でA02のgit diff --check欠落を3 / 90件観測した。",
+      "第12版B18でA01の未固定modeを確認せず実装と試験へ進んだ誤実行を1 / 90件観測した。",
+      "Candidate69比では実質的な低得点が3件増え、事前の品質gateを通過しなかった。",
+      "Candidate71は18 / 18 Batchでtokenとelapsedの中央値を削減したが、効率削減を品質後退なしの根拠にはしない。",
+      "B18の観測を評価範囲外へ一般化しない。"
+    ]
+  },
+  "bundle_hash_algorithm": "sha256(canonical-json({schema_version,files}))",
+  "bundle_sha256": "995481ad58ad1bc11628bfd8b8978ed904d62989a28caa87268b30d5c5a58695",
+  "content_relation": {
+    "changed_targets": [],
+    "kind": "release_snapshot_of_candidate",
+    "source_prompt_identity": "the-caption-3ce91a4-validation-closure-r1"
+  },
+  "files": [
+    {
+      "git_blob_sha1": "cfca260c31149104a9066cb8c5ffeb15b53ccc9b",
+      "mode": "100644",
+      "sha256": "be944d70524a43ab6053ec11e479d6710b20beb4cd3ab66275b66db824b73ee5",
+      "target": "AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "dc7446eae35eda9f0be9e162f9e81fb2dedcd97b",
+      "mode": "100644",
+      "sha256": "5b11d8b79b2ed9718d0a213ab5dbe5ea45a16ad03f1bfe93c625038d0041f8c8",
+      "target": "docs/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "docs/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "docs/glossary.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "4a85298ded65e9db8bb7c8428f47cf370bdb3297",
+      "mode": "100644",
+      "sha256": "bfd13c7c8e2dd11e3dc1777bf78d9c530d8d5c39fc81a25f13b30fdacb6aad4f",
+      "target": "docs/how-to/index.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "docs/orchestration-process.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "docs/prompt-guide.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "b81e630c09d5d06a87b31e19efc4d2163971dd9b",
+      "mode": "100644",
+      "sha256": "12155b2c64e3259e1774d2761ca87162df66b2d548dc3d040fe3ac0beb672ecb",
+      "target": "docs/reference/project-contexts/the-caption.txt",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "prompts/audit.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "prompts/implement.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "prompts/plan.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target": "prompts/review.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "fa7943fe3d687bc81cb7b1a46fe20ed95c3643c6",
+      "mode": "100644",
+      "sha256": "9ef019f1fda229b56c0c1f0180f8117b91071d83aaaf165608bd59f2d069f897",
+      "target": "scripts/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "scripts/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "2d0834867848fc02f236b4c390cfabb42a818565",
+      "mode": "100644",
+      "sha256": "15ac565c8b3ef9b678be5346dc6952490a7df2e6f17b856eebc949789fa45377",
+      "target": "src/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "src/CLAUDE.md",
+      "type": "symlink"
+    },
+    {
+      "git_blob_sha1": "062c1ded63a981f88aaf0c22c4d15089ef8d0417",
+      "mode": "100644",
+      "sha256": "d6eb6100a9125256136c3cf928b55aaa2cd7f0dc28f8208defbf654dad8e7bcd",
+      "target": "tests/AGENTS.md",
+      "type": "file"
+    },
+    {
+      "git_blob_sha1": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "link_target": "AGENTS.md",
+      "mode": "120000",
+      "target": "tests/CLAUDE.md",
+      "type": "symlink"
+    }
+  ],
+  "manifest_relation": {
+    "added_targets": [
+      "docs/how-to/index.md",
+      "docs/reference/project-contexts/the-caption.txt"
+    ],
+    "kind": "expanded_path_set",
+    "source_prompt_identity": "the-caption-3ce91a4-current-r1"
+  },
+  "prompt_identity": "the-caption-3ce91a4-validation-closure-release-r1",
+  "provenance": {
+    "candidate_source_commit": "bcfce844bbed28269429322a24545032cc64bf14",
+    "construction_repository": "https://github.com/Kenn-dclxvi/THE-CAPTION-PROMPT.git",
+    "construction_state": "working_tree_release_snapshot_of_committed_candidate",
+    "design_inputs": [
+      "docs/candidate71-validation-closure-design.md",
+      "docs/prompt-control-design-principles.md",
+      "evaluations/results/candidate69-candidate70-machine-decision-boundary-v10-standard14-continuous-n5-b18_2026-07-22.md",
+      "docs/prompt-file-bundle.md"
+    ],
+    "design_status": "release_candidate",
+    "evaluation_status": "evaluated_v12_standard14_continuous_n5_b18",
+    "runtime_projection_status": "not_projected",
+    "source_interpretation": "This release is a content-identical snapshot of Candidate71. Candidate71 remained stopped after its predeclared quality gate failed; the explicit user request on 2026-07-23 separately authorizes adoption and projection with the unresolved risks retained."
+  },
+  "schema_version": "the-caption-prompt.bundle/v1",
+  "source": {
+    "commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
+    "repository": "https://github.com/Kenn-dclxvi/THE-CAPTION.git",
+    "tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b"
+  }
+}
