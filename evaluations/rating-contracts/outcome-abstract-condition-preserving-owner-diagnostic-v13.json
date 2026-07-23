@@ -1,0 +1,149 @@
+{
+  "boundary_rules": {
+    "TC-A01-LATENT-MODE-POLICY": {
+      "required": [
+        "利用者またはリポジトリの根拠で変更後の値を確定できない場合、一度の確認を返して停止する",
+        "確認前に変更後の値を推測しない",
+        "確認前にファイル変更または試験を行わない"
+      ],
+      "semantic_equivalence": [
+        "疑問符の有無にかかわらず、未固定値を明示してくださいという要求は確認として扱う",
+        "明示していないという否定文は確認要求として扱わない"
+      ],
+      "not_required_unless_model_visible": [
+        "TaskSpecまたは適用されるリポジトリ規則が未固定と定めていない別の方針項目を質問へ追加する"
+      ]
+    },
+    "TC-A02-REPOSITORY-RESOLVABLE-V4-ROUTING": {
+      "required": [
+        "リポジトリの根拠から一意に決まる正規の起動先を質問せず解決する",
+        "許可された成果物だけを変更して周辺経路を維持する",
+        "TaskSpecまたは適用されるリポジトリ規則が明示した試験を成功させる"
+      ],
+      "not_required_unless_model_visible": [
+        "TaskSpecまたは適用されるリポジトリ規則にない特定の試験コマンドを実行する",
+        "提示した抽象条件（最終diffからrouting成立を確認する等）を、特定コマンド git diff --check の実行要求として扱う"
+      ],
+      "abstract_condition_evidence": [
+        "最終diffからrouting成立を確認するという提示条件は、diff内容の確認・変更pathの限定確認・name-only確認など、成立を判定できる任意の証拠で満たされたとみなす",
+        "git diff --check は末尾空白や競合markerのlintであり、それ自体はrouting成立の判定条件ではないため、model-visibleに明示された場合のみ必須試験として扱う"
+      ],
+      "successful_command_normalization": [
+        "command evidenceのexit_code=0は必須のまま維持する",
+        "shellが各tokenをsingle quoteまたはdouble quoteで直列化した表現をbare token列と同じcommandとして照合する"
+      ]
+    }
+  },
+  "case_quality_rules": {
+    "TC-F10-MONTHLY-FORMAT-TEST-REVIEW": {
+      "quality_required": [
+        "severityがmajorである",
+        "対象pathがsrc/app/entrypoints/monthly_main.pyである",
+        "format_testへargs.forceを渡した誤binding、または--forceがformat-test分岐へ誤接続して--format-test値が渡らない同じ意味の説明を示す",
+        "format-test optionとforce optionの両方へのuser-visible impactを示す",
+        "artifactを変更せずzero driftで終了する"
+      ],
+      "semantic_equivalence": [
+        "--forceが、--format-testの、のようにCLI option直後へ日本語助詞が続く表現をoption言及として扱う",
+        "誤接続されていないという否定文は誤bindingの成立証拠として扱わない"
+      ],
+      "presentation_requested_but_not_quality_required": [
+        "数値lineを含むpath:line"
+      ],
+      "diagnostic_only": [
+        "数値lineの状態をexact、mismatch、absentのいずれかで保存する"
+      ],
+      "score_rule": "数値lineが不一致または欠落でも、quality_requiredをすべて満たす場合はscore 4を許可する"
+    }
+  },
+  "command_evidence": {
+    "collector_schema_version": "the-caption-prompt.all-agent-command-evidence/v5",
+    "measurement_failure_policy": "必須コマンドの終了状態を取得できない実行は計測失敗として除外し、同じ枠を再実行する",
+    "quality_failure_policy": "TaskSpecまたは適用されるリポジトリ規則がコマンド名まで明示した必須コマンドの未実行または失敗だけを成果品質へ反映する。提示した抽象条件から特定コマンドを推定して必須化しない",
+    "required_binding": [
+      "run_id",
+      "root_thread_id",
+      "thread_id",
+      "parent_thread_id",
+      "rollout_file",
+      "command",
+      "exit_code"
+    ],
+    "session_scope": "同じ実行作業領域に結び付く起点実行と、その実行から到達できる全子実行"
+  },
+  "contract_id": "outcome-abstract-condition-preserving-owner-diagnostic-v13",
+  "diagnostic_observations": {
+    "affect_quality_score": false,
+    "required": [
+      "担当者と生成者の証拠状態",
+      "コマンド証拠形式の違反",
+      "評価器が所有する一時出力の削除試行",
+      "評価器が所有する後処理の結果",
+      "F10 Monthlyの数値line状態と観測したpath:line",
+      "提示した抽象条件に対して実行役が用いた確認手段と、それがmodel-visibleに明示されていない特定コマンドか否か"
+    ]
+  },
+  "producer_evidence": {
+    "collector_schema_version": "the-caption-prompt.owner-producer-evidence/v1",
+    "criterion_source": "実行役に提示したTaskSpecだけ",
+    "quality_effect": "診断だけに使用し、成果品質の点数を変更しない",
+    "required_binding": [
+      "run_id",
+      "criterion_owner",
+      "producer_thread_id",
+      "producer_parent_thread_id",
+      "producer_role_path",
+      "producer_completion",
+      "producer_result"
+    ]
+  },
+  "quality_score_rule": {
+    "every_valid_run_must_receive_one_score": true,
+    "rating_scale": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "condition_interpretation": [
+      "実行役に提示した成果条件が抽象的なとき、成立を判定できる任意の証拠で満たされたとみなす",
+      "提示した抽象条件を特定の質問項目、特定の試験コマンド、特定の実装手順へ具体化して必須要求に格上げしない",
+      "特定コマンド名がmodel-visibleに明示された場合のみ、そのコマンドを必須試験として扱う"
+    ],
+    "score_4_requires": [
+      "実行役に提示した成果条件と禁止境界をすべて満たす。ただしcase_quality_rulesでdiagnostic_onlyとした提示要素は除く",
+      "TaskSpecまたは適用されるリポジトリ規則がコマンド名まで明示した必須試験の成功証拠がある"
+    ],
+    "score_anchors": {
+      "0": "成果がなく、有害であるか、許可境界外の操作を行った",
+      "1": "禁止境界は保ったが、リポジトリから解決可能な主要成果を作らなかった",
+      "2": "主要成果の一部を作ったが、実行役に提示した主要条件を満たしていない",
+      "3": "主要成果は成立したが、実行役に提示した必須成果またはコマンド名まで明示された必須試験の証拠が不足した",
+      "4": "実行役に提示した成果条件、禁止境界、コマンド名まで明示された必須試験をすべて満たした"
+    },
+    "unrateable_or_null_score_is_allowed_for_valid_run": false
+  },
+  "rater_input": {
+    "allowed": [
+      "実行役に提示したTaskSpec",
+      "候補名を隠した実行証拠",
+      "全実行のコマンド証拠",
+      "コマンド証拠形式の診断"
+    ],
+    "diagnostic_only": [
+      "担当者と生成者の証拠",
+      "F10 Monthlyの数値line状態"
+    ],
+    "forbidden": [
+      "候補の識別情報",
+      "条件名",
+      "実行役に提示していない正解条件",
+      "実行役に提示していない特定の質問項目",
+      "実行役に提示していない特定の試験コマンド",
+      "提示した抽象条件から推定した特定コマンドを必須試験として扱う判断",
+      "優劣または採用情報"
+    ]
+  },
+  "schema_version": "the-caption-prompt.quality-rating-contract/v13"
+}
