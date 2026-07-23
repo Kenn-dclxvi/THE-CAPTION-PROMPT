@@ -40,7 +40,7 @@
 
 最初の実行設定は[`candidate43-outcome-authority-boundary-v10-standard14-global-m24-n5-r1.json`](../../profiles/candidate43-outcome-authority-boundary-v10-standard14-global-m24-n5-r1.json)である。
 
-Candidate71 B18の互換baseline / candidate実行設定は、それぞれ[`Candidate69 v12`](../../profiles/candidate69-model-reentry-decision-boundary-v12-standard14-global-m24-n5-r1.json)と[`Candidate71 v12`](../../profiles/candidate71-validation-closure-v12-standard14-global-m24-n5-r1.json)を使用する。case、TaskSpec、permission、executor parameter、反復条件はv10 / v11 profileから変更せず、rating contractだけをv12へ更新した。Candidate43 / Candidate69 v11 profileは既存revisionの再現用として保持する。
+Candidate71 B18の互換baseline / candidate実行設定は、それぞれ[`Candidate69 v12`](../../profiles/candidate69-model-reentry-decision-boundary-v12-standard14-global-m24-n5-r1.json)と[`Candidate71 v12`](../../profiles/candidate71-validation-closure-v12-standard14-global-m24-n5-r1.json)を使用した。case、TaskSpec、permission、executor parameter、反復条件はv10 / v11 profileから変更せず、rating contractだけをv12へ更新した。[B18結果](../../results/candidate69-candidate71-validation-closure-v12-standard14-continuous-n5-b18_2026-07-22.md)は両条件の1,260 / 1,260件を登録した。Candidate71に実質的な品質後退4件があったため停止した。Candidate43 / Candidate69 v11 profileは既存revisionの再現用として保持する。
 
 この実行設定は候補43、各項目5回、同時実行上限24へ固定する。[初回結果](../../results/candidate43-outcome-authority-boundary-v10-standard14-n5_2026-07-20.md)は70件すべて有効かつ採点可能で、全件が点数`4`だった。別候補を評価する場合は候補の識別情報だけを替え、評価集合、採点条件、実行環境、権限、反復条件を維持する。
 
