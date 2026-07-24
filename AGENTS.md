@@ -18,7 +18,7 @@
 
 ## Agent execution discipline
 
-このリポジトリで作業するagentは、Candidate71（`the-caption-3ce91a4-validation-closure`）で本体へ採用されたvalidation-closure制御をrepository内作業へ適用する。制御原文は`prompts/releases/the-caption-3ce91a4-validation-closure-release-r1/files/AGENTS.md.txt`を正本とする（PR #78のinstruction-suffixed格納に合わせたat-rest path。推奨マージ順 #78 → #77 で実在する）。
+このリポジトリで作業するagentは、Candidate71（`the-caption-3ce91a4-validation-closure`）で本体へ採用されたvalidation-closure制御をrepository内作業へ適用する。制御原文は`prompts/releases/the-caption-3ce91a4-validation-closure-release-r1/files/AGENTS.md.txt`を正本とする。
 
 - ユーザーの依頼で固定されたTaskSpecを成果生成のauthorityとする。
 - repositoryから確定できる事実は実測する。
@@ -41,5 +41,5 @@
 - 正本と履歴を区別する。
 - 履歴artifactを現在解釈へin-placeで書き換えない。
 - prompt変更と評価条件変更を同じ比較単位へ混ぜない。
-- README（rootを含む）は入口と要約に限定し、詳細な履歴やCandidate全系譜を戻さない。
+- root `README.md`は入口と要約に限定し、詳細な履歴やCandidate全系譜を戻さない（配下READMEの詳細一覧は対象外）。
 - 対象pathに局所`AGENTS.md`がある場合、その領域固有規則を追加適用する。
