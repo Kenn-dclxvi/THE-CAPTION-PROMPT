@@ -77,6 +77,20 @@ def bundle_stored_path(files_root: Path, target: str, storage_format: str) -> Pa
     return files_root.joinpath(*PurePosixPath(relative).parts)
 
 
+def ensure_representable(target: str, storage_format: str) -> None:
+    """target が storage_format 上で一意・可逆に格納できることを保証する。
+
+    stored_relpath は instruction basename へ suffix を付けるだけなので、
+    ``<dir>/AGENTS.md.txt`` のような「instruction 名 + suffix」の target は
+    ``<dir>/AGENTS.md`` の格納形と衝突し、逆写像で別 target へ潰れる。
+    round-trip が成立しない target は表現不能として拒否する。
+    """
+    if target_from_stored(stored_relpath(target, storage_format), storage_format) != target:
+        raise BundleError(
+            f"target is not uniquely representable under {storage_format!r}: {target!r}"
+        )
+
+
 def run_git(repo: Path, *args: str, binary: bool = False) -> str | bytes:
     completed = subprocess.run(
         ["git", "-C", str(repo), *args],
@@ -202,6 +216,7 @@ def verify_bundle(bundle: Path) -> dict[str, Any]:
             raise BundleError("manifest file entry must be an object")
         entry = {key: value for key, value in raw_entry.items() if isinstance(value, str)}
         target = safe_target(entry.get("target", ""))
+        ensure_representable(target, storage_format)
         if target in expected_targets:
             raise BundleError(f"duplicate bundle target: {target}")
         expected_targets.add(target)
@@ -249,6 +264,8 @@ def export_baseline(
     normalized_targets = sorted({safe_target(target) for target in targets})
     if len(normalized_targets) != len(targets) or not normalized_targets:
         raise BundleError("bundle targets must be non-empty and unique")
+    for target in normalized_targets:
+        ensure_representable(target, DEFAULT_STORAGE_FORMAT)
     commit = run_git(source_repo, "rev-parse", f"{source_ref}^{{commit}}")
     tree = run_git(source_repo, "rev-parse", f"{source_ref}^{{tree}}")
     assert isinstance(commit, str) and isinstance(tree, str)

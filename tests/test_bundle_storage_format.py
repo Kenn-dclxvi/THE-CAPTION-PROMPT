@@ -14,6 +14,7 @@ from scripts.export_prompt_bundle import (
     STORAGE_FORMAT_SUFFIXED,
     STORE_SUFFIX,
     bundle_sha256,
+    ensure_representable,
     stored_link_target,
     stored_relpath,
     target_from_stored,
@@ -50,6 +51,59 @@ class StorageHelperTest(unittest.TestCase):
         )
         self.assertEqual(stored_link_target("AGENTS.md", STORAGE_FORMAT_LEGACY), "AGENTS.md")
 
+    def test_roundtrip_holds_across_suffix_boundary(self) -> None:
+        # 「instruction名 + suffix」を除く許容 target で往復が成立する。
+        representable = [
+            "AGENTS.md",
+            "CLAUDE.md",
+            "docs/AGENTS.md",
+            "src/CLAUDE.md",
+            "docs/prompt-guide.md",
+            "AGENTS.md.txt.txt",  # basename が instruction 名ではないので許容
+            "notes/AGENTS.markdown",
+        ]
+        for target in representable:
+            with self.subTest(target=target):
+                stored = stored_relpath(target, STORAGE_FORMAT_SUFFIXED)
+                self.assertEqual(target_from_stored(stored, STORAGE_FORMAT_SUFFIXED), target)
+
+    def test_instruction_plus_suffix_targets_are_rejected(self) -> None:
+        # 逆写像が別 target へ潰れる pathological な名前は表現不能として拒否する。
+        for target in ("AGENTS.md.txt", "CLAUDE.md.txt", "docs/AGENTS.md.txt"):
+            with self.subTest(target=target):
+                with self.assertRaises(BundleError):
+                    ensure_representable(target, STORAGE_FORMAT_SUFFIXED)
+
+    def test_representable_targets_pass(self) -> None:
+        for target in ("AGENTS.md", "docs/CLAUDE.md", "src/main.py", "AGENTS.md.txt.txt"):
+            with self.subTest(target=target):
+                ensure_representable(target, STORAGE_FORMAT_SUFFIXED)  # 例外なし
+
+    def test_legacy_format_reserves_nothing(self) -> None:
+        # legacy は恒等写像なので、いかなる target も表現できる。
+        for target in ("AGENTS.md.txt", "CLAUDE.md.txt", "docs/AGENTS.md.txt"):
+            with self.subTest(target=target):
+                ensure_representable(target, STORAGE_FORMAT_LEGACY)  # 例外なし
+
+    def test_stored_paths_are_injective(self) -> None:
+        # 異なる論理 target が同一 stored path へ衝突しないこと（許容 target 空間上）。
+        candidates = [
+            "AGENTS.md",
+            "CLAUDE.md",
+            "docs/AGENTS.md",
+            "docs/CLAUDE.md",
+            "src/AGENTS.md",
+            "docs/prompt-guide.md",
+            "prompts/plan.md",
+            "AGENTS.md.txt.txt",
+        ]
+        stored = {}
+        for target in candidates:
+            ensure_representable(target, STORAGE_FORMAT_SUFFIXED)
+            path = stored_relpath(target, STORAGE_FORMAT_SUFFIXED)
+            self.assertNotIn(path, stored, f"collision: {target} vs {stored.get(path)} -> {path}")
+            stored[path] = target
+
 
 class LegacyBundleCompatTest(unittest.TestCase):
     def test_legacy_layout_still_verifies(self) -> None:
@@ -79,6 +133,36 @@ class LegacyBundleCompatTest(unittest.TestCase):
             )
             verified = verify_bundle(bundle)
             self.assertNotIn("storage_format", verified)
+
+    def test_suffixed_bundle_rejects_unrepresentable_target(self) -> None:
+        # instruction名+suffix の target を宣言した suffixed bundle は verify で拒否。
+        import hashlib
+
+        with tempfile.TemporaryDirectory() as tmp:
+            bundle = Path(tmp)
+            files_root = bundle / "files"
+            files_root.mkdir()
+            content = b"pathological\n"
+            (files_root / "AGENTS.md.txt").write_bytes(content)
+            entry = {
+                "git_blob_sha1": "0" * 40,
+                "mode": "100644",
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "target": "AGENTS.md.txt",
+                "type": "file",
+            }
+            manifest = {
+                "bundle_sha256": bundle_sha256([entry]),
+                "files": [entry],
+                "prompt_identity": "bad-r1",
+                "schema_version": "the-caption-prompt.bundle/v1",
+                "storage_format": STORAGE_FORMAT_SUFFIXED,
+            }
+            (bundle / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+            with self.assertRaises(BundleError):
+                verify_bundle(bundle)
 
 
 class RepositoryBundleStorageTest(unittest.TestCase):
