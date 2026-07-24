@@ -27,7 +27,7 @@ THE-CAPTION向けプロンプトを設計、比較、評価し、反映可能な
 
 ## Candidate開発の経緯
 
-BaselineからCandidate71までの系譜、固定した変更単位、保存evidence、評価状態は[`docs/candidate-history.md`](docs/candidate-history.md)にまとめる。系譜と評価状態の正本は[`prompts/candidates/README.md`](prompts/candidates/README.md)。本体へ投影済みなのはCandidate43とCandidate71で、いずれもroot `AGENTS.md`だけを変更対象とする。
+BaselineからCandidate77までの系譜、固定した変更単位、保存evidence、評価状態は[`docs/candidate-history.md`](docs/candidate-history.md)にまとめる。系譜と評価状態の正本は[`prompts/candidates/README.md`](prompts/candidates/README.md)。本体へ投影済みなのはCandidate41・Candidate43・Candidate71で、いずれもroot `AGENTS.md`だけを変更対象とする（この順に積み上げた投影の直近はCandidate71）。
 
 ## 構成
 
@@ -64,7 +64,7 @@ v3のall-agent token補正結果は[`evaluations/results/v3-all-agent-token-reac
 | --- | --- |
 | [`docs/repository-overview.md`](docs/repository-overview.md) | 初見向けの全体像・用語・評価基盤・現状 |
 | [`docs/control-mechanisms.md`](docs/control-mechanisms.md) | トークンを大きく減らせた制御メカニズムの整理 |
-| [`docs/candidate-history.md`](docs/candidate-history.md) | BaselineからCandidate71までの系譜と知見 |
+| [`docs/candidate-history.md`](docs/candidate-history.md) | BaselineからCandidate77までの系譜と知見 |
 | [`docs/future-roadmap.md`](docs/future-roadmap.md) | 今後の運用・改善サイクル・runtime化の方針 |
 | [`docs/repository-contract.md`](docs/repository-contract.md) | 運用境界の正本 |
 | [`docs/prompt-comparison-workflow.md`](docs/prompt-comparison-workflow.md) | 評価基盤のLayerと境界 |
