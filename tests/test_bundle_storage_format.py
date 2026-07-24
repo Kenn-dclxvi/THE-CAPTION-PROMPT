@@ -257,6 +257,22 @@ class RepositoryBundleStorageTest(unittest.TestCase):
                 )
                 self.assertEqual(manifest["bundle_sha256"], recomputed)
 
+    def test_bundle_identities_match_pre_reencoding_snapshot(self) -> None:
+        # storage re-encoding gate（docs/repository-contract.md §6）:
+        # 移行前に固定した bundle_sha256 一覧と件数へ、現在の全 bundle が一致すること。
+        # storage_format を変えても identity は不変でなければならない。files entry と
+        # bundle_sha256 が同時に変わる事故（identity の暗黙変更や bundle の増減）を検出する。
+        snapshot = json.loads(
+            (REPO_ROOT / "tests" / "bundle_identity_snapshot.json").read_text(encoding="utf-8")
+        )
+        expected = snapshot["bundle_sha256"]
+        actual = {}
+        for bundle in self.bundles:
+            manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+            actual[bundle.relative_to(REPO_ROOT / "prompts").as_posix()] = manifest["bundle_sha256"]
+        self.assertEqual(len(actual), snapshot["count"])
+        self.assertEqual(actual, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
