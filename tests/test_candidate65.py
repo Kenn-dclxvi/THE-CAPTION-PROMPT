@@ -113,7 +113,7 @@ class Candidate65Test(unittest.TestCase):
         )
 
     def test_maps_all_32_source_clauses_to_compact_labels(self) -> None:
-        text = (C65 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C65 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         blocks = labelled_blocks(text)
         self.assertEqual(len(CLAUSE_COVERAGE), 32)
         self.assertEqual(
@@ -137,7 +137,7 @@ class Candidate65Test(unittest.TestCase):
                 self.assertIn(required, blocks[label])
 
     def test_duplicate_predicates_have_one_compact_occurrence(self) -> None:
-        text = (C65 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C65 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         self.assertEqual(
             text.count("TaskSpecが独立producer executionを明示した場合だけ"),
             1,
@@ -148,7 +148,7 @@ class Candidate65Test(unittest.TestCase):
         self.assertNotIn("delegated producer operationへ進む", text)
 
     def test_has_three_ordered_purpose_regions(self) -> None:
-        text = (C65 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C65 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         headings = [
             "## Common operation",
             "## Explicit delegation extension",
@@ -159,8 +159,8 @@ class Candidate65Test(unittest.TestCase):
         self.assertEqual(text.count("\n## "), 3)
 
     def test_reduces_static_bytes_without_duplicating_full_bundle(self) -> None:
-        source_size = (C43 / "files/AGENTS.md").stat().st_size
-        candidate_size = (C65 / "files/AGENTS.md").stat().st_size
+        source_size = (C43 / "files/AGENTS.md.txt").stat().st_size
+        candidate_size = (C65 / "files/AGENTS.md.txt").stat().st_size
         self.assertEqual(source_size, 3980)
         self.assertEqual(candidate_size, 3701)
         self.assertLess(candidate_size, source_size)

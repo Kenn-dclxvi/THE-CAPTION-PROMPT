@@ -58,9 +58,18 @@ class ExportPromptBundleTest(unittest.TestCase):
             self.assertEqual(candidate["content_relation"]["kind"], "bit_identical_copy")
             self.assertEqual(candidate["bundle_sha256"], baseline["bundle_sha256"])
             self.assertEqual(candidate["files"], baseline["files"])
-            self.assertEqual((candidate_path / "files" / "AGENTS.md").read_bytes(), b"root instructions\n")
-            self.assertTrue((candidate_path / "files" / "CLAUDE.md").is_symlink())
-            self.assertEqual((candidate_path / "files" / "CLAUDE.md").readlink(), Path("AGENTS.md"))
+            # 命令ファイルは自動読込対象名を避けて suffix 付きで格納され、実体名は
+            # target として manifest 側にのみ残る（bundle_sha256 は不変）。
+            self.assertEqual(baseline["storage_format"], "instruction-suffixed/v1")
+            self.assertEqual((candidate_path / "files" / "AGENTS.md.txt").read_bytes(), b"root instructions\n")
+            self.assertFalse((candidate_path / "files" / "AGENTS.md").exists())
+            self.assertTrue((candidate_path / "files" / "CLAUDE.md.txt").is_symlink())
+            self.assertEqual((candidate_path / "files" / "CLAUDE.md.txt").readlink(), Path("AGENTS.md.txt"))
+            self.assertFalse((candidate_path / "files" / "CLAUDE.md").exists())
+            self.assertEqual(
+                sorted(entry["target"] for entry in candidate["files"]),
+                ["AGENTS.md", "CLAUDE.md", "docs/AGENTS.md"],
+            )
             self.assertEqual(verify_bundle(candidate_path)["prompt_identity"], "candidate-r1")
 
     def test_renders_case_task_and_parses_codex_usage(self) -> None:

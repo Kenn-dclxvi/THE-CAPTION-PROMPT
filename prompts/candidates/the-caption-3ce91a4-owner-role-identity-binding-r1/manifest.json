@@ -190,5 +190,6 @@
     "commit": "3ce91a403f9e0c83f29d56bbe9e7b449b713445d",
     "repository": "https://github.com/Kenn-dclxvi/THE-CAPTION.git",
     "tree": "88eecfa29f7016b4d77061d3aabe3e7d176fea9b"
-  }
+  },
+  "storage_format": "instruction-suffixed/v1"
 }

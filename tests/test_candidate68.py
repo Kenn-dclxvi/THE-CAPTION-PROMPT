@@ -85,13 +85,13 @@ class Candidate68Test(unittest.TestCase):
         )
 
     def test_removes_only_f9(self) -> None:
-        source_text = (C43 / "files/AGENTS.md").read_text(encoding="utf-8")
-        candidate_text = (C68 / "files/AGENTS.md").read_text(encoding="utf-8")
+        source_text = (C43 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
+        candidate_text = (C68 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         self.assertEqual(candidate_text, source_text.replace(F9, ""))
 
     def test_preserves_topology_and_adjacent_exclusivity(self) -> None:
-        source = labelled_blocks((C43 / "files/AGENTS.md").read_text(encoding="utf-8"))
-        candidate = labelled_blocks((C68 / "files/AGENTS.md").read_text(encoding="utf-8"))
+        source = labelled_blocks((C43 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
+        candidate = labelled_blocks((C68 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
         expected_labels = [
             "SPEC",
             "PRODUCER",
@@ -115,7 +115,7 @@ class Candidate68Test(unittest.TestCase):
         )
 
     def test_retains_other_candidate43_targets(self) -> None:
-        text = (C68 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C68 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         self.assertNotIn(F9, text)
         self.assertIn(
             "TaskSpecが独立したproducer executionを明示した場合だけ、"
@@ -131,8 +131,8 @@ class Candidate68Test(unittest.TestCase):
         self.assertIn("- RECOVERY:", text)
 
     def test_reduces_only_f9_bytes(self) -> None:
-        source_size = (C43 / "files/AGENTS.md").stat().st_size
-        candidate_size = (C68 / "files/AGENTS.md").stat().st_size
+        source_size = (C43 / "files/AGENTS.md.txt").stat().st_size
+        candidate_size = (C68 / "files/AGENTS.md.txt").stat().st_size
         self.assertEqual(source_size, 3980)
         self.assertEqual(candidate_size, 3860)
         self.assertEqual(source_size - candidate_size, 120)

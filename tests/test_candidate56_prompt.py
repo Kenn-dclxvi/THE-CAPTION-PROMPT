@@ -36,7 +36,7 @@ class Candidate56PromptTest(unittest.TestCase):
         )
 
     def test_fixed_read_is_f_only_and_requires_resolved_finite_input(self) -> None:
-        text = (C56 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C56 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
 
         operation = text.index("- OPERATION:")
         fixed_read = text.index("- FIXED_READ:")
@@ -55,8 +55,8 @@ class Candidate56PromptTest(unittest.TestCase):
             self.assertIn(required, text)
 
     def test_changes_only_the_fixed_read_predicate(self) -> None:
-        source_lines = (C55 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
-        candidate_lines = (C56 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
+        source_lines = (C55 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
+        candidate_lines = (C56 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
 
         added = [line for line in candidate_lines if line not in source_lines]
         self.assertEqual(len(added), 1)

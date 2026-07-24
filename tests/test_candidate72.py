@@ -44,8 +44,8 @@ class Candidate72Test(unittest.TestCase):
         )
 
     def test_replaces_only_validation_closure_with_shorter_closed_state(self) -> None:
-        source = labelled_lines((C71 / "files/AGENTS.md").read_text(encoding="utf-8"))
-        candidate = labelled_lines((C72 / "files/AGENTS.md").read_text(encoding="utf-8"))
+        source = labelled_lines((C71 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
+        candidate = labelled_lines((C72 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
         self.assertEqual(list(candidate), list(source))
         self.assertEqual(
             {label: body for label, body in candidate.items() if label != "VALIDATION_CLOSURE"},

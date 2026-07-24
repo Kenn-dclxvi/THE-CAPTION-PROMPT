@@ -53,18 +53,18 @@ class Candidate61Test(unittest.TestCase):
 
         c43_spec = next(
             line
-            for line in (C43 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
+            for line in (C43 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
             if line.startswith("- SPEC:")
         )
-        source_lines = (C55 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
-        candidate_lines = (C61 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
+        source_lines = (C55 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
+        candidate_lines = (C61 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
         removed = [line for line in source_lines if line not in candidate_lines]
         added = [line for line in candidate_lines if line not in source_lines]
         self.assertEqual([line.split(":", 1)[0] for line in removed], ["- READINESS", "- OPERATION"])
         self.assertEqual(added, [c43_spec])
         self.assertNotIn("FIXED_READ", "\n".join(candidate_lines))
         self.assertNotIn("operation_method_capsule", "\n".join(candidate_lines))
-        self.assertLess((C61 / "files/AGENTS.md").stat().st_size, (C43 / "files/AGENTS.md").stat().st_size)
+        self.assertLess((C61 / "files/AGENTS.md.txt").stat().st_size, (C43 / "files/AGENTS.md.txt").stat().st_size)
 
     def test_profile_changes_only_prompt_identity(self) -> None:
         manifest = verify_bundle(C61)

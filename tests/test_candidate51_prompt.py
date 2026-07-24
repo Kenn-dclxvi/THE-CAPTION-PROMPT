@@ -50,8 +50,8 @@ class Candidate51PromptTest(unittest.TestCase):
         self.assertEqual(changed, ["AGENTS.md"])
 
     def test_only_delegation_and_completion_change_from_candidate49(self) -> None:
-        source = control_lines(C49 / "files/AGENTS.md")
-        candidate = control_lines(C51 / "files/AGENTS.md")
+        source = control_lines(C49 / "files/AGENTS.md.txt")
+        candidate = control_lines(C51 / "files/AGENTS.md.txt")
 
         self.assertEqual(set(candidate), set(source))
         for label in ("SPEC", "CONTEXT", "METHOD", "RECOVERY"):
@@ -60,7 +60,7 @@ class Candidate51PromptTest(unittest.TestCase):
         self.assertNotEqual(candidate["COMPLETION"], source["COMPLETION"])
 
     def test_root_producer_and_all_predicate_completion_are_restored(self) -> None:
-        candidate = control_lines(C51 / "files/AGENTS.md")
+        candidate = control_lines(C51 / "files/AGENTS.md.txt")
 
         for required in (
             "それ以外はrootをproducerとする",
@@ -74,14 +74,14 @@ class Candidate51PromptTest(unittest.TestCase):
         ):
             self.assertIn(required, candidate["COMPLETION"])
 
-        text = (C51 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C51 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         self.assertNotIn("ROOT_BATCH", text)
         self.assertNotIn("INDEPENDENCE", text)
         self.assertNotIn("同一model step", text)
 
     def test_root_control_remains_materially_smaller_than_candidate43(self) -> None:
-        source_size = (C43 / "files/AGENTS.md").stat().st_size
-        candidate_size = (C51 / "files/AGENTS.md").stat().st_size
+        source_size = (C43 / "files/AGENTS.md.txt").stat().st_size
+        candidate_size = (C51 / "files/AGENTS.md.txt").stat().st_size
 
         self.assertLess(candidate_size, source_size * 0.65)
 

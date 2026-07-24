@@ -16,7 +16,9 @@ try:
     from .export_prompt_bundle import (
         BundleError,
         bundle_sha256,
+        bundle_stored_path,
         canonical_json,
+        storage_format_of,
         verify_bundle,
         write_manifest,
     )
@@ -24,7 +26,9 @@ except ImportError:
     from export_prompt_bundle import (  # type: ignore[no-redef]
         BundleError,
         bundle_sha256,
+        bundle_stored_path,
         canonical_json,
+        storage_format_of,
         verify_bundle,
         write_manifest,
     )
@@ -146,7 +150,7 @@ def materialize_route(
     )
     try:
         shutil.copytree(base_bundle, output, symlinks=True)
-        target_path = output / "files" / target
+        target_path = bundle_stored_path(output / "files", target, storage_format_of(base))
         projected = insert_projection(target_path.read_bytes(), projection)
         target_path.write_bytes(projected)
 

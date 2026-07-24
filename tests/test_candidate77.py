@@ -30,8 +30,8 @@ class Candidate77Test(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.source = verify_bundle(C71)
         cls.candidate = verify_bundle(C77)
-        cls.source_root = (C71 / "files/AGENTS.md").read_text(encoding="utf-8")
-        cls.root_prompt = (C77 / "files/AGENTS.md").read_text(encoding="utf-8")
+        cls.source_root = (C71 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
+        cls.root_prompt = (C77 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         cls.exception_spec = (C77 / "files/docs/prompt-guide.md").read_text(
             encoding="utf-8"
         )
