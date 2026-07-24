@@ -249,3 +249,20 @@ Candidate71はCandidate70を継承せず、Candidate69へ`VALIDATION_CLOSURE`一
 一方、Candidate71の公式score分布は`4 / 3 / 0 = 1,255 / 4 / 1`だった。意味確認後もA02の`git diff --check`欠落3件と、A01で未固定modeを確認せず実装・試験へ進んだ1件が残り、Candidate69より実質的な低得点が3件多かった。このため評価上は`standard14_b18_evaluated / stopped`であり、事前の品質gateは不通過のままである。
 
 評価停止とは別に、2026-07-23の明示判断でCandidate71 releaseを`approved`とし、THE-CAPTIONへ`projected`にした。変更対象はroot `AGENTS.md`だけである。THE-CAPTION PR [#340](https://github.com/Kenn-dclxvi/THE-CAPTION/pull/340)を統合commit `326fdd343a50522629592d67b0f028fb66e94eb3`としてmergeし、`bash ./scripts/dev/verify_change_set.sh`は`362 passed / 3 skipped`だった。品質gate不通過と未解決riskは取り消していない。評価・承認・本体反映の現在状態は[`Candidate71 release / projection`](../prompts/releases/the-caption-3ce91a4-validation-closure-release-r1/README.md)を正本とする。
+
+## Candidate72からCandidate77までの要約
+
+C71の`VALIDATION_CLOSURE`以降は、closureの短縮表現、flat 11 labelの型付き状態機械への再編、独立validationのfast-path、potential mutator後のfinal-state wave、例外trigger限定適用を別々の軸で調べた。この範囲も番号順の一本道ではない。主な系譜は`C71 → C72`、`C71 → C73`、`C71 → C74 → C75 → C76`、`C71 → C77`である。prompt identityと評価状態の正本は[`prompts/candidates/README.md`](../prompts/candidates/README.md)、release・approval・projectionの正本は[`prompts/releases/README.md`](../prompts/releases/README.md)とする。
+
+Candidate72とCandidate73は、いずれもCandidate71を直接sourceとし`VALIDATION_CLOSURE`一行だけを短い表現へ置換する設計探索である。prompt bundleとして正本candidate indexへは登録していない（設計記録のみ）。Candidate72（closed-state表現、[設計記録](candidate72-closed-validation-state-design.md)）はF06の編集後model再入中央値がCandidate71の`2`から`3`、token中央値`157,863 → 198,552`へ増え、抽象名だけの保持では不十分だった。Candidate73（terminal closure保持表現、Candidate72非継承、[設計記録](candidate73-terminal-closure-preserving-compression-design.md)）も同方向で不足を示し、[`Candidate71 control abstraction分析`](candidate71-control-abstraction-analysis.md)は、保持が必要なのは入口の完全性・同時発行・result有効性・成功後のtool closure・成功後のresponse closureであり、抽象名の保持やtool実行の閉包だけでは不十分だと総括した。
+
+Candidate74以降はbundleを構築し評価した。番号「Candidate74」は上記分析中の`P3`削除提案の作業呼称とは別で、下表の型付き状態機械identityへ実際に割り当てられている（[`candidate71-control-abstraction-analysis.md`冒頭注記](candidate71-control-abstraction-analysis.md)）。
+
+| prompt set | 直接source | 変更軸 | 評価状態（正本: candidate index） |
+| --- | --- | --- | --- |
+| Candidate74（`typed-execution-state-machine-r1`） | Candidate71 | flatな11 labelをauthority、identity、execution state、producer、validation DAG、method / recoveryの型付き状態機械へ再編 | [`v12 standard14 N=5 / evaluated`](../evaluations/results/candidate71-candidate74-typed-execution-state-machine-v12-standard14-n5_2026-07-23.md) |
+| Candidate75（`authority-bound-validation-fast-path-r1`） | Candidate74 | 型付き状態構造を維持し、authorityでdependencyが固定されない独立required validationを同一waveへ閉じる | [`F06 targeted N=5 / stopped`](../evaluations/results/candidate74-candidate75-candidate76-validation-wave-v12_2026-07-23.md) |
+| Candidate76（`final-state-validation-wave-r1`） | Candidate75 | potential mutator後の最終target versionを観測するvalidationだけを後続waveへ固定 | [`F06 targeted pass、standard14 69 / 70 score 4 / stopped`](../evaluations/results/candidate74-candidate75-candidate76-validation-wave-v12_2026-07-23.md) |
+| Candidate77（`triggered-exception-transition-r1`） | Candidate71 | C71の11 labelを維持し、型付き状態仕様を例外triggerが成立したoperationだけへ適用 | [`v12 standard14 70 / 70 score 4 / stopped`](../evaluations/results/candidate71-candidate77-triggered-exception-transition-v12-standard14-n5_2026-07-23.md) |
+
+Candidate74は`standard14_evaluated`、Candidate75・Candidate76・Candidate77は事前gateまたは品質gateにより`stopped`である。いずれも採用、release、THE-CAPTION本体への反映は未判断・未実施であり、本体投影済みはCandidate43とCandidate71のままである。
