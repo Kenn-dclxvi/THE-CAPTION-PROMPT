@@ -40,7 +40,7 @@
 | 文書 | 役割 |
 |---|---|
 | [`control-mechanisms.md`](control-mechanisms.md) | 横断的な制御メカニズムの知見 |
-| [`candidate71-control-abstraction-analysis.md`](candidate71-control-abstraction-analysis.md) | C71 control abstraction分析（11 label監査台帳＋現在の結論）。現在の総括は同文書の「監査状況の分類」表を正とし、次candidate（C74 `P3`削除）のgate定義を含む |
+| [`candidate71-control-abstraction-analysis.md`](candidate71-control-abstraction-analysis.md) | C71 control abstraction分析（11 label監査台帳＋現在の結論）。現在の総括は同文書の「監査状況の分類」表を正とする |
 
 ### 2c. 運用・評価infra spec
 
@@ -58,9 +58,9 @@
 
 各Candidateの制御軸を記録した成果artifact。当時のresult・scoreは遡及変更しない。
 
-各Candidateの**評価状態・採用・release・projectionの正本は[`prompts/candidates/README.md`](../prompts/candidates/README.md)**とする。この索引は制御軸だけを示し、状態は複製しない（`docs/AGENTS.md`「同じ説明を複数文書へ全文複製せず正本へリンク」）。評価と採用、releaseとprojectionは別状態である（[`repository-contract.md`](repository-contract.md)、[`AGENTS.md`](AGENTS.md)）。
+正本はlifecycle軸ごとに分かれる。**系譜とcandidate評価状態の正本は[`prompts/candidates/README.md`](../prompts/candidates/README.md)**、**release・approval・runtime projectionの正本は[`prompts/releases/README.md`](../prompts/releases/README.md)**とする。この索引は制御軸だけを示し、状態は複製しない（`docs/AGENTS.md`「同じ説明を複数文書へ全文複製せず正本へリンク」）。評価と採用、releaseとprojectionは別状態である（[`repository-contract.md`](repository-contract.md)、[`AGENTS.md`](AGENTS.md)）。
 
-> **本体投影と評価状態は別軸**: 本体へ投影済みなのはCandidate43とCandidate71で、いずれもroot `AGENTS.md`だけを変更対象とする（release `approved / projected`、[`README.md`](../README.md)）。ただしこれは採用判断側の状態であり、candidate評価状態とは一致しない。特にCandidate71のcandidate評価状態は`standard14_b18_evaluated / stopped`（[`candidate71-validation-closure-design.md`](candidate71-validation-closure-design.md)）であり、効率削減を根拠とする別の採用判断でreleaseがprojectedになった。評価停止は取り消されていない。
+> **本体投影と評価状態は別軸**: 本体へ投影済みなのはCandidate43とCandidate71で、いずれもroot `AGENTS.md`だけを変更対象とする（release `approved / projected`、正本は[`prompts/releases/README.md`](../prompts/releases/README.md)）。ただしこれは採用判断側の状態であり、candidate評価状態とは一致しない。特にCandidate71のcandidate評価状態は`standard14_b18_evaluated / stopped`（[`candidate71-validation-closure-design.md`](candidate71-validation-closure-design.md)）であり、効率削減を根拠とする別の採用判断でreleaseがprojectedになった。評価停止は取り消されていない。
 
 | Candidate | 文書 | 制御軸 |
 |---|---|---|
