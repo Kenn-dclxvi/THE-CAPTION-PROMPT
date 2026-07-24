@@ -18,7 +18,7 @@
 
 主な抽出元は次である。
 
-- `prompts/candidates/the-caption-9b3a96a-revision-2-r1/files/AGENTS.md`
+- `prompts/candidates/the-caption-9b3a96a-revision-2-r1/files/AGENTS.md.txt`
 - `prompts/candidates/the-caption-9b3a96a-revision-2-r1/files/prompts/audit.md`
 - `prompts/candidates/the-caption-9b3a96a-revision-2-r1/files/prompts/review.md`
 - 現行evaluation caseの`trial-prompt-input.json`に固定したTaskSpec field

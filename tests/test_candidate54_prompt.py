@@ -36,7 +36,7 @@ class Candidate54PromptTest(unittest.TestCase):
         )
 
     def test_keeps_readiness_fixed_operation_and_conditional_delegation(self) -> None:
-        text = (C54 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C54 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
 
         readiness = text.index("## Readiness")
         operation = text.index("## Fixed operation")
@@ -57,7 +57,7 @@ class Candidate54PromptTest(unittest.TestCase):
             self.assertIn(required, text)
 
     def test_omits_unproven_always_visible_controls(self) -> None:
-        text = (C54 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C54 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
 
         for forbidden in (
             "environment recovery",
@@ -70,8 +70,8 @@ class Candidate54PromptTest(unittest.TestCase):
             self.assertNotIn(forbidden, text)
 
     def test_reduces_root_bytes_beyond_candidate53(self) -> None:
-        source_size = (C43 / "files/AGENTS.md").stat().st_size
-        candidate_size = (C54 / "files/AGENTS.md").stat().st_size
+        source_size = (C43 / "files/AGENTS.md.txt").stat().st_size
+        candidate_size = (C54 / "files/AGENTS.md.txt").stat().st_size
 
         self.assertLessEqual(candidate_size, int(source_size * 0.65))
         self.assertGreater(candidate_size, 2200)

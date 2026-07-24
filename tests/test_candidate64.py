@@ -42,7 +42,7 @@ D01_CASE = ROOT / "evaluations/cases/TC-D01-EXPLICIT-PRODUCER-MONTHLY-REVIEW/r1"
 
 def source_clauses() -> dict[str, str]:
     clauses: dict[str, str] = {}
-    text = (C43 / "files/AGENTS.md").read_text(encoding="utf-8")
+    text = (C43 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
     for line in text.splitlines():
         if not line.startswith("- "):
             continue
@@ -115,14 +115,14 @@ class Candidate64Test(unittest.TestCase):
     def test_preserves_every_candidate43_atomic_clause(self) -> None:
         clauses = source_clauses()
         self.assertEqual(set(clauses), set(EXPECTED_COUNTS))
-        text = (C64 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C64 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
 
         for clause_id, expected_count in EXPECTED_COUNTS.items():
             with self.subTest(clause_id=clause_id):
                 self.assertEqual(text.count(clauses[clause_id]), expected_count)
 
     def test_has_four_ordered_execution_blocks(self) -> None:
-        text = (C64 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C64 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         headings = [
             "## 1. Start and path selection",
             "## 2. Root producer operation",
@@ -139,7 +139,7 @@ class Candidate64Test(unittest.TestCase):
         )
 
     def test_root_and_delegated_paths_are_self_contained(self) -> None:
-        text = (C64 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C64 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         root_start = text.index("## 2. Root producer operation")
         delegated_start = text.index("## 3. Delegated producer operation")
         failure_start = text.index("## 4. Failure and recovery")
@@ -167,8 +167,8 @@ class Candidate64Test(unittest.TestCase):
             self.assertIn(delegated_only, delegated)
 
     def test_initial_structure_intentionally_increases_static_bytes(self) -> None:
-        source_size = (C43 / "files/AGENTS.md").stat().st_size
-        candidate_size = (C64 / "files/AGENTS.md").stat().st_size
+        source_size = (C43 / "files/AGENTS.md.txt").stat().st_size
+        candidate_size = (C64 / "files/AGENTS.md.txt").stat().st_size
 
         self.assertEqual(source_size, 3980)
         self.assertEqual(candidate_size, 5594)

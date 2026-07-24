@@ -47,9 +47,9 @@ class Candidate52PromptTest(unittest.TestCase):
         )
 
     def test_adds_only_exact_candidate43_independence_line(self) -> None:
-        c43 = control_lines(C43 / "files/AGENTS.md")
-        c51 = control_lines(C51 / "files/AGENTS.md")
-        c52 = control_lines(C52 / "files/AGENTS.md")
+        c43 = control_lines(C43 / "files/AGENTS.md.txt")
+        c51 = control_lines(C51 / "files/AGENTS.md.txt")
+        c52 = control_lines(C52 / "files/AGENTS.md.txt")
 
         self.assertEqual(set(c52), set(c51) | {"INDEPENDENCE"})
         for label in c51:
@@ -57,7 +57,7 @@ class Candidate52PromptTest(unittest.TestCase):
         self.assertEqual(c52["INDEPENDENCE"], c43["INDEPENDENCE"])
 
     def test_does_not_add_method_or_worker_controls(self) -> None:
-        text = (C52 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C52 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
 
         for forbidden in (
             "ROOT_BATCH",

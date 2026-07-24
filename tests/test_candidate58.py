@@ -25,8 +25,8 @@ class Candidate58Test(unittest.TestCase):
                 "source_prompt_identity": source["prompt_identity"],
             },
         )
-        source_lines = (C57 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
-        candidate_lines = (C58 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
+        source_lines = (C57 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
+        candidate_lines = (C58 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
         removed = [line for line in source_lines if line not in candidate_lines]
         added = [line for line in candidate_lines if line not in source_lines]
         self.assertEqual(len(removed), 1)

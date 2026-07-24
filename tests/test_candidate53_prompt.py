@@ -36,7 +36,7 @@ class Candidate53PromptTest(unittest.TestCase):
         )
 
     def test_separates_readiness_fixed_operation_and_explicit_delegation(self) -> None:
-        text = (C53 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C53 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
 
         readiness = text.index("## Outcome readiness")
         operation = text.index("## Fixed operation")
@@ -52,7 +52,7 @@ class Candidate53PromptTest(unittest.TestCase):
         self.assertIn("TaskSpecが独立producer executionを明示した場合だけ", text[delegation:])
 
     def test_preserves_operation_graph_without_method_control(self) -> None:
-        text = (C53 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C53 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
 
         for required in (
             "`DELEGATION`がなければroot",
@@ -68,8 +68,8 @@ class Candidate53PromptTest(unittest.TestCase):
             self.assertNotIn(forbidden, text)
 
     def test_reduces_root_bytes_without_candidate49_level_collapse(self) -> None:
-        source_size = (C43 / "files/AGENTS.md").stat().st_size
-        candidate_size = (C53 / "files/AGENTS.md").stat().st_size
+        source_size = (C43 / "files/AGENTS.md.txt").stat().st_size
+        candidate_size = (C53 / "files/AGENTS.md.txt").stat().st_size
 
         self.assertLessEqual(candidate_size, int(source_size * 0.85))
         self.assertGreater(candidate_size, 3000)

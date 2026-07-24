@@ -8,7 +8,7 @@
 
 - 文書は原則として日本語で記述する。schema名、path、status、commandは再現性のため英語表記を使ってよい。
 - artifactが存在することと、評価済み、採用済み、本体反映済みであることを混同しない。
-- baseline、candidate、releaseを別pathで管理し、in-placeで上書きしない。
+- baseline、candidate、releaseを別pathで管理し、in-placeで上書きしない（`bundle_sha256`不変のidentity-preserving storage re-encodingは`docs/repository-contract.md`§6の条件で許可）。
 - 比較ではtarget repository ref、prompt identity、model、Agent環境、TaskSpec、permission、fixture、反復条件を固定する。
 - model-visible入力とoracle、grader、expected resultなどのmodel-invisible情報を分離する。
 - 単一caseや少数反復の結果を一般化しない。観測範囲と未解決事項を明記する。
@@ -17,7 +17,7 @@
 
 ## Agent execution discipline
 
-このリポジトリで作業するagentは、Candidate71（`the-caption-3ce91a4-validation-closure`）で本体へ採用されたvalidation-closure制御をrepository内作業へ適用し、次の規律で動く。制御原文は`prompts/releases/the-caption-3ce91a4-validation-closure-release-r1/files/AGENTS.md`を正本とする。
+このリポジトリで作業するagentは、Candidate71（`the-caption-3ce91a4-validation-closure`）で本体へ採用されたvalidation-closure制御をrepository内作業へ適用し、次の規律で動く。制御原文は`prompts/releases/the-caption-3ce91a4-validation-closure-release-r1/files/AGENTS.md.txt`を正本とする。
 
 ### 実行権限と情報取得
 

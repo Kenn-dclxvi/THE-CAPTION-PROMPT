@@ -53,8 +53,8 @@ class Candidate62Test(unittest.TestCase):
             [entry for entry in source_manifest["files"] if entry["target"] != "AGENTS.md"],
         )
 
-        source_lines = (C43 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
-        candidate_lines = (C62 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
+        source_lines = (C43 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
+        candidate_lines = (C62 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
         added = [line for line in candidate_lines if line not in source_lines]
         self.assertEqual(len(added), 1)
         self.assertTrue(added[0].startswith("- TASK_CLOSED_READ:"))

@@ -94,8 +94,8 @@ class Candidate63Test(unittest.TestCase):
             [entry for entry in base_manifest["files"] if entry["target"] != "AGENTS.md"],
         )
 
-        base_lines = (C43 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
-        candidate_lines = (C63 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
+        base_lines = (C43 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
+        candidate_lines = (C63 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
         added = [line for line in candidate_lines if line not in base_lines]
         self.assertEqual(len(added), 1)
         self.assertTrue(added[0].startswith("- FIXED_EVIDENCE_READ:"))
@@ -121,8 +121,8 @@ class Candidate63Test(unittest.TestCase):
             repository = verify_bundle(C63)
             self.assertEqual(generated["bundle_sha256"], repository["bundle_sha256"])
             self.assertEqual(
-                (output / "files/AGENTS.md").read_bytes(),
-                (C63 / "files/AGENTS.md").read_bytes(),
+                (output / "files/AGENTS.md.txt").read_bytes(),
+                (C63 / "files/AGENTS.md.txt").read_bytes(),
             )
 
     def test_non_matching_route_is_not_materialized(self) -> None:

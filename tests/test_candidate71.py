@@ -79,14 +79,14 @@ class Candidate71Test(unittest.TestCase):
         )
 
     def test_adds_only_validation_closure(self) -> None:
-        source_text = (C69 / "files/AGENTS.md").read_text(encoding="utf-8")
-        candidate_text = (C71 / "files/AGENTS.md").read_text(encoding="utf-8")
+        source_text = (C69 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
+        candidate_text = (C71 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         expected = source_text.replace("- METHOD:", VALIDATION_CLOSURE + "- METHOD:")
         self.assertEqual(candidate_text, expected)
 
     def test_preserves_candidate69_labels_and_adds_one_invariant(self) -> None:
-        source = labelled_lines((C69 / "files/AGENTS.md").read_text(encoding="utf-8"))
-        candidate = labelled_lines((C71 / "files/AGENTS.md").read_text(encoding="utf-8"))
+        source = labelled_lines((C69 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
+        candidate = labelled_lines((C71 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
         self.assertEqual(
             list(candidate),
             [

@@ -32,8 +32,8 @@ class Candidate57PromptTest(unittest.TestCase):
         )
 
     def test_fixed_read_requires_task_enumeration_and_excludes_authority_discovery(self) -> None:
-        source = (C56 / "files/AGENTS.md").read_text(encoding="utf-8")
-        candidate = (C57 / "files/AGENTS.md").read_text(encoding="utf-8")
+        source = (C56 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
+        candidate = (C57 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         source_fixed = next(line for line in source.splitlines() if line.startswith("- FIXED_READ:"))
         candidate_fixed = next(line for line in candidate.splitlines() if line.startswith("- FIXED_READ:"))
         self.assertNotEqual(candidate_fixed, source_fixed)
@@ -47,8 +47,8 @@ class Candidate57PromptTest(unittest.TestCase):
             self.assertIn(required, candidate_fixed)
 
     def test_changes_only_fixed_read_line(self) -> None:
-        source = (C56 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
-        candidate = (C57 / "files/AGENTS.md").read_text(encoding="utf-8").splitlines()
+        source = (C56 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
+        candidate = (C57 / "files/AGENTS.md.txt").read_text(encoding="utf-8").splitlines()
         removed = [line for line in source if line not in candidate]
         added = [line for line in candidate if line not in source]
         self.assertEqual(len(removed), 1)
