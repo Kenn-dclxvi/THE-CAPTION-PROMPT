@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -193,6 +194,24 @@ class RepositoryBundleStorageTest(unittest.TestCase):
             cwd=REPO_ROOT, capture_output=True, text=True, check=True,
         ).stdout.split()
         self.assertEqual(tracked, [])
+
+    def test_live_docs_have_no_dangling_bundle_file_reference(self) -> None:
+        # root AGENTS.md と docs/ 配下の live 文書が参照する prompts/**/files/ の
+        # 実ファイルpathは、格納名変更後も必ず実在すること（Agentが読む正本参照）。
+        # bundle 内部 manifest の historical provenance path は対象外（immutable記録）。
+        doc_files = [REPO_ROOT / "AGENTS.md"]
+        doc_files += sorted((REPO_ROOT / "docs").rglob("*.md"))
+        # prompts から始まる（任意の ../ 接頭辞つき）、/files/ を含む path トークン。
+        token = re.compile(r'((?:\.\./)*prompts/[^\s`)\]]+/files/[^\s`)\]]+)')
+        dangling: list[str] = []
+        for doc in doc_files:
+            base = doc.parent
+            for match in token.finditer(doc.read_text(encoding="utf-8")):
+                ref = match.group(1).rstrip(".,)")
+                resolved = (base / ref) if ref.startswith("../") else (REPO_ROOT / ref)
+                if not resolved.exists():
+                    dangling.append(f"{doc.relative_to(REPO_ROOT)}: {ref}")
+        self.assertEqual(dangling, [], f"dangling bundle-file references: {dangling}")
 
     def test_all_bundles_suffixed_verify_and_hash_invariant(self) -> None:
         for bundle in self.bundles:

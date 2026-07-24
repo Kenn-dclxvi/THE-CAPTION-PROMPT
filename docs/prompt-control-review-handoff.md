@@ -30,11 +30,11 @@
 
 あわせて、次のroot prompt本文を直接比較する。
 
-- `prompts/candidates/the-caption-3ce91a4-control-free-repository-r1/files/AGENTS.md`
-- `prompts/candidates/the-caption-3ce91a4-control-free-operation-boundary-r1/files/AGENTS.md`
-- `prompts/candidates/the-caption-3ce91a4-root-control-only-r1/files/AGENTS.md`
-- `prompts/candidates/the-caption-3ce91a4-result-unit-evidence-binding-r1/files/AGENTS.md`
-- `prompts/candidates/the-caption-3ce91a4-operation-result-projection-boundary-r1/files/AGENTS.md`
+- `prompts/candidates/the-caption-3ce91a4-control-free-repository-r1/files/AGENTS.md.txt`
+- `prompts/candidates/the-caption-3ce91a4-control-free-operation-boundary-r1/files/AGENTS.md.txt`
+- `prompts/candidates/the-caption-3ce91a4-root-control-only-r1/files/AGENTS.md.txt`
+- `prompts/candidates/the-caption-3ce91a4-result-unit-evidence-binding-r1/files/AGENTS.md.txt`
+- `prompts/candidates/the-caption-3ce91a4-operation-result-projection-boundary-r1/files/AGENTS.md.txt`
 
 ## 確認済みの事実
 

@@ -40,7 +40,7 @@ commit、push、PR、merge、release、THE-CAPTION本体反映は依頼されて
 
 - prompt identity: `the-caption-3ce91a4-validation-closure-r1`
 - bundle SHA-256: `995481ad58ad1bc11628bfd8b8978ed904d62989a28caa87268b30d5c5a58695`
-- root prompt: `prompts/candidates/the-caption-3ce91a4-validation-closure-r1/files/AGENTS.md`
+- root prompt: `prompts/candidates/the-caption-3ce91a4-validation-closure-r1/files/AGENTS.md.txt`
 - manifest: `prompts/candidates/the-caption-3ce91a4-validation-closure-r1/manifest.json`
 
 監査対象は次の一行だけである。
