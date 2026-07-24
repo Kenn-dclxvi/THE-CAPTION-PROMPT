@@ -1,5 +1,8 @@
 # candidate1からのSA起動条件抽出
 
+> [!IMPORTANT]
+> この文書は`candidate2`設計の出発点となった`design_input`であり、`candidate1`からのSA起動条件抽出を記録する履歴artifactである。その後のCandidate系譜は大きく進行しているため（系譜索引は[`candidate-history.md`](candidate-history.md)、正本は[`prompts/candidates/README.md`](../prompts/candidates/README.md)）、現行設計として読まない。以下は抽出当時の記述として保持する。
+
 ## Status
 
 - artifact: `design_input`

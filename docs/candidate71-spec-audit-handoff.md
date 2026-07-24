@@ -1,5 +1,8 @@
 # Candidate71 `SPEC`監査 引継ぎ指示書
 
+> [!IMPORTANT]
+> この文書はCandidate71 `SPEC`監査の**完了済み引継ぎ指示書**であり、当時のbranch・HEAD・working tree・実行手順を含む履歴artifactである。監査結果は[`candidate71-control-abstraction-analysis.md`](candidate71-control-abstraction-analysis.md)へ統合済みで、現在の結論と監査状況の分類はそちらを正とする。以下は引継ぎ当時の記述として保持する。
+
 ## 次タスクの目的
 
 Candidate71のroot `AGENTS.md`にある`SPEC`一行だけを、表現ではなく制御機能へ分解して監査する。

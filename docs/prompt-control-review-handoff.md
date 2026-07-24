@@ -1,5 +1,8 @@
 # Prompt制御見直し 引き継ぎ
 
+> [!IMPORTANT]
+> この文書はCandidate35〜Candidate40時点のPrompt制御見直しの**引継ぎ指示書**であり、当時のbranch・HEAD・未commit差分・次タスクを含む履歴artifactである。現在の制御知見は[`control-mechanisms.md`](control-mechanisms.md)と[`prompt-control-graph-review.md`](prompt-control-graph-review.md)、設計原則の正本は[`prompt-control-design-principles.md`](prompt-control-design-principles.md)を参照する。以下は引継ぎ当時の記述として保持する。
+
 ## 目的
 
 次の作業では、Candidate35からCandidate40までの制御を追加修正する前に、ControlFreeRepositoryで成立していた基本挙動へ戻って制御graphを見直す。

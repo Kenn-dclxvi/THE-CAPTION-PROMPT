@@ -1,5 +1,8 @@
 # Candidate71 control abstraction分析
 
+> [!IMPORTANT]
+> **番号「Candidate74」の帰属に注意**: 本文が`P3`削除提案の作業名として繰り返す「Candidate74」は、本分析時点で作成前gateだけを定義しbundle・profile・評価が未着手の提案呼称である。その後、番号「Candidate74」は別軸の`the-caption-3ce91a4-typed-execution-state-machine-r1`（`standard14_evaluated`）へ実際に割り当てられた。Candidate番号とlineageの正本は[`prompts/candidates/README.md`](../prompts/candidates/README.md)、release・projectionの正本は[`prompts/releases/README.md`](../prompts/releases/README.md)とする。`P3`削除提案を「Candidate74」として新規作成せず、着手時は正本で現行の番号割当てを確認する。以下の各判定は当時の記述として保持する。
+
 ## 結論
 
 Candidate71のKPI差から確認できる因果は、11 label全体ではなく、Candidate69へ追加した`VALIDATION_CLOSURE`一行の効果に限定される。
