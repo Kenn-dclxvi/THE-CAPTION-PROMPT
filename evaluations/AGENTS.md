@@ -1,0 +1,84 @@
+# evaluations instructions
+
+`evaluations/`の指示は、evaluation foundation v3の境界を扱う。root `AGENTS.md`の共通規則に加えて、この領域規則を適用する。評価基盤のLayerと境界は`docs/prompt-comparison-workflow.md`、実行方法は`docs/evaluation-loop-manual.md`を正本とする。
+
+## 4 Layer
+
+評価は次の4 Layerに限定する。
+
+1. Evaluation set
+2. Execution
+3. Quality rating
+4. KPI comparison
+
+各Layerは自分の出力だけを作る。
+
+- 前段artifactを変更しない。
+- 後段の判断責務へ越境しない。
+- prompt作成、改善提案、採用、release、本体反映を評価基盤へ持ち込まない。
+
+## 3 KPI
+
+評価基盤が扱うKPIは次の3つだけとする。
+
+- `quality_score`
+- all-agent `total_tokens`
+- `elapsed_seconds`
+
+次はdiagnosticとして扱い、KPIへ追加しない。
+
+- tool call
+- model step
+- worker routing
+- root／worker別token
+- session情報
+- context継承
+- command内訳
+
+評価基盤は次を出力しない。
+
+- `winner`
+- 改善または悪化の断定
+- KPIの優先順位
+- 採用可否
+- release判断
+- projection判断
+
+## Compatibility
+
+比較可能な結果は、次の条件が一致するものに限定する。
+
+- evaluation set revision
+- target repository ref
+- prompt set以外のcomparison conditions
+- model
+- Agent環境
+- TaskSpec
+- permission
+- fixture
+- executor parameter
+- case
+- iteration
+- repetition condition
+- token accounting revision
+
+compatibility keyが異なるresultを同一比較へ混ぜない。
+単一caseまたは少数反復の結果を、評価範囲外へ一般化しない。
+
+## Model-visible境界
+
+- TaskSpecと適用されるrepository authorityをmodel-visible入力として扱う。
+- oracle、grader、expected result、private commandをmodel-invisible情報として分離する。
+- model-visibleでない特定commandを、抽象成果条件から推定してquality必須条件へ格上げしない。
+- 抽象成果条件は、その成立を判定できる任意の有効な証拠で満たせるものとして扱う。
+- tuningに使ったcaseを、同一revisionのheld-out evidenceとして扱わない。
+
+## Immutable history
+
+- evaluation set、profile、rating contract、resultをrevision単位で固定する。
+- 結果確認後の採点条件変更は、新しいrating revisionとして扱う。
+- 過去resultを新契約でin-place再採点しない。
+- 既存resultのscore、identity、schemaを現在解釈へ上書きしない。
+- root-only token resultをall-agentへ補正する場合も、元resultを残して新schema resultをappendする。
+- excluded attemptとenvironment failureをprompt qualityへ混ぜない。
+- 全session usageが取得できないrunのtokenを推定しない。
