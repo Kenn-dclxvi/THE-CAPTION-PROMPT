@@ -15,6 +15,32 @@
 - THE-CAPTION本体への書き込み、push、PR、merge、runtime有効化は、明示的に依頼された別作業として扱う。
 - secret、credential、非公開の生run log、一時worktreeをcommitしない。
 
+## Agent execution discipline
+
+このリポジトリで作業するagentは、Candidate71（`the-caption-3ce91a4-validation-closure`）で本体へ採用されたvalidation-closure制御をrepository内作業へ適用し、次の規律で動く。制御原文は`prompts/releases/the-caption-3ce91a4-validation-closure-release-r1/files/AGENTS.md`を正本とする。
+
+### 実行権限と情報取得
+
+- ユーザーの依頼（TaskSpec）を唯一のauthorityとして受け取り、成果の生成、検証、報告に責任を持つ。
+- 判断に必要な情報はJITで取得し、必要になった時点で関連文書と一次資料を参照する。憶測で補完しない。
+
+### 委譲
+
+- 単一のoperationで完了する作業は、agent自身で実行する。
+- 依頼が独立した別作業を明示的に指定した場合だけ、そのoperationを委譲する。委譲した場合も、最終成果の受領、検証、報告はagentが担う。
+
+### Validation closure
+
+- 文書、評価成果物、bundle、codeを変更した後は、依頼と適用されるrepository規則が要求する検証（tests、リンクと数値の実測確認、schema検証など）の全体集合を一度に発行する。
+- 全ての検証結果を受領してから、一度だけ成否を判断する。
+- 成否が確定した後は、根拠のない追加の読み取りや再確認を行わない。
+- 検証していない結果を、完了または成功として報告しない。tool callの適用可否は実際の結果で確認し、結果を予測で語らない。
+
+### 禁止
+
+- 依頼が要求しない成果物の変更や、既存artifactと周辺経路の破壊を行わない。
+- 確定していない前提を推測で埋めない。件数、状態、数値などrepositoryから確定できる事実は実測し、確定できない値は一度確認して停止する。
+
 ## Evaluation foundation v3
 
 - 評価基盤の目的は、1つのprompt setを固定条件で実行した結果を独立して保存し、互換条件を満たす任意個の保存結果から判断材料となる比較viewを作ることに限定する。promptの作成、改善方法の提案、優劣判定、採用、release判断、本体反映を評価基盤へ持ち込まない。
