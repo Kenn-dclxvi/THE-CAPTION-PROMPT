@@ -33,7 +33,14 @@
 
 制御の内容: 「未発行のinvocation（次に出す指示）の選択を変えないresult間では、モデルへ再入しない」というlabel（`DECISION_BOUNDARY`、Candidate69）と、「artifact変更後に必要な検証を同一waveで一括発行し、全result受領後に一度だけ判断し、成功後は根拠のない追加readをしない」というlabel（`VALIDATION_CLOSURE`、Candidate71）を追加しました。
 
-観測: standard14でCandidate43比 all-agent中央値`-26.21%`・top-level tool call`-26.60%`（Candidate69）、Candidate69比 token合計`-27.93%`・tool call`-30.16%`（Candidate71）。いずれもトークンとstep数を大きく削りましたが、評価上はどちらも事前gate不通過で`stopped`でした。ただし停止理由は異なります。Candidate69は当時のrating v10でF10 monthlyのfinding location mismatchが1件残り、score分布`4 / 3 = 69 / 1`で全件score 4のgateに届かなかったためで、A02の検証欠落が理由ではありません。Candidate71はv12 B18で公式score分布`4 / 3 / 0 = 1,255 / 4 / 1`となり、意味確認後もA02の`git diff --check`欠落3件と、A01で未固定modeを確認せず実装・試験へ進んだ1件が残りました。このうちA02の3件だけが後のrating v13で「実行役へ提示していない特定コマンドを採点側が必須化した要求と採点のずれ」として本物の品質低下と区別され、A01の1件はv13でも品質上の問題として残ります。Candidate71の`stopped`は評価状態であり、これとは別の採用判断で2026-07-23に`approved / projected`となりました（評価と採用は別レイヤー）。停止理由と採用状態の正本は[`candidate-history.md`](candidate-history.md)、rating v13契約は[`outcome-abstract-condition-preserving-owner-diagnostic-v13.json`](../evaluations/rating-contracts/outcome-abstract-condition-preserving-owner-diagnostic-v13.json)、A02採点の整理は[`repository-overview.md`](repository-overview.md)のA02採点節を参照。
+観測: standard14でCandidate43比 all-agent中央値`-26.21%`・top-level tool call`-26.60%`（Candidate69）、Candidate69比 token合計`-27.93%`・tool call`-30.16%`（Candidate71）。いずれもトークンとstep数を大きく削りましたが、評価上はどちらも事前gate不通過で`stopped`でした。停止理由・現在の解釈・採用状態はcandidateごとに分かれます。
+
+- **Candidate69の停止（当時のrating v10）**: F10 monthlyのfinding location mismatchが1件残り、score分布`4 / 3 = 69 / 1`で全件score 4のgateに届きませんでした。A02の検証欠落が理由ではありません。
+- **Candidate71のv12評価（B18）**: 公式score分布`4 / 3 / 0 = 1,255 / 4 / 1`。v12採点で欠落扱いされたのは、A02の`git diff --check`未実行3件と、A01で未固定modeを確認せず実装・試験へ進んだ1件です。
+- **rating v13による現在の解釈**: このうちA02の3件だけが「実行役へ提示していない特定コマンドを採点側が必須化した要求と採点のずれ」として本物の品質低下と区別されます。A01の1件はv13でも品質上の問題として残ります。
+- **Candidate71の採用状態**: `stopped`は評価状態であり、これとは別の採用判断で2026-07-23に`approved / projected`となりました（評価と採用は別レイヤー）。
+
+停止理由と採用状態の正本は[`candidate-history.md`](candidate-history.md)、rating v13契約は[`outcome-abstract-condition-preserving-owner-diagnostic-v13.json`](../evaluations/rating-contracts/outcome-abstract-condition-preserving-owner-diagnostic-v13.json)、A02採点の整理は[`repository-overview.md`](repository-overview.md)のA02採点節を参照。
 
 **4. read経路を事前に確定し、一括化・最短化する**
 
