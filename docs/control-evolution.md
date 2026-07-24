@@ -6,7 +6,7 @@ README全文をそのまま保持したものは[readme-legacy-full.md](readme-l
 ## 1) 不要worker起動の抑制
 
 - 解決対象: 実行効率と再現安定性
-- 主要系譜: C5, C15, C41, C43, C68
+- 主要系譜: C5, C15, C41, C43
 - 事実: worker起動抑制がall-agent token低減に最も寄与
 
 ## 2) 再入（再判断）の抑制
@@ -26,6 +26,8 @@ README全文をそのまま保持したものは[readme-legacy-full.md](readme-l
 - 解決対象: owner/prod/resultの紐付け不整合
 - 主要系譜: C17, C20, C21, C22, C34
 - 事実: runtime一致条件を厳格化し、失敗経路の再開事故を減らす
+
+- 補足: C68はworker起動制御ではなく、`INDEPENDENCE`系列の独立確認operation削除を検証する短文化試行。
 
 ## 5) 制御追加の安全運用
 

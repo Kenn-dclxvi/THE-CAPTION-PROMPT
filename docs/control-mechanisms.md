@@ -7,30 +7,35 @@
 - **問題**: rootで完結可能な場面でworker起動が増える
 - **対処**: 委譲条件を厳密化し、producerが必要な場合だけdelegate
 - **確認指標**: top-level tool call、all-agent token、再現性
+- **一次結果**: [Candidate41 expanded 12-case N=5](../evaluations/results/candidate41-owner-metadata-delegation-boundary-v9-expanded12-n5_2026-07-19.md)
 
 ## Context
 
 - **問題**: 不要情報継承で子セッションの再解析コストが増える
 - **対処**: packet継承を最小化し、必要十分な範囲へ圧縮
 - **確認指標**: 失敗率、quality scoreへの影響
+- **一次結果**: [Candidate33 expanded 12-case N=5](../evaluations/results/candidate33-worker-context-sufficiency-owner-producer-v5-expanded12-global-m24-n5_2026-07-18.md)
 
 ## Decision Boundary
 
 - **問題**: 同一結論でも再判断が走りstepが増える
 - **対処**: 再入条件を明示し、同一invocationでの戻りを抑制
 - **確認指標**: model step、tool call、elapsed_seconds
+- **一次結果**: [Candidate69 N=5比較](../evaluations/results/candidate43-candidate69-model-reentry-decision-boundary-v10-standard14-n5_2026-07-22.md)
 
 ## Validation Closure
 
 - **問題**: 検証フェーズの読み直しが都度戻る
-- **対処**: 変更後検証を1波で完結し、追加readを原則禁止
+- **対処**: 依存関係ごとに必要なvalidation waveを確定し、各wave内は必要な検証を一括で実行する。全結果を受領後に一度だけ判断し、成功確定後の根拠なき追加readを行わない。
 - **確認指標**: 応答時間、検証漏れリスク
+- **一次結果**: [Candidate71 v12 B18](../evaluations/results/candidate69-candidate71-validation-closure-v12-standard14-continuous-n5-b18_2026-07-22.md)
 
 ## Read
 
 - **問題**: read順序の散乱で往復が増える
 - **対処**: 定型readをbatch化・一括確定化
 - **確認指標**: model step、read回数、再実行率
+- **一次結果**: [Candidate63 fixed evidence route](../evaluations/results/candidate43-candidate63-fixed-evidence-route-projection-f10-n5_2026-07-22.md)
 
 ## Runtime
 
