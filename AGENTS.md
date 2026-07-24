@@ -6,7 +6,7 @@
 
 ## Working rules
 
-- 文書は原則として日本語で記述する。schema名、path、status、commandは再現性のため英語表記を使ってよい。専門用語、短縮後は注釈付きで許可。
+- 文書は原則として日本語で記述する。schema名、path、status、commandは再現性のため英語表記を使ってよい。専門用語、短縮語は注釈付きで許可。
 - artifactが存在することと、評価済み、採用済み、本体反映済みであることを混同しない。
 - baseline、candidate、releaseを別pathで管理し、in-placeで上書きしない。
 - 比較ではtarget repository ref、prompt identity、model、Agent環境、TaskSpec、permission、fixture、反復条件を固定する。
