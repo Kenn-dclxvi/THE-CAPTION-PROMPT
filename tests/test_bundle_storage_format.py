@@ -165,6 +165,38 @@ class LegacyBundleCompatTest(unittest.TestCase):
             with self.assertRaises(BundleError):
                 verify_bundle(bundle)
 
+    def test_suffixed_bundle_rejects_alias_trigger_file(self) -> None:
+        # 正規の AGENTS.md.txt に加えて非正規の AGENTS.md（自動読込対象）が存在する
+        # bundle は、manifest 未列挙ファイルとして拒否されなければならない。
+        import hashlib
+
+        with tempfile.TemporaryDirectory() as tmp:
+            bundle = Path(tmp)
+            files_root = bundle / "files"
+            files_root.mkdir()
+            content = b"root instructions\n"
+            (files_root / "AGENTS.md.txt").write_bytes(content)  # 正規
+            (files_root / "AGENTS.md").write_bytes(b"stray trigger\n")  # 非正規 alias
+            entry = {
+                "git_blob_sha1": "0" * 40,
+                "mode": "100644",
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "target": "AGENTS.md",
+                "type": "file",
+            }
+            manifest = {
+                "bundle_sha256": bundle_sha256([entry]),
+                "files": [entry],
+                "prompt_identity": "alias-r1",
+                "schema_version": "the-caption-prompt.bundle/v1",
+                "storage_format": STORAGE_FORMAT_SUFFIXED,
+            }
+            (bundle / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+            with self.assertRaises(BundleError):
+                verify_bundle(bundle)
+
 
 class RepositoryBundleStorageTest(unittest.TestCase):
     def setUp(self) -> None:

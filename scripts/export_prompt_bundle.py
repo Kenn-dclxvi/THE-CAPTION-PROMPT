@@ -236,12 +236,17 @@ def verify_bundle(bundle: Path) -> dict[str, Any]:
         normalized.append(entry)
     if normalized != sorted(normalized, key=lambda item: item["target"]):
         raise BundleError("manifest files must be sorted by target")
-    actual_targets = {
-        target_from_stored(path.relative_to(files_root).as_posix(), storage_format)
+    # target -> 正規stored path の forward 写像で照合する。逆写像 + set 化では、
+    # 正規 "AGENTS.md.txt" と非正規 "AGENTS.md" が同一 target へ潰れて重複が消え、
+    # manifest 未列挙の自動読込対象ファイルを見逃す(alias 問題)。forward なら
+    # 非正規 alias は expected に無い stored path として必ず検出される。
+    expected_stored = {stored_relpath(target, storage_format) for target in expected_targets}
+    actual_stored = {
+        path.relative_to(files_root).as_posix()
         for path in files_root.rglob("*")
         if path.is_file() or path.is_symlink()
     }
-    if actual_targets != expected_targets:
+    if actual_stored != expected_stored:
         raise BundleError("bundle contains an unlisted or missing target")
     expected_hash = manifest.get("bundle_sha256")
     if bundle_sha256(normalized) != expected_hash:
