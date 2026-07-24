@@ -22,7 +22,7 @@ THE-CAPTION向けプロンプトを設計、比較、評価し、反映可能な
 
 - 不要なworker起動の抑制が最も効果が大きかった。
 - 表面的なprompt短縮だけではall-agent tokenはほとんど動かなかった。
-- 結論が変わらない場面の再判断（Decision Boundary）と、検証の一括化（Validation Closure）がstepとtokenを減らした。
+- 結論が変わらない場面の再判断（Decision Boundary）と、検証の一括化（Validation Closure）がstepとtokenを減らした（例: Validation ClosureのCandidate71はCandidate69比でtoken合計 -27.93%、top-level tool call -30.16%）。
 - トークン削減の評価と、採用の判断は別レイヤーである。
 
 ## Candidate開発の経緯
