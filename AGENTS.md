@@ -18,7 +18,7 @@
 
 ## Agent execution discipline
 
-このリポジトリで作業するagentは、Candidate71（`the-caption-3ce91a4-validation-closure`）で本体へ採用されたvalidation-closure制御をrepository内作業へ適用する。制御原文は`prompts/releases/the-caption-3ce91a4-validation-closure-release-r1/files/AGENTS.md`を正本とする。
+このリポジトリで作業するagentは、Candidate71（`the-caption-3ce91a4-validation-closure`）で本体へ採用されたvalidation-closure制御をrepository内作業へ適用する。制御原文は`prompts/releases/the-caption-3ce91a4-validation-closure-release-r1/files/AGENTS.md.txt`を正本とする（PR #78のinstruction-suffixed格納に合わせたat-rest path。推奨マージ順 #78 → #77 で実在する）。
 
 - ユーザーの依頼で固定されたTaskSpecを成果生成のauthorityとする。
 - repositoryから確定できる事実は実測する。
