@@ -49,14 +49,14 @@ class Candidate49PromptTest(unittest.TestCase):
         self.assertEqual(changed, ["AGENTS.md"])
 
     def test_spec_method_and_recovery_are_identical_to_candidate43(self) -> None:
-        source = control_lines(C43 / "files/AGENTS.md")
-        candidate = control_lines(C49 / "files/AGENTS.md")
+        source = control_lines(C43 / "files/AGENTS.md.txt")
+        candidate = control_lines(C49 / "files/AGENTS.md.txt")
 
         for label in ("SPEC", "METHOD", "RECOVERY"):
             self.assertEqual(candidate[label], source[label])
 
     def test_worker_control_graph_is_replaced_by_three_direct_labels(self) -> None:
-        candidate_path = C49 / "files/AGENTS.md"
+        candidate_path = C49 / "files/AGENTS.md.txt"
         candidate = control_lines(candidate_path)
 
         self.assertEqual(
@@ -71,8 +71,8 @@ class Candidate49PromptTest(unittest.TestCase):
             self.assertNotIn(added_abstraction, text)
 
     def test_root_control_is_materially_smaller(self) -> None:
-        source_size = (C43 / "files/AGENTS.md").stat().st_size
-        candidate_size = (C49 / "files/AGENTS.md").stat().st_size
+        source_size = (C43 / "files/AGENTS.md.txt").stat().st_size
+        candidate_size = (C49 / "files/AGENTS.md.txt").stat().st_size
 
         self.assertLess(candidate_size, source_size * 0.65)
 

@@ -49,15 +49,15 @@ class Candidate50PromptTest(unittest.TestCase):
         self.assertEqual(changed, ["AGENTS.md"])
 
     def test_existing_candidate43_control_lines_are_identical(self) -> None:
-        source = control_lines(C43 / "files/AGENTS.md")
-        candidate = control_lines(C50 / "files/AGENTS.md")
+        source = control_lines(C43 / "files/AGENTS.md.txt")
+        candidate = control_lines(C50 / "files/AGENTS.md.txt")
 
         self.assertEqual(set(candidate) - set(source), {"ROOT_BATCH"})
         for label, line in source.items():
             self.assertEqual(candidate[label], line)
 
     def test_root_batch_preserves_command_evidence_and_dependency_boundary(self) -> None:
-        root_batch = control_lines(C50 / "files/AGENTS.md")["ROOT_BATCH"]
+        root_batch = control_lines(C50 / "files/AGENTS.md.txt")["ROOT_BATCH"]
 
         for required in (
             "spec_ready=true",

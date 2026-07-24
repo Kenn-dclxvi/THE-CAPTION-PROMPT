@@ -126,8 +126,8 @@ class Candidate66Test(unittest.TestCase):
         )
 
     def test_preserves_nine_labels_order_and_single_layer(self) -> None:
-        source_text = (C43 / "files/AGENTS.md").read_text(encoding="utf-8")
-        candidate_text = (C66 / "files/AGENTS.md").read_text(encoding="utf-8")
+        source_text = (C43 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
+        candidate_text = (C66 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         source_labels = [label for label, _ in labelled_blocks(source_text)]
         candidate_labels = [label for label, _ in labelled_blocks(candidate_text)]
         self.assertEqual(
@@ -149,7 +149,7 @@ class Candidate66Test(unittest.TestCase):
         self.assertEqual(len(candidate_text.splitlines()), 11)
 
     def test_keeps_all_32_clauses_in_their_source_labels(self) -> None:
-        text = (C66 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C66 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         blocks = dict(labelled_blocks(text))
         self.assertEqual(len(CLAUSE_COVERAGE), 32)
         for clause_id, (label, required) in CLAUSE_COVERAGE.items():
@@ -157,7 +157,7 @@ class Candidate66Test(unittest.TestCase):
                 self.assertIn(required, blocks[label])
 
     def test_keeps_cross_label_duplicates(self) -> None:
-        text = (C66 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C66 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         self.assertEqual(
             text.count("TaskSpecが独立producer executionを明示した場合だけ"),
             2,
@@ -167,10 +167,10 @@ class Candidate66Test(unittest.TestCase):
 
     def test_only_shortens_bodies_without_changing_label_membership(self) -> None:
         source = dict(
-            labelled_blocks((C43 / "files/AGENTS.md").read_text(encoding="utf-8"))
+            labelled_blocks((C43 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
         )
         candidate = dict(
-            labelled_blocks((C66 / "files/AGENTS.md").read_text(encoding="utf-8"))
+            labelled_blocks((C66 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
         )
         changed = {label for label in source if source[label] != candidate[label]}
         self.assertEqual(
@@ -182,8 +182,8 @@ class Candidate66Test(unittest.TestCase):
                 self.assertLess(len(candidate[label].encode()), len(source[label].encode()))
 
     def test_reduces_static_bytes(self) -> None:
-        source_size = (C43 / "files/AGENTS.md").stat().st_size
-        candidate_size = (C66 / "files/AGENTS.md").stat().st_size
+        source_size = (C43 / "files/AGENTS.md.txt").stat().st_size
+        candidate_size = (C66 / "files/AGENTS.md.txt").stat().st_size
         self.assertEqual(source_size, 3980)
         self.assertEqual(candidate_size, 3923)
         self.assertLess(candidate_size, source_size)

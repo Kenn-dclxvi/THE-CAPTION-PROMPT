@@ -92,8 +92,8 @@ class Candidate67Test(unittest.TestCase):
         )
 
     def test_removes_only_the_two_cross_label_duplicate_sentences(self) -> None:
-        source_text = (C43 / "files/AGENTS.md").read_text(encoding="utf-8")
-        candidate_text = (C67 / "files/AGENTS.md").read_text(encoding="utf-8")
+        source_text = (C43 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
+        candidate_text = (C67 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         expected = source_text.replace(EXPLICIT_DELEGATION_DUPLICATE, "").replace(
             PRODUCER_REASSIGNMENT_DUPLICATE,
             "",
@@ -101,8 +101,8 @@ class Candidate67Test(unittest.TestCase):
         self.assertEqual(candidate_text, expected)
 
     def test_preserves_nine_labels_order_and_changes_only_canonicalized_labels(self) -> None:
-        source = labelled_blocks((C43 / "files/AGENTS.md").read_text(encoding="utf-8"))
-        candidate = labelled_blocks((C67 / "files/AGENTS.md").read_text(encoding="utf-8"))
+        source = labelled_blocks((C43 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
+        candidate = labelled_blocks((C67 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
         expected_labels = [
             "SPEC",
             "PRODUCER",
@@ -122,7 +122,7 @@ class Candidate67Test(unittest.TestCase):
         )
 
     def test_retains_each_canonical_predicate_once(self) -> None:
-        text = (C67 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C67 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         blocks = labelled_blocks(text)
         self.assertEqual(
             text.count("TaskSpecが独立したproducer executionを明示した場合だけ"),
@@ -145,8 +145,8 @@ class Candidate67Test(unittest.TestCase):
         )
 
     def test_reduces_only_the_duplicate_bytes(self) -> None:
-        source_size = (C43 / "files/AGENTS.md").stat().st_size
-        candidate_size = (C67 / "files/AGENTS.md").stat().st_size
+        source_size = (C43 / "files/AGENTS.md.txt").stat().st_size
+        candidate_size = (C67 / "files/AGENTS.md.txt").stat().st_size
         self.assertEqual(source_size, 3980)
         self.assertEqual(candidate_size, 3792)
         self.assertEqual(source_size - candidate_size, 188)

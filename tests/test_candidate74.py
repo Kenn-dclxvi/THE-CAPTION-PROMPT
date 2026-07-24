@@ -20,7 +20,7 @@ class Candidate74Test(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.source = verify_bundle(C71)
         cls.candidate = verify_bundle(C74)
-        cls.prompt = (C74 / "files/AGENTS.md").read_text(encoding="utf-8")
+        cls.prompt = (C74 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
 
     def test_is_single_target_direct_child_of_candidate71(self) -> None:
         self.assertEqual(

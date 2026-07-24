@@ -36,7 +36,7 @@ class Candidate55PromptTest(unittest.TestCase):
         )
 
     def test_prebinds_fixed_operation_input_before_first_predicate(self) -> None:
-        text = (C55 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C55 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
 
         self.assertIn("初回predicate前に", text)
         self.assertIn(
@@ -47,7 +47,7 @@ class Candidate55PromptTest(unittest.TestCase):
         self.assertLess(text.index("- OPERATION:"), text.index("- PRODUCER:"))
 
     def test_keeps_conditional_delegation_without_phase_sections(self) -> None:
-        text = (C55 / "files/AGENTS.md").read_text(encoding="utf-8")
+        text = (C55 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
 
         for required in (
             "同じoperationのpredicate実行またはresult生成を別producerへ再割当てしない",
@@ -69,8 +69,8 @@ class Candidate55PromptTest(unittest.TestCase):
             self.assertNotIn(forbidden, text)
 
     def test_reduces_root_bytes_while_restoring_the_missing_relation(self) -> None:
-        source_size = (C43 / "files/AGENTS.md").stat().st_size
-        candidate_size = (C55 / "files/AGENTS.md").stat().st_size
+        source_size = (C43 / "files/AGENTS.md.txt").stat().st_size
+        candidate_size = (C55 / "files/AGENTS.md.txt").stat().st_size
 
         self.assertLess(candidate_size, source_size)
         self.assertGreater(candidate_size, 2500)

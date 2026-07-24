@@ -83,15 +83,15 @@ class Candidate70Test(unittest.TestCase):
         )
 
     def test_adds_only_machine_boundary(self) -> None:
-        source_text = (C69 / "files/AGENTS.md").read_text(encoding="utf-8")
-        candidate_text = (C70 / "files/AGENTS.md").read_text(encoding="utf-8")
+        source_text = (C69 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
+        candidate_text = (C70 / "files/AGENTS.md.txt").read_text(encoding="utf-8")
         anchor = "- METHOD:"
         expected = source_text.replace(anchor, MACHINE_BOUNDARY + anchor)
         self.assertEqual(candidate_text, expected)
 
     def test_preserves_candidate69_labels_and_adds_one_invariant(self) -> None:
-        source = labelled_lines((C69 / "files/AGENTS.md").read_text(encoding="utf-8"))
-        candidate = labelled_lines((C70 / "files/AGENTS.md").read_text(encoding="utf-8"))
+        source = labelled_lines((C69 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
+        candidate = labelled_lines((C70 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
         self.assertEqual(
             list(candidate),
             [

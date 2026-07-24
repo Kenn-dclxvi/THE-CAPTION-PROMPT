@@ -47,8 +47,8 @@ class Candidate73Test(unittest.TestCase):
         )
 
     def test_preserves_terminal_closure_while_shortening_one_label(self) -> None:
-        source = labelled_lines((C71 / "files/AGENTS.md").read_text(encoding="utf-8"))
-        candidate = labelled_lines((C73 / "files/AGENTS.md").read_text(encoding="utf-8"))
+        source = labelled_lines((C71 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
+        candidate = labelled_lines((C73 / "files/AGENTS.md.txt").read_text(encoding="utf-8"))
         self.assertEqual(list(candidate), list(source))
         self.assertEqual(
             {label: body for label, body in candidate.items() if label != "VALIDATION_CLOSURE"},

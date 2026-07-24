@@ -17,7 +17,12 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 try:
-    from export_prompt_bundle import BundleError, verify_bundle
+    from export_prompt_bundle import (
+        BundleError,
+        bundle_stored_path,
+        storage_format_of,
+        verify_bundle,
+    )
     from all_agent_command_evidence import (
         AllAgentCommandEvidenceError,
         adapter_owned_cleanup_attempts,
@@ -32,7 +37,12 @@ try:
         parse_root_thread_id,
     )
 except ModuleNotFoundError:  # Imported as scripts.run_codex_evaluation in tests.
-    from scripts.export_prompt_bundle import BundleError, verify_bundle
+    from scripts.export_prompt_bundle import (
+        BundleError,
+        bundle_stored_path,
+        storage_format_of,
+        verify_bundle,
+    )
     from scripts.all_agent_command_evidence import (
         AllAgentCommandEvidenceError,
         adapter_owned_cleanup_attempts,
@@ -344,10 +354,11 @@ def prompt_fixture_collisions(case: dict[str, Any], manifest: dict[str, Any]) ->
 
 
 def overlay_bundle(workspace: Path, bundle: Path, manifest: dict[str, Any]) -> list[str]:
+    storage_format = storage_format_of(manifest)
     targets: list[str] = []
     for raw_entry in manifest["files"]:
         target = raw_entry["target"]
-        source = bundle / "files" / target
+        source = bundle_stored_path(bundle / "files", target, storage_format)
         destination = workspace / target
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.is_symlink() or destination.exists():
