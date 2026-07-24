@@ -33,7 +33,7 @@
 
 制御の内容: 「未発行のinvocation（次に出す指示）の選択を変えないresult間では、モデルへ再入しない」というlabel（`DECISION_BOUNDARY`、Candidate69）と、「artifact変更後に必要な検証を同一waveで一括発行し、全result受領後に一度だけ判断し、成功後は根拠のない追加readをしない」というlabel（`VALIDATION_CLOSURE`、Candidate71）を追加しました。
 
-観測: standard14でCandidate43比 all-agent中央値`-26.21%`・top-level tool call`-26.60%`（Candidate69）、Candidate69比 token合計`-27.93%`・tool call`-30.16%`（Candidate71）。いずれもトークンとstep数を大きく削りましたが、一括判断化により必要な検証（例: A02の`git diff --check`）の欠落が増え、品質gateを通過せず採用は見送りました（ともに`stopped`）。
+観測: standard14でCandidate43比 all-agent中央値`-26.21%`・top-level tool call`-26.60%`（Candidate69）、Candidate69比 token合計`-27.93%`・tool call`-30.16%`（Candidate71）。いずれもトークンとstep数を大きく削りましたが、一括判断化により、当時の採点で必要とされた検証（例: A02の`git diff --check`）の欠落が増え、品質gateを通過せず採用は見送りました（ともに`stopped`）。ただしこのA02の`git diff --check`欠落は、後のrating v13で「実行役へ提示していない特定コマンドを採点側が必須化した要求と採点のずれ」と整理され、本物の品質低下とは区別されています（[`repository-overview.md`](repository-overview.md)のA02採点節と[`evaluations/rating-contracts/README.md`](../evaluations/rating-contracts/README.md)を正本とします）。
 
 **4. read経路を事前に確定し、一括化・最短化する**
 
