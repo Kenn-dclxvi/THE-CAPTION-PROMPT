@@ -8,7 +8,6 @@
 - prompt identity、source identity、bundle hash、変更targetを固定する。
 - 既存bundleをin-placeで改訂しない。
 - 変更時は新しいrevisionまたはidentityを作る。
-- prompt変更と評価条件変更を同じ比較単位へ混ぜない。
 - artifactの存在を評価済みまたは採用済みの根拠にしない。
 
 ## Baseline
@@ -39,6 +38,7 @@
 - targeted評価で成果品質と狙った経路変化を確認する前に、expandedまたはcontinuous評価へ進めない。
 - 保存済みtraceにない将来不安だけを理由として制御を追加しない。
 - 新しいpredicateの追加より、既存predicateの置換、統合、削除を優先する。
+- 作成前gateが未定義なら、candidate bundleと`evaluations/`配下の評価profileを先に作らない。
 
 ## Route
 

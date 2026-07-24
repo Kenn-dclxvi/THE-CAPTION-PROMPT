@@ -75,8 +75,10 @@ compatibility keyが異なるresultを同一比較へ混ぜない。
 
 ## Immutable history
 
-- evaluation set、profile、rating contract、resultをrevision単位で固定する。
-- 結果確認後の採点条件変更は、新しいrating revisionとして扱う。
+- 一次結果は、prompt set名に加えてrevisionまたはbundle hashを含むimmutableな`prompt_set_identity`へbindする。可変名やcondition labelだけでresultを登録しない。
+- evaluation set、profile、rating contractをrevision単位で固定する。
+- resultはwrite-onceの`result_id`とcontent SHA-256で固定し、revisionで上書きしない。
+- 結果確認後に評価基準（profileまたは採点rating）を変える場合は、新しいrevisionとして扱う。
 - 過去resultを新契約でin-place再採点しない。
 - 既存resultのscore、identity、schemaを現在解釈へ上書きしない。
 - root-only token resultをall-agentへ補正する場合も、元resultを残して新schema resultをappendする。
